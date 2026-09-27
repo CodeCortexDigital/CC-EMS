@@ -1,6 +1,6 @@
 # Upgrade to International Standard: Progress
 
-**Project:** School ERP, from a Pakistani-style school system to an international-standard, multi-school SaaS platform.
+**Project:** CC-EMS (Code Cortex Education Management System), from a Pakistani-style school system to an international-standard, multi-school SaaS platform.
 **This document:** what is finished (with details), how deployment stands, and what is planned next (with details).
 **Last updated:** 27 September 2026
 

@@ -10,7 +10,7 @@ from django.utils.html import escape
 def layout(title: str, paragraphs: list[str], *, button: tuple[str, str] | None = None, school_name: str = '',
            footer: str = '') -> tuple[str, str]:
     """(text, html) in the same simple layout for every system email."""
-    brand = school_name or 'School ERP'
+    brand = school_name or 'CC-EMS'
     text = f'{title}\n\n' + '\n\n'.join(paragraphs)
     if button:
         text += f'\n\n{button[0]}: {button[1]}'

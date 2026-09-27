@@ -1,4 +1,4 @@
-# ERP-V2 — School & Institute Management System
+# CC-EMS — Code Cortex Education Management System
 
 A full-stack, multi-tenant school/ERP management platform with a **React + TypeScript (Vite/Tailwind)** frontend and a **Django REST (Python)** backend featuring role-based portals, real-time WebSockets, finance & payroll, and AI/ML-powered analytics.
 
@@ -245,7 +245,7 @@ Paths are relative to `/api/v1`.
 | GET | `/ai/attendance-anomalies/` | teacher, admin | Unresolved attendance alerts |
 | POST | `/ai/face-register/`, `/ai/face-attendance/` | teacher, admin | Face recognition |
 
-The code lives in `backend/services/ai/` (assistant, tools, AI providers, limits) and `backend/services/analytics/ai_views.py` (content generation and ML). The roadmap for further AI work is in [docs/AI_UPGRADE_TODO.md](docs/AI_UPGRADE_TODO.md).
+The code lives in `backend/services/ai/` (assistant, tools, AI providers, limits) and `backend/services/analytics/ai_views.py` (content generation and ML). The roadmap for further AI work is below, under [Pending actions](#pending-actions).
 
 ### Pending actions
 
@@ -281,15 +281,21 @@ The code lives in `backend/services/ai/` (assistant, tools, AI providers, limits
 
 #### Planned new AI features (Phase 3)
 
+Two items sometimes proposed for this list are **already built**, not planned: dropout risk and fee-default risk are the existing ML risk scan (`ai-ml/predictions/dropout_fee_model.py`, `POST /ai/train-models/`, `GET /ai/student-predictions/`) — see [Analytics (ML)](#analytics-ml) above.
+
 - [ ] Search over school documents (policies, circulars, syllabus) with answers that cite the source.
-- [ ] AI report card remarks for each student, reviewed by the teacher before saving.
+- [ ] AI report card remarks for each student, drawn from grades, attendance and behaviour, reviewed by the teacher before saving.
 - [ ] Parent message drafts (fee reminders, absence alerts, progress notes), approved before sending over SMS/WhatsApp.
+- [ ] An AI summary of a long parent message or conversation thread, for a busy staff member — the key points only, not a reply.
 - [ ] At-risk alerts that explain why a student was flagged and suggest what to do.
 - [ ] AI help with grading written answers (teacher confirms every mark).
 - [ ] Plain-language analytics questions, e.g. "compare fee collection this term vs last".
 - [ ] Actions the AI prepares and a person confirms, e.g. "send reminders to defaulters".
-- [ ] A server-side timetable optimizer (generation currently runs in the browser).
-- [ ] A study helper for students, limited to their syllabus.
+- [ ] A server-side timetable optimizer with plain-language constraints (generation currently runs in the browser, `ai-ml/academics/timetable_optimizer.py`).
+- [ ] A homework helper for students: step-by-step help limited to their own syllabus, not just the final answer.
+- [ ] Screening admission applications against the school's stated criteria, with a reason for each suggestion, before office review (not an automatic accept/reject).
+- [ ] Flagging behaviour patterns (repeated incident types, a rising trend for one student or class) before they escalate, from the existing behaviour records (Phase 9).
+- [ ] Translating a message, announcement or notice into a parent's own language on send, on top of the 23 interface languages already built (Phase 20).
 
 #### Later (Phases 4–5)
 

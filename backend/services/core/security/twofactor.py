@@ -25,7 +25,7 @@ from .models import TwoFactor
 
 STEP = 30
 DIGITS = 6
-ISSUER = 'School ERP'
+ISSUER = 'CC-EMS'
 CHALLENGE_SALT = 'two-factor-login'
 CHALLENGE_SECONDS = 300
 RECOVERY_COUNT = 10

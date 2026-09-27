@@ -127,7 +127,7 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
             <GraduationCap className="w-5 h-5" />
           </span>
           <div className="min-w-0 leading-tight">
-            <p className="font-bold text-[15px] truncate">{schoolName || 'CodeCortex ERP'}</p>
+            <p className="font-bold text-[15px] truncate">{schoolName || 'CC-EMS'}</p>
             <p className={`hidden sm:block text-[11px] truncate ${isWhite ? 'text-slate-500' : 'text-white/70'}`}>
               {t('header.schoolErp')}
             </p>

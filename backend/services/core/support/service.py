@@ -67,7 +67,7 @@ def _email(to, subject, title, lines, link, school=None):
     from services.core.security.mailer import layout, send
 
     text, html = layout(title, lines, button=('Open the ticket', link) if link else None,
-                        school_name='School ERP support')
+                        school_name='CC-EMS support')
     send('support', to, subject, text, html, school=school)
 
 

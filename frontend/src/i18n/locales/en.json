@@ -15,7 +15,7 @@
     "user": "User"
   },
   "header": {
-    "schoolErp": "CodeCortex School ERP",
+    "schoolErp": "Code Cortex EMS",
     "toLight": "Switch to light mode",
     "toDark": "Switch to dark mode",
     "lightMode": "Light mode",
@@ -66,7 +66,7 @@
     "log_out": "Log out"
   },
   "brand": {
-    "product": "School ERP",
+    "product": "Education Management System",
     "headline": "Everything your school runs on, in one place.",
     "intro": "Students, staff, fees and results for admins, teachers, parents and students, each with their own portal.",
     "f1Title": "Attendance & timetables",
@@ -75,6 +75,22 @@
     "f2Text": "Invoices, collections and defaulters at a glance.",
     "f3Title": "AI assistant",
     "f3Text": "Ask questions about your school in plain language.",
+    "f4Title": "Four role portals",
+    "f4Text": "Admin, teacher, parent and student, each sees only what they need.",
+    "f5Title": "23 languages",
+    "f5Text": "Right-to-left scripts included, switch any time.",
+    "f6Title": "Every school separate",
+    "f6Text": "Private data per school, with two-step sign-in.",
+    "previewTitle": "Today at a glance",
+    "previewNote": "Sample data",
+    "previewAttendance": "Students present today",
+    "previewFees": "Fees collected this month",
+    "demo1Q": "Who has unpaid fees this month?",
+    "demo1A": "42 students. Want me to draft reminders for their parents?",
+    "demo2Q": "Which class had the lowest attendance this week?",
+    "demo2A": "Grade 7-B at 88%. 5 students missed three or more days.",
+    "demo3Q": "How is Grade 9 doing in maths?",
+    "demo3A": "Class average 74%, up 6 points from last term.",
     "secure": "Secure sign-in. Each school's data is kept separate."
   },
   "auth": {

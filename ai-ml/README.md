@@ -1,6 +1,6 @@
 # AI/ML Preparation & Audit Module (Phase 0)
 
-Welcome to the AI/ML integration workspace. This directory contains tools, check scripts, and training resources to transition our School ERP system from traditional operations to intelligent predictive features.
+Welcome to the AI/ML integration workspace. This directory contains tools, check scripts, and training resources to transition our CC-EMS system from traditional operations to intelligent predictive features.
 
 ---
 

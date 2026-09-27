@@ -414,7 +414,7 @@ def ical(request, token):
     with use_tenant(school):
         items = feed_for(user, today - timedelta(days=60), today + timedelta(days=365))
     name = (school.settings_json or {}).get('institute_name') or school.name
-    lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CodeCortex School ERP//EN', f'X-WR-CALNAME:{_ics_escape(name)}',
+    lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Code Cortex//CC-EMS//EN', f'X-WR-CALNAME:{_ics_escape(name)}',
              'CALSCALE:GREGORIAN']
     stamp = timezone.now().strftime('%Y%m%dT%H%M%SZ')
     for i in items:

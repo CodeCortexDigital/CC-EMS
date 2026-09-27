@@ -2,7 +2,7 @@
 
 > Working with 1–2 developers and a small budget? Follow [LEAN_ROADMAP.md](LEAN_ROADMAP.md) instead. It does the same work in a cheaper order and points back here for details.
 
-**Goal:** sell CodeCortex School ERP as SaaS to schools in Europe and the USA (and keep growing in Pakistan and similar markets), with:
+**Goal:** sell CC-EMS (Code Cortex Education Management System) as SaaS to schools in Europe and the USA (and keep growing in Pakistan and similar markets), with:
 
 - data-protection compliance: GDPR in the EU/UK; FERPA, COPPA and state student-privacy laws in the US;
 - subscription billing;

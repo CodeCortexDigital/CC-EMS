@@ -1,5 +1,5 @@
 """
-Backup and disaster recovery module for My School ERP.
+Backup and disaster recovery module for CC-EMS.
 """
 
 __version__ = '1.0.0'

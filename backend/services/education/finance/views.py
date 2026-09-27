@@ -1558,7 +1558,7 @@ def send_defaulter_whatsapp_notice(request, invoice_id):
             )
 
         whatsapp_message = Message.objects.create(
-            sender='School ERP',
+            sender='CC-EMS',
             recipient=invoice.student.full_name,
             recipient_phone=invoice.student.phone,
             subject=f'Overdue Payment Reminder - {invoice.invoice_number}',

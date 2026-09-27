@@ -1,6 +1,6 @@
 # AI/ML Developer Training Guide (Phase 0)
 
-This syllabus guides developers through building the foundational knowledge required for the School ERP AI features.
+This syllabus guides developers through building the foundational knowledge required for the CC-EMS AI features.
 
 ---
 
