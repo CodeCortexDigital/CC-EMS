@@ -9,6 +9,7 @@ import {
 import studentService from '@/services/student.service';
 import academicService from '@/services/academic.service';
 import { extractListData } from '@/services/api';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportHelper';
 
 export default function PrintBasicListPage() {
   const navigate = useNavigate();
@@ -143,7 +144,43 @@ export default function PrintBasicListPage() {
   };
 
   const handleExport = (type: string) => {
-    toast.success(`${type} export started!`);
+    if (filteredStudents.length === 0) {
+      toast.warning('No students to export');
+      return;
+    }
+    const rows = filteredStudents.map((s) => ({
+      id: s.student_id || s.registration_no || '--',
+      name: s.full_name || s.name || '--',
+      father_name: s.father_name || '--',
+      class_name: s.class_name || s.current_class_name || s.current_class || '--',
+      status: s.is_active !== false ? 'Active' : 'Inactive',
+      phone: s.phone || s.mobile || '--',
+    }));
+    const columns = [
+      { key: 'id' as const, header: 'Reg. #' },
+      { key: 'name' as const, header: 'Student Name' },
+      { key: 'father_name' as const, header: 'Father Name' },
+      { key: 'class_name' as const, header: 'Class' },
+      { key: 'status' as const, header: 'Status' },
+      { key: 'phone' as const, header: 'Phone' },
+    ];
+    switch (type) {
+      case 'Copy':
+        navigator.clipboard.writeText(
+          rows.map((r) => `${r.id}\t${r.name}\t${r.father_name}\t${r.class_name}\t${r.status}\t${r.phone}`).join('\n')
+        );
+        toast.success('Copied to clipboard');
+        break;
+      case 'CSV':
+        exportToCSV(rows, 'students-list', columns);
+        break;
+      case 'Excel':
+        exportToExcel(rows, 'Students List', columns);
+        break;
+      case 'PDF':
+        exportToPDF(rows, 'Students List', columns);
+        break;
+    }
   };
 
   // Filter students based on selection & search

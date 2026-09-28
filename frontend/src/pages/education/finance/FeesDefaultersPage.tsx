@@ -7,6 +7,7 @@ import studentService from '@/services/student.service';
 import financeService from '@/services/finance.service';
 import { extractListData } from '@/services/api';
 import { cur } from '@/utils/currency';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportHelper';
 
 interface Invoice {
   id: string;
@@ -329,6 +330,51 @@ export default function FeesDefaultersPage() {
     );
   });
 
+  const handleExport = (type: string) => {
+    if (filteredTableDefaulters.length === 0) {
+      toast.warning('No defaulters to export');
+      return;
+    }
+    const rows = filteredTableDefaulters.map((def) => ({
+      id: def.student_id || '001',
+      name: def.full_name,
+      class_name: def.class_name || 'N/A',
+      due_date: def.dueDate ? new Date(def.dueDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'N/A',
+      pending: def.totalUnpaid,
+      days_late: def.daysLate,
+      phone: def.guardian_phone || def.phone_number || 'N/A',
+    }));
+    const columns = [
+      { key: 'id' as const, header: 'ID' },
+      { key: 'name' as const, header: 'Name' },
+      { key: 'class_name' as const, header: 'Class' },
+      { key: 'due_date' as const, header: 'Due Date' },
+      { key: 'pending' as const, header: `Pending (${cur()})` },
+      { key: 'days_late' as const, header: 'Days Late' },
+      { key: 'phone' as const, header: 'Phone' },
+    ];
+    switch (type) {
+      case 'Copy':
+        navigator.clipboard.writeText(
+          rows.map((r) => `${r.id}\t${r.name}\t${r.class_name}\t${r.due_date}\t${r.pending}\t${r.days_late}\t${r.phone}`).join('\n')
+        );
+        toast.success('Copied to clipboard');
+        break;
+      case 'CSV':
+        exportToCSV(rows, 'fee-defaulters', columns);
+        break;
+      case 'Excel':
+        exportToExcel(rows, 'Fee Defaulters', columns);
+        break;
+      case 'PDF':
+        exportToPDF(rows, 'Fee Defaulters', columns);
+        break;
+      case 'Print':
+        window.print();
+        break;
+    }
+  };
+
   const getDaysLateColor = (days: number) => {
     if (days <= 7) return 'text-amber-500';
     if (days <= 15) return 'text-orange-500';
@@ -464,18 +510,12 @@ export default function FeesDefaultersPage() {
               {['Copy', 'CSV', 'Excel', 'PDF', 'Print'].map((btn) => (
                 <button
                   key={btn}
-                  onClick={() => toast.success(`${btn} action triggered`)}
+                  onClick={() => handleExport(btn)}
                   className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-slate-500 hover:bg-purple-50 hover:text-purple-700 text-[11px] font-bold shadow-3xs transition-all"
                 >
                   {btn}
                 </button>
               ))}
-              <button
-                onClick={() => toast.info('Column visibility toggle')}
-                className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-slate-500 hover:bg-purple-50 hover:text-purple-700 text-[11px] font-bold shadow-3xs transition-all flex items-center gap-1"
-              >
-                Column visibility ▾
-              </button>
             </div>
 
             <div className="flex items-center gap-2 text-xs font-bold text-slate-500 w-full sm:w-auto">

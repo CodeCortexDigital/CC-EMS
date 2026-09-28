@@ -5,6 +5,7 @@ import { Wallet, Printer, ChevronDown, RotateCcw, Trash2 } from 'lucide-react';
 import ledgerService from '@/services/ledger.service';
 import financeService from '@/services/finance.service';
 import { cur } from '@/utils/currency';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportHelper';
 
 interface Transaction {
   id: string;
@@ -91,7 +92,43 @@ export default function AccountStatementPage() {
   };
 
   const handleExport = (type: string) => {
-    toast.success(`${type} export started!`);
+    if (ledgerRows.length === 0) {
+      toast.warning('No statement entries to export');
+      return;
+    }
+    const rows = ledgerRows.map((t) => ({
+      date: t.date,
+      description: t.description,
+      type: t.type,
+      expense: t.type === 'Expense' ? t.amount : 0,
+      income: t.type === 'Income' ? t.amount : 0,
+      balance: t.runningBalance,
+    }));
+    const columns = [
+      { key: 'date' as const, header: 'Date' },
+      { key: 'description' as const, header: 'Description' },
+      { key: 'type' as const, header: 'Type' },
+      { key: 'expense' as const, header: `Expense (${cur()})` },
+      { key: 'income' as const, header: `Income (${cur()})` },
+      { key: 'balance' as const, header: `Balance (${cur()})` },
+    ];
+    switch (type) {
+      case 'Copy':
+        navigator.clipboard.writeText(
+          rows.map((r) => `${r.date}\t${r.description}\t${r.type}\t${r.expense}\t${r.income}\t${r.balance}`).join('\n')
+        );
+        toast.success('Copied to clipboard');
+        break;
+      case 'CSV':
+        exportToCSV(rows, 'account-statement', columns);
+        break;
+      case 'Excel':
+        exportToExcel(rows, 'Account Statement', columns);
+        break;
+      case 'PDF':
+        exportToPDF(rows, 'Account Statement', columns);
+        break;
+    }
   };
 
   // Sort chronologically to compute correct running balance
