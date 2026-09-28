@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from django.core import mail
+from django.core.cache import cache
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -128,6 +129,159 @@ def test_class_announcement_reaches_the_right_families(school):
     _client(d['p4']).post(f'/api/v1/auth/communication/announcements/{ann_id}/', format='json')
     staff_view = admin.get('/api/v1/auth/communication/announcements/').json()[0]
     assert staff_view['read_count'] == 1
+
+
+@pytest.mark.django_db
+class TestAiSummary:
+    """docs table "AI Parent Message Summarizer": condensing long announcements/threads for a parent."""
+
+    @pytest.fixture(autouse=True)
+    def _clean(self, settings):
+        settings.OPENAI_API_KEY = ''
+        settings.ANTHROPIC_API_KEY = ''
+        settings.AI_RATE_LIMIT = 30
+        cache.clear()
+
+    def _announcement(self, d, body='Museum visit on Friday. Buses leave at 8am sharp.'):
+        return _client(d['admin']).post('/api/v1/auth/communication/announcements/', {
+            'title': 'Grade 4 trip', 'body': body, 'audience': 'class', 'class_ids': [str(d['c4'].id)],
+        }, format='json').json()['id']
+
+    def test_template_without_provider(self, school):
+        d = school
+        ann_id = self._announcement(d)
+        res = _client(d['p4']).post(f'/api/v1/auth/communication/announcements/{ann_id}/summarize/', {}, format='json')
+        assert res.status_code == 200, res.content
+        assert res.json()['source'] == 'template'
+
+    def test_summarizes_the_announcement_and_records_usage(self, school):
+        from services.ai.models import AIUsage
+        from tests.test_ai_platform import FakeLLM
+
+        d = school
+        ann_id = self._announcement(d)
+        llm = FakeLLM([])
+        llm.structured_results = [{'summary': 'Grade 4 is visiting the museum Friday; buses leave at 8am.',
+                                   'key_points': ['Buses leave at 8am sharp']}]
+        with mock.patch('services.ai.llm.get_llm_client', return_value=llm):
+            res = _client(d['p4']).post(f'/api/v1/auth/communication/announcements/{ann_id}/summarize/', {}, format='json')
+        assert res.status_code == 200, res.content
+        body = res.json()
+        assert body['source'] == 'ai' and '8am' in body['summary']
+        assert body['key_points'] == ['Buses leave at 8am sharp']
+        assert 'Museum visit on Friday' in llm.calls[0]['prompt']
+        assert AIUsage.objects.get(user=d['p4'], feature='ai_message_summary').output_tokens == 50
+
+    def test_only_recipients_can_summarize_an_announcement(self, school):
+        d = school
+        ann_id = self._announcement(d)
+        res = _client(d['p5']).post(f'/api/v1/auth/communication/announcements/{ann_id}/summarize/', {}, format='json')
+        assert res.status_code == 404
+
+    def test_summarizes_a_conversation_thread(self, school):
+        from tests.test_ai_platform import FakeLLM
+
+        d = school
+        p4 = _client(d['p4'])
+        conv_id = p4.post('/api/v1/auth/communication/conversations/', {
+            'participants': [str(d['green'].id)], 'subject': 'Science project',
+            'body': 'Can Kid bring a poster on Friday?', 'student': str(d['kid4'].id)}, format='json').json()['id']
+        _client(d['green']).post(f'/api/v1/auth/communication/conversations/{conv_id}/messages/',
+                                 {'body': 'Yes, any size is fine.'}, format='json')
+
+        llm = FakeLLM([])
+        llm.structured_results = [{'summary': 'Ms Green approved bringing a poster on Friday, any size.', 'key_points': []}]
+        with mock.patch('services.ai.llm.get_llm_client', return_value=llm):
+            res = p4.post(f'/api/v1/auth/communication/conversations/{conv_id}/summarize/', {}, format='json')
+        assert res.status_code == 200, res.content
+        assert res.json()['source'] == 'ai'
+        assert 'poster' in llm.calls[0]['prompt'].lower() and 'any size is fine' in llm.calls[0]['prompt'].lower()
+        # Someone outside the conversation cannot summarise it.
+        assert _client(d['p5']).post(f'/api/v1/auth/communication/conversations/{conv_id}/summarize/', {}, format='json').status_code == 404
+
+
+@pytest.mark.django_db
+class TestAiTranslation:
+    """docs table "AI Translation": translates an announcement or message into a reader's language."""
+
+    @pytest.fixture(autouse=True)
+    def _clean(self, settings):
+        settings.OPENAI_API_KEY = ''
+        settings.ANTHROPIC_API_KEY = ''
+        settings.AI_RATE_LIMIT = 30
+        cache.clear()
+
+    def _announcement(self, d, body='Museum visit on Friday. Buses leave at 8am sharp.'):
+        return _client(d['admin']).post('/api/v1/auth/communication/announcements/', {
+            'title': 'Grade 4 trip', 'body': body, 'audience': 'class', 'class_ids': [str(d['c4'].id)],
+        }, format='json').json()['id']
+
+    def test_template_without_provider(self, school):
+        d = school
+        ann_id = self._announcement(d)
+        res = _client(d['p4']).post(f'/api/v1/auth/communication/announcements/{ann_id}/translate/', {}, format='json')
+        assert res.status_code == 200, res.content
+        assert res.json()['source'] == 'template'
+
+    def test_translates_using_an_explicit_language_and_records_usage(self, school):
+        from services.ai.models import AIUsage
+        from tests.test_ai_platform import FakeLLM
+
+        d = school
+        ann_id = self._announcement(d)
+        llm = FakeLLM([])
+        llm.structured_results = [{'translated_text': 'Visite au musée vendredi. Les bus partent à 8h.'}]
+        with mock.patch('services.ai.llm.get_llm_client', return_value=llm):
+            res = _client(d['p4']).post(f'/api/v1/auth/communication/announcements/{ann_id}/translate/',
+                                        {'target_language': 'fr'}, format='json')
+        assert res.status_code == 200, res.content
+        body = res.json()
+        assert body['source'] == 'ai' and body['language'] == 'fr' and 'musée' in body['translated_text']
+        assert 'French' in llm.calls[0]['prompt'] and 'Museum visit on Friday' in llm.calls[0]['prompt']
+        assert AIUsage.objects.get(user=d['p4'], feature='ai_translation').output_tokens == 50
+
+    def test_defaults_to_the_readers_guardian_language(self, school):
+        from services.education.students.models import Guardian
+        from tests.test_ai_platform import FakeLLM
+
+        d = school
+        Guardian.objects.create(tenant=d['s'], first_name='Parent', last_name='Four', user=d['p4'], preferred_language='ur')
+        ann_id = self._announcement(d)
+        llm = FakeLLM([])
+        llm.structured_results = [{'translated_text': 'ترجمہ شدہ متن'}]
+        with mock.patch('services.ai.llm.get_llm_client', return_value=llm):
+            res = _client(d['p4']).post(f'/api/v1/auth/communication/announcements/{ann_id}/translate/', {}, format='json')
+        assert res.status_code == 200, res.content
+        assert res.json()['language'] == 'ur' and 'Urdu' in llm.calls[0]['prompt']
+
+    def test_only_recipients_can_translate_an_announcement(self, school):
+        d = school
+        ann_id = self._announcement(d)
+        res = _client(d['p5']).post(f'/api/v1/auth/communication/announcements/{ann_id}/translate/', {}, format='json')
+        assert res.status_code == 404
+
+    def test_translates_a_single_message(self, school):
+        from tests.test_ai_platform import FakeLLM
+
+        d = school
+        p4 = _client(d['p4'])
+        conv_id = p4.post('/api/v1/auth/communication/conversations/', {
+            'participants': [str(d['green'].id)], 'subject': 'Science project',
+            'body': 'Can Kid bring a poster on Friday?', 'student': str(d['kid4'].id)}, format='json').json()['id']
+        reply = _client(d['green']).post(f'/api/v1/auth/communication/conversations/{conv_id}/messages/',
+                                         {'body': 'Yes, any size is fine.'}, format='json').json()
+
+        llm = FakeLLM([])
+        llm.structured_results = [{'translated_text': 'Oui, toute taille convient.'}]
+        with mock.patch('services.ai.llm.get_llm_client', return_value=llm):
+            res = p4.post(f'/api/v1/auth/communication/conversations/{conv_id}/messages/{reply["id"]}/translate/',
+                          {'target_language': 'fr'}, format='json')
+        assert res.status_code == 200, res.content
+        assert res.json()['translated_text'] == 'Oui, toute taille convient.'
+        assert 'any size is fine' in llm.calls[0]['prompt'].lower()
+        # Someone outside the conversation cannot translate its messages.
+        assert _client(d['p5']).post(f'/api/v1/auth/communication/conversations/{conv_id}/messages/{reply["id"]}/translate/',
+                                     {'target_language': 'fr'}, format='json').status_code == 404
 
 
 @pytest.mark.django_db

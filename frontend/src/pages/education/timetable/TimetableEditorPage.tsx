@@ -213,265 +213,47 @@ export default function TimetableEditorPage() {
   }
 
   const [optimizing, setOptimizing] = useState(false)
+  const [ttPreview, setTtPreview] = useState<{ score: number; slots: any[]; slotsRequested: number } | null>(null)
+  const [committing, setCommitting] = useState(false)
 
-  // ============================================================
-  // FIX 2: Use actual teachers from employee list
-  // ============================================================
-  const generateCompleteTimetable = () => {
-    const entries: any[] = [];
-    let entryIdCounter = Date.now();
-
-    // Grade-based subject defaults (used when no class-subjects are assigned in backend)
-    const gradeSubjectDefaults: Record<string, string[]> = {
-      '1':  ['English', 'Mathematics', 'Urdu', 'General Knowledge', 'Arts', 'Islamiyat'],
-      '2':  ['English', 'Mathematics', 'Urdu', 'General Knowledge', 'Arts', 'Islamiyat'],
-      '3':  ['English', 'Mathematics', 'Urdu', 'General Science', 'Social Studies', 'Islamiyat'],
-      '4':  ['English', 'Mathematics', 'Urdu', 'General Science', 'Social Studies', 'Islamiyat'],
-      '5':  ['English', 'Mathematics', 'Urdu', 'General Science', 'Social Studies', 'Islamiyat'],
-      '6':  ['English', 'Mathematics', 'Urdu', 'Science', 'Social Studies', 'Islamiyat', 'Computer'],
-      '7':  ['English', 'Mathematics', 'Urdu', 'Science', 'Pakistan Studies', 'Islamiyat', 'Computer'],
-      '8':  ['English', 'Mathematics', 'Urdu', 'Science', 'Pakistan Studies', 'Islamiyat', 'Computer'],
-      '9':  ['English', 'Mathematics', 'Urdu', 'Physics', 'Chemistry', 'Biology', 'Pakistan Studies', 'Islamiyat', 'Computer'],
-      '10': ['English', 'Mathematics', 'Urdu', 'Physics', 'Chemistry', 'Biology', 'Pakistan Studies', 'Islamiyat', 'Computer'],
-    };
-
-    const getGradeNum = (name: string) => {
-      const match = name.toLowerCase().match(/grade\s+(\d+)/);
-      return match ? match[1] : '1';
-    };
-
-    // Find non-break periods
-    const activePeriods = periods.filter(p => !p.is_break);
-    if (activePeriods.length === 0 || classes.length === 0) {
-      console.warn('⚠️ Missing required data for timetable generation')
-      return [];
-    }
-
-    // Create an array of classSubjects grouped by class.
-    // Fall back to grade-based defaults when no subjects are assigned in the backend.
-    const classSubjectsMap: Record<string, any[]> = {};
-    classes.forEach(c => {
-      const assigned = classSubjects.filter(cs =>
-        cs.class_name === c.name || cs.class_ref === c.id || cs.class_ref === c.name
-      );
-      if (assigned.length > 0) {
-        classSubjectsMap[c.name] = assigned;
-      } else {
-        // Build virtual class-subject objects from grade defaults
-        const grade = getGradeNum(c.name);
-        const defaultSubs = gradeSubjectDefaults[grade] || gradeSubjectDefaults['1'];
-        classSubjectsMap[c.name] = defaultSubs.map(subName => ({
-          id: `${c.name}-${subName}`.replace(/\s+/g, '-'),
-          class_ref: c.id || c.name,
-          class_name: c.name,
-          subject: subName,
-          subject_name: subName,
-        }));
-      }
-    });
-
-    // ============================================================
-    // FIX: USE ACTUAL TEACHERS FROM EMPLOYEE LIST
-    // ============================================================
-    // Map actual teachers from the API response
-    const actualTeachers = teachers.map(t => ({ 
-      id: t.id, 
-      name: t.full_name || t.name, 
-      full_name: t.full_name || t.name 
-    }));
-
-    console.log(`📋 Teachers available for timetable: ${actualTeachers.length} actual teachers`)
-
-    // Only use default teachers if NO teachers exist in the system
-    const fallbackTeachersList = [
-      
-    ];
-
-    // Use actual teachers if available, otherwise fallback to defaults
-    const teachersList = actualTeachers.length > 0 ? actualTeachers : fallbackTeachersList;
-
-    // Log which teachers are being used
-    console.log(`✅ Using ${teachersList.length} teachers for timetable generation:`)
-    console.log(teachersList.map(t => t.full_name).join(', '))
-
-    if (teachersList.length === 0) {
-      console.error('❌ No teachers available for timetable generation!')
-      return []
-    }
-
-    // Keep track of busy teachers and classrooms per day and period to avoid clashes
-    const busyTeachers = new Set<string>();
-    const busyClassrooms = new Set<string>();
-    const teacherWorkloads = new Map<string, number>();
-    const teacherSubjectCount = new Map<string, Map<string, number>>();
-
-    const getRandomItem = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
-
-    // ============================================================
-    // FIX 3: Dynamic teacher specialties based on actual teachers
-    // ============================================================
-    const getTeacherSpecialties = (name: string): string[] => {
-      const lower = name.toLowerCase();
-      
-      const actualTeacherSubjects: Record<string, string[]> = {};
-      
-      // Check if this teacher has defined subjects
-      for (const [teacherName, subjects] of Object.entries(actualTeacherSubjects)) {
-        if (lower.includes(teacherName)) {
-          return subjects;
-        }
-      }
-      
-      // If teacher has subject_specializations in their data, use that
-      const teacherData = teachers.find(t => 
-        t.full_name?.toLowerCase().includes(lower) || 
-        t.name?.toLowerCase().includes(lower)
-      );
-      if (teacherData?.subject_specializations && teacherData.subject_specializations.length > 0) {
-        return teacherData.subject_specializations;
-      }
-      
-      return ['English', 'Urdu', 'Mathematics', 'General Knowledge', 'Arts', 'Islamiyat'];
-    };
-
-    // For each class, try to schedule periods
-    classes.forEach(cls => {
-      const subjectsForClass = classSubjectsMap[cls.name] || [];
-      if (subjectsForClass.length === 0) return; // Should never happen with grade defaults
-
-      let subjectIndex = 0;
-
-      activeDays.forEach(day => {
-        activePeriods.forEach(period => {
-          // Cycle through subjects
-          const currentSubject = subjectsForClass[subjectIndex % subjectsForClass.length];
-          subjectIndex++;
-
-          const subjectName = currentSubject.subject_name || currentSubject.subject || '';
-
-          // Find qualified teachers for this subject
-          const qualified = teachersList.filter(t => {
-            const specs = getTeacherSpecialties(t.full_name || t.name);
-            // Check if any specialty matches the subject
-            return specs.some(s => 
-              subjectName.toLowerCase().includes(s.toLowerCase()) ||
-              s.toLowerCase().includes(subjectName.toLowerCase()) ||
-              s.toLowerCase() === 'all subjects'
-            );
-          });
-
-          // If no qualified teachers found, use all teachers
-          const availableTeachers = qualified.length > 0 ? qualified : [...teachersList];
-
-          // Sort by workload to balance distribution
-          availableTeachers.sort((a, b) => {
-            const loadA = teacherWorkloads.get(a.id) || 0;
-            const loadB = teacherWorkloads.get(b.id) || 0;
-            return loadA - loadB;
-          });
-
-          // Find teacher who is not busy at this slot
-          let chosenTeacher = availableTeachers.find(t => !busyTeachers.has(`${day}-${period.id}-${t.id}`));
-
-          // Fallback to any free teacher
-          if (!chosenTeacher) {
-            const sortedAll = [...teachersList].sort((a, b) => {
-              const loadA = teacherWorkloads.get(a.id) || 0;
-              const loadB = teacherWorkloads.get(b.id) || 0;
-              return loadA - loadB;
-            });
-            chosenTeacher = sortedAll.find(t => !busyTeachers.has(`${day}-${period.id}-${t.id}`));
-          }
-
-          // Ultimate fallback
-          if (!chosenTeacher && teachersList.length > 0) {
-            chosenTeacher = getRandomItem(teachersList);
-          }
-
-          // Mark teacher as busy and update workload
-          if (chosenTeacher) {
-            busyTeachers.add(`${day}-${period.id}-${chosenTeacher.id}`);
-            const currentLoad = teacherWorkloads.get(chosenTeacher.id) || 0;
-            teacherWorkloads.set(chosenTeacher.id, currentLoad + 1);
-            
-            // Track subject count per teacher
-            if (!teacherSubjectCount.has(chosenTeacher.id)) {
-              teacherSubjectCount.set(chosenTeacher.id, new Map());
-            }
-            const subjectMap = teacherSubjectCount.get(chosenTeacher.id)!;
-            subjectMap.set(subjectName, (subjectMap.get(subjectName) || 0) + 1);
-          }
-
-          // Find classroom not busy at this slot
-          let chosenRoom = classrooms.find(r => !busyClassrooms.has(`${day}-${period.id}-${r.id}`));
-          if (!chosenRoom && classrooms.length > 0) {
-            chosenRoom = getRandomItem(classrooms);
-          }
-
-          // Mark classroom as busy
-          if (chosenRoom) {
-            busyClassrooms.add(`${day}-${period.id}-${chosenRoom.id}`);
-          }
-
-          entries.push({
-            id: `entry-${entryIdCounter++}`,
-            academic_year: activeYearId || '1',
-            class_subject: currentSubject.id,
-            class_name: cls.name,
-            subject_name: currentSubject.subject_name || currentSubject.subject,
-            teacher: chosenTeacher ? chosenTeacher.id : '',
-            teacher_name: chosenTeacher ? (chosenTeacher.full_name || chosenTeacher.name) : 'Unassigned',
-            classroom: chosenRoom ? chosenRoom.id : '',
-            classroom_name: chosenRoom ? chosenRoom.name : 'Unassigned',
-            day_of_week: day.toLowerCase(),
-            period: period.id,
-            is_active: true
-          });
-        });
-      });
-    });
-
-    console.log(`✅ Generated ${entries.length} timetable entries`)
-    return entries;
-  };
-
-  // ============================================================
-  // FIX 4: Handle AI Optimization with teacher fallback warning
-  // ============================================================
+  // Runs the real server-side genetic-algorithm optimizer (ai-ml/academics/timetable_optimizer.py).
+  // Always previews first: nothing is saved until the admin reviews the result and applies it,
+  // since applying replaces every existing period for this class's sections and year.
   const handleAiOptimize = async () => {
     if (!activeYearId) {
       toast.error('No active academic year found')
       return
     }
-
-    // Check if we have teachers
-    if (teachers.length === 0) {
-      toast.warning('⚠️ No teachers found in the system. Please add teachers first.', {
-        duration: 5000,
-        action: {
-          label: 'Add Teachers',
-          onClick: () => navigate('/employees')
-        }
-      })
-      return
-    }
-
     setOptimizing(true)
-    // Generation runs in the browser. A server-side optimizer is planned
-    // (docs/AI_UPGRADE_TODO.md, P3.8).
+    setTtPreview(null)
     try {
-      const generated = generateCompleteTimetable();
-      if (generated.length > 0) {
-        toast.success(`✅ Generated ${generated.length} conflict-free sessions using ${teachers.length} teachers`)
+      const res = await api.post('/ai/generate-timetable/', { academic_year: activeYearId })
+      const body = res.data
+      if (!body.slots || body.slots.length === 0) {
+        toast.error('Could not fit any lessons — check that classes have subjects, teachers and rooms set up.')
       } else {
-        toast.error('Failed to generate. Please verify that classes, teachers, and classrooms exist.')
+        setTtPreview({ score: body.fitness_score, slots: body.slots, slotsRequested: body.slots_requested })
+        toast.success(`AI proposed ${body.slots.length} periods (score ${Math.round(body.fitness_score)}/1000). Review below, then Apply.`)
       }
-      await fetchEditorResources()
     } catch (err: any) {
-      console.error(err)
-      toast.error('Timetable generation failed.')
+      toast.error(err?.response?.data?.error || 'Timetable generation failed.')
     } finally {
       setOptimizing(false)
+    }
+  }
+
+  const applyAiTimetable = async () => {
+    if (!activeYearId) return
+    setCommitting(true)
+    try {
+      const res = await api.post('/ai/generate-timetable/', { academic_year: activeYearId, commit: true })
+      toast.success(`Timetable updated: ${res.data.slots_scheduled} periods scheduled.`)
+      setTtPreview(null)
+      await fetchEditorResources()
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Could not save the generated timetable.')
+    } finally {
+      setCommitting(false)
     }
   }
 
@@ -738,7 +520,7 @@ export default function TimetableEditorPage() {
             )}
           </Badge>
           
-          <Button 
+          <Button
             className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2"
             onClick={handleAiOptimize}
             disabled={optimizing || teachers.length === 0}
@@ -748,6 +530,25 @@ export default function TimetableEditorPage() {
           </Button>
         </div>
       </div>
+
+      {ttPreview && (
+        <Card className="border-purple-300 bg-purple-50">
+          <CardContent className="py-4 flex flex-wrap items-center gap-3">
+            <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
+            <p className="text-sm text-slate-700 flex-1 min-w-[240px]">
+              AI proposed <strong>{ttPreview.slots.length}</strong> of {ttPreview.slotsRequested} requested periods
+              (score {Math.round(ttPreview.score)}/1000). Applying replaces every existing period for these
+              classes this year — there is no undo.
+            </p>
+            <Button size="sm" variant="outline" onClick={() => setTtPreview(null)} disabled={committing}>
+              Discard
+            </Button>
+            <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={applyAiTimetable} disabled={committing}>
+              {committing ? 'Applying...' : 'Apply to timetable'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Editor Grid */}

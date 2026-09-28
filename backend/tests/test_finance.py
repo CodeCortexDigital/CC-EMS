@@ -4,13 +4,22 @@ Finance model and API tests.
 import pytest
 from datetime import datetime, timedelta
 from decimal import Decimal
+from django.core import mail
 from rest_framework import status
+from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 from tests.conftest import (
-    InvoiceFactory, StudentFactory
+    InvoiceFactory, StudentFactory, UserFactory
 )
 
 
 pytestmark = pytest.mark.django_db
+
+
+def _client(user):
+    c = APIClient()
+    c.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(user).access_token}')
+    return c
 
 
 class TestInvoiceModel:
@@ -205,3 +214,40 @@ class TestPaymentProcessing:
         # response = client.post('/api/finance/payments/', data)
         # assert response.status_code == status.HTTP_201_CREATED
         # assert test_invoice.status == 'paid'
+
+
+class TestStudentFeeReminder:
+    """Emailing a family about their oldest open invoice by student id
+    (docs table "AI Fee Default Prediction": the AI Risk Forecasts table's "Remind" action)."""
+
+    def test_emails_the_oldest_open_invoice(self):
+        student = StudentFactory()
+        older = InvoiceFactory(student=student, status='overdue', due_date=datetime(2026, 1, 10).date(),
+                                amount=Decimal('5000'), paid_amount=Decimal('0'))
+        InvoiceFactory(student=student, status='issued', due_date=datetime(2026, 2, 10).date(),
+                       amount=Decimal('5000'), paid_amount=Decimal('0'))
+        InvoiceFactory(student=student, status='paid', due_date=datetime(2026, 1, 1).date(),
+                       amount=Decimal('5000'), paid_amount=Decimal('5000'))
+
+        admin = UserFactory(is_superuser=True)
+        res = _client(admin).post(f'/api/v1/auth/finance/communication/student-reminder/{student.id}/',
+                                  {'message': "We haven't received this term's fee yet."}, format='json')
+        assert res.status_code == 200, res.content
+        assert res.json()['invoice_number'] == older.invoice_number  # the earliest due_date, not the newest
+        assert len(mail.outbox) == 1
+        assert student.email in mail.outbox[0].to
+        assert "haven't received" in mail.outbox[0].body
+
+    def test_no_open_invoices(self):
+        student = StudentFactory()
+        InvoiceFactory(student=student, status='paid', paid_amount=Decimal('5000'), amount=Decimal('5000'))
+        admin = UserFactory(is_superuser=True)
+        res = _client(admin).post(f'/api/v1/auth/finance/communication/student-reminder/{student.id}/', {}, format='json')
+        assert res.status_code == 400
+
+    def test_only_finance_staff_can_send(self):
+        student = StudentFactory()
+        InvoiceFactory(student=student, status='issued')
+        stranger = UserFactory()
+        res = _client(stranger).post(f'/api/v1/auth/finance/communication/student-reminder/{student.id}/', {}, format='json')
+        assert res.status_code == 403

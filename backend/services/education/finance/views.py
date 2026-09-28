@@ -1310,83 +1310,112 @@ def apply_scholarship_to_invoice(request, invoice_id):
 
 # Email Communication Functions
 
+def _send_invoice_reminder(request, invoice, note='') -> dict:
+    """Email (and, if enabled, text) a fee reminder for one invoice. Shared by the
+    invoice-id reminder button (Fee Defaulters) and the student-id reminder action
+    (AI Fee Default Prediction). Raises ValueError when there is no email address to send to."""
+    from .billing import billing_emails
+    from services.education.communication import texts
+
+    recipients = billing_emails(invoice.student)
+    # A text too, if the school has automatic fee reminders by SMS / WhatsApp switched on (P16).
+    texted = texts.fee_reminder(invoice)
+    if not recipients:
+        if texted:
+            return {'message': f'Reminder sent by text to {len(texted)} number(s); the family has no email address.'}
+        raise ValueError('no_email')
+
+    days_overdue = 0
+    if invoice.due_date < timezone.now().date():
+        days_overdue = (timezone.now().date() - invoice.due_date).days
+
+    # Prepare email context
+    context = {
+        'student_name': invoice.student.full_name,
+        'school_name': getattr(getattr(request, 'tenant', None), 'name', None) or getattr(settings, 'SCHOOL_NAME', 'School Management System'),
+        'school_address': getattr(settings, 'SCHOOL_ADDRESS', ''),
+        'invoice_number': invoice.invoice_number,
+        'due_date': invoice.due_date,
+        'amount_due': float(invoice.balance_due),
+        'days_overdue': days_overdue,
+    }
+
+    # Render HTML email
+    html_content = render_to_string('finance/emails/fee_reminder.html', context)
+    text_content = strip_tags(html_content)
+    # The office's own words (from the reminder window) go above the standard reminder.
+    note = str(note or '').strip()[:2000]
+    if note:
+        from django.utils.html import escape, linebreaks
+
+        text_content = note + '\n\n' + text_content
+        html_content = linebreaks(escape(note)) + html_content
+
+    # Send email
+    subject = f"Fee Payment Reminder - {invoice.invoice_number}"
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@school.com')
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=from_email,
+        to=recipients
+    )
+    email.attach_alternative(html_content, "text/html")
+    email.send()
+
+    # Log the communication
+    TransactionLog.objects.create(
+        model_name='Invoice',
+        object_id=str(invoice.id),
+        object_name=invoice.invoice_number,
+        action='update',
+        user=request.user,
+        new_values={'email_reminder_sent': True, 'recipients': recipients},
+    )
+
+    return {
+        'message': 'Fee reminder sent successfully',
+        'recipient': ', '.join(recipients),
+        'invoice_number': invoice.invoice_number
+    }
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def send_fee_reminder(request, invoice_id):
     """Send fee payment reminder email"""
     try:
         invoice = Invoice.objects.select_related('student').get(id=invoice_id)
-        
-        from .billing import billing_emails
-
-        recipients = billing_emails(invoice.student)
-        # A text too, if the school has automatic fee reminders by SMS / WhatsApp switched on (P16).
-        from services.education.communication import texts
-
-        texted = texts.fee_reminder(invoice)
-        if not recipients:
-            if texted:
-                return Response({'message': f'Reminder sent by text to {len(texted)} number(s); the family has no email address.'})
-            return Response({'error': 'No email address for this family. Add one to a guardian marked "Receives invoices".'}, status=400)
-        
-        days_overdue = 0
-        if invoice.due_date < timezone.now().date():
-            days_overdue = (timezone.now().date() - invoice.due_date).days
-        
-        # Prepare email context
-        context = {
-            'student_name': invoice.student.full_name,
-            'school_name': getattr(getattr(request, 'tenant', None), 'name', None) or getattr(settings, 'SCHOOL_NAME', 'School Management System'),
-            'school_address': getattr(settings, 'SCHOOL_ADDRESS', ''),
-            'invoice_number': invoice.invoice_number,
-            'due_date': invoice.due_date,
-            'amount_due': float(invoice.balance_due),
-            'days_overdue': days_overdue,
-        }
-        
-        # Render HTML email
-        html_content = render_to_string('finance/emails/fee_reminder.html', context)
-        text_content = strip_tags(html_content)
-        # The office's own words (from the reminder window) go above the standard reminder.
-        note = str((request.data or {}).get('message') or '').strip()[:2000]
-        if note:
-            from django.utils.html import escape, linebreaks
-
-            text_content = note + '\n\n' + text_content
-            html_content = linebreaks(escape(note)) + html_content
-        
-        # Send email
-        subject = f"Fee Payment Reminder - {invoice.invoice_number}"
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@school.com')
-        
-        email = EmailMultiAlternatives(
-            subject=subject,
-            body=text_content,
-            from_email=from_email,
-            to=recipients
-        )
-        email.attach_alternative(html_content, "text/html")
-        email.send()
-
-        # Log the communication
-        TransactionLog.objects.create(
-            model_name='Invoice',
-            object_id=invoice.id,
-            action='email_reminder_sent',
-            user=request.user,
-            details=f"Fee reminder sent to {', '.join(recipients)} for invoice {invoice.invoice_number}",
-            old_value={},
-            new_value={'email_sent': True}
-        )
-        
-        return Response({
-            'message': 'Fee reminder sent successfully',
-            'recipient': ', '.join(recipients),
-            'invoice_number': invoice.invoice_number
-        })
-        
+        note = (request.data or {}).get('message')
+        return Response(_send_invoice_reminder(request, invoice, note))
     except Invoice.DoesNotExist:
         return Response({'error': 'Invoice not found'}, status=404)
+    except ValueError:
+        return Response({'error': 'No email address for this family. Add one to a guardian marked "Receives invoices".'}, status=400)
+    except Exception as e:
+        return Response({'error': f'Failed to send email: {str(e)}'}, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([FinanceStaff])
+def send_student_fee_reminder(request, student_id):
+    """Email the family about their oldest open invoice, given a student id — used by the
+    AI Risk Forecasts table's "Remind" action (docs table "AI Fee Default Prediction"),
+    where a fee-default-risk score is known for a student but no invoice id is on hand."""
+    from .billing import account_for_student
+
+    student = Student.objects.filter(pk=student_id).first()
+    if student is None:
+        return Response({'error': 'Student not found.'}, status=404)
+    invoice = account_for_student(student).open_invoices().first()
+    if invoice is None:
+        return Response({'error': f'{student.full_name} has no open invoices.'}, status=400)
+    try:
+        note = (request.data or {}).get('message')
+        return Response(_send_invoice_reminder(request, invoice, note))
+    except ValueError:
+        return Response({'error': 'No email address for this family. Add one to a guardian marked "Receives invoices".'}, status=400)
     except Exception as e:
         return Response({'error': f'Failed to send email: {str(e)}'}, status=500)
 

@@ -729,7 +729,7 @@ function BehaviourTab({ studentId }: { studentId: string }) {
   const [key, setKey] = useState(0);
   return (
     <>
-      <BehaviourHistory studentId={studentId} onOpen={setOpen} refreshKey={key} />
+      <BehaviourHistory studentId={studentId} onOpen={setOpen} refreshKey={key} staff />
       {open && <IncidentPanel incident={open} onClose={() => setOpen(null)} onChanged={() => setKey((k) => k + 1)} />}
     </>
   );

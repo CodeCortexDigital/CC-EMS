@@ -503,7 +503,11 @@ const financeService = {
 
   // ==================== Email Communication ====================
   sendFeeReminder: async (invoiceId: string) => {
-    const response = await api.post(`/communication/reminder/${invoiceId}/`);
+    const response = await api.post(`/auth/finance/communication/reminder/${invoiceId}/`);
+    return response;
+  },
+  sendStudentFeeReminder: async (studentId: string) => {
+    const response = await api.post(`/auth/finance/communication/student-reminder/${studentId}/`);
     return response;
   },
   sendPaymentConfirmation: async (paymentId: string) => {

@@ -1,9 +1,11 @@
 """Student / family portal: overview, assignments, progress and documents (Phase 10)."""
 from datetime import timedelta
 from decimal import Decimal
+from unittest import mock
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -157,6 +159,62 @@ def test_assignments_and_homework_attachment(school):
     att = _client(d['student_user']).get(f'{URL}/{d["sara"].id}/homework/{hw.id}/attachment/').json()
     assert att['name'] == 'ws4.pdf' and att['data'].startswith('data:application/pdf')
     assert _client(d['parent']).get(f'{URL}/{d["omar"].id}/homework/{hw.id}/attachment/').status_code == 404
+
+
+@pytest.mark.django_db
+class TestHomeworkHelp:
+    """docs table "AI Homework Helper": one hint at a time, never the final answer."""
+
+    @pytest.fixture(autouse=True)
+    def _clean(self, settings):
+        settings.OPENAI_API_KEY = ''
+        settings.ANTHROPIC_API_KEY = ''
+        settings.AI_RATE_LIMIT = 30
+        cache.clear()
+
+    def _hw(self, d, description='Solve for x: 2x + 3 = 11. Show your working.'):
+        with use_tenant(d['s']):
+            return Homework.objects.create(
+                tenant=d['s'], class_ref=d['c6'], class_name='Grade 6', subject_name='Maths',
+                title='Algebra practice', description=description,
+                homework_date=d['today'] - timedelta(days=1), due_date=d['today'] + timedelta(days=2))
+
+    def test_template_without_provider(self, school):
+        d = school
+        hw = self._hw(d)
+        res = _client(d['student_user']).post(f'{URL}/{d["sara"].id}/homework/{hw.id}/help/', {}, format='json')
+        assert res.status_code == 200, res.content
+        assert res.json()['source'] == 'template'
+
+    def test_needs_instructions_written(self, school):
+        d = school
+        hw = self._hw(d, description='')
+        res = _client(d['student_user']).post(f'{URL}/{d["sara"].id}/homework/{hw.id}/help/', {}, format='json')
+        assert res.status_code == 400
+
+    def test_gives_a_hint_grounded_in_the_assignment_and_records_usage(self, school):
+        from services.ai.models import AIUsage
+        from tests.test_ai_platform import FakeLLM
+
+        d = school
+        hw = self._hw(d)
+        llm = FakeLLM([])
+        llm.structured_results = [{'hint': 'Try subtracting 3 from both sides first.'}]
+        with mock.patch('services.ai.llm.get_llm_client', return_value=llm):
+            res = _client(d['student_user']).post(f'{URL}/{d["sara"].id}/homework/{hw.id}/help/', {
+                'question': "I don't know where to start", 'previous_hints': [],
+            }, format='json')
+        assert res.status_code == 200, res.content
+        body = res.json()
+        assert body['source'] == 'ai' and 'subtracting' in body['hint'].lower()
+        assert '2x + 3 = 11' in llm.calls[0]['prompt']
+        assert AIUsage.objects.get(user=d['student_user'], feature='ai_homework_help').output_tokens == 50
+
+    def test_cannot_get_help_for_another_classs_homework(self, school):
+        d = school
+        hw = self._hw(d)  # Grade 6 homework
+        res = _client(d['parent']).post(f'{URL}/{d["omar"].id}/homework/{hw.id}/help/', {}, format='json')  # Omar is Grade 7
+        assert res.status_code == 404
 
 
 @pytest.mark.django_db

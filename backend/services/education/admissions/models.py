@@ -80,6 +80,9 @@ class Application(models.Model):
     interview_date = models.DateTimeField(null=True, blank=True)
     interview_notes = models.TextField(blank=True)
     interview_rating = models.IntegerField(null=True, blank=True)
+    ai_screening_score = models.IntegerField(null=True, blank=True, help_text='0-100, how well the application matches the school\'s admission criteria')
+    ai_screening_summary = models.TextField(blank=True, default='')
+    ai_screened_at = models.DateTimeField(null=True, blank=True)
     converted_to_student = models.ForeignKey('education_students.Student', on_delete=models.SET_NULL, null=True, blank=True)
     source = models.CharField(max_length=10, choices=SOURCES, default='office')
     # Lets the family check progress online without an account.

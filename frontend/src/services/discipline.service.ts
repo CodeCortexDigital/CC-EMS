@@ -17,6 +17,11 @@ export interface StudentSummary {
   merits: number; incidents: number; open_incidents: number; by_category: Array<{ name: string; count: number }>;
   awards: Array<{ name: string; points: number; at: string }>; next_milestone: { points: number; name: string } | null; history: Incident[];
 }
+export interface BehaviourPattern {
+  id: string; pattern_type: 'escalating' | 'repeated_category' | 'high_severity' | 'frequent'; pattern_label: string;
+  severity: 'low' | 'medium' | 'high' | 'critical'; window_days: number; incident_count: number; summary: string;
+  recommended_actions: string[]; source: 'ai' | 'template'; is_resolved: boolean; detected_at: string;
+}
 export interface BehaviourReport {
   from: string; to: string; totals: { merits: number; incidents: number; points: number; students: number; open: number };
   by_category: Array<{ name: string; kind: string; count: number; points: number }>;
@@ -52,6 +57,9 @@ const discipline = {
   addAction: async (id: string, body: Record<string, unknown>) => (await api.post<BehaviourActionRow>(`${base}/incidents/${id}/actions/`, body)).data,
   updateAction: async (id: string, body: Record<string, unknown>) => (await api.patch<BehaviourActionRow>(`${base}/actions/${id}/`, body)).data,
   summary: async (studentId: string) => (await api.get<StudentSummary>(`${base}/students/${studentId}/summary/`)).data,
+  detectPattern: async (studentId: string) =>
+    (await api.post<{ detected: boolean; notified?: number } & Partial<BehaviourPattern>>(`${base}/students/${studentId}/detect-pattern/`)).data,
+  patterns: async (studentId: string) => (await api.get<BehaviourPattern[]>(`${base}/students/${studentId}/patterns/`)).data,
   report: async (params: Record<string, string> = {}) => (await api.get<BehaviourReport>(`${base}/report/`, { params })).data,
 };
 

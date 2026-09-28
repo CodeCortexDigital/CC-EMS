@@ -236,6 +236,105 @@ def conversation_detail(request, conv_id):
     return Response(data)
 
 
+def _ai_summarize(request, title, body):
+    """{title, body} -> {summary, key_points, source}, or an error Response
+    (docs table "AI Parent Message Summarizer")."""
+    from services.ai.context import AIContext
+    from services.ai.generation import generate_message_summary, template_message_summary
+    from services.ai.llm import LLMError, get_llm_client
+    from services.ai.quota import AIQuotaExceeded, check_rate_limit, check_token_budget, feature_enabled, record_usage
+
+    if not body.strip():
+        return None, Response({'error': 'There is nothing to summarise yet.'}, status=400)
+    if get_llm_client() is None:
+        return Response(template_message_summary(title=title, body=body)), None
+
+    ctx = AIContext.from_request(request)
+    if not feature_enabled('ai_message_summary', ctx):
+        return None, Response({'error': 'This AI feature is turned off for your school.'}, status=403)
+    llm = get_llm_client()
+    try:
+        check_rate_limit(ctx, 'ai_message_summary')
+        check_token_budget(ctx)
+    except AIQuotaExceeded as exc:
+        return None, Response({'error': str(exc)}, status=429)
+    try:
+        result, usage, model = generate_message_summary(llm, title=title, body=body)
+    except LLMError:
+        logger.exception('Message summarisation failed')
+        return None, Response({'error': 'Could not summarise this right now. Please try again.'}, status=502)
+    record_usage(ctx, 'ai_message_summary', llm.provider, model, usage)
+    return Response({**result, 'source': 'ai'}), None
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def summarize_conversation(request, conv_id):
+    conv = _my_conversation(request, conv_id)
+    messages = list(conv.messages.select_related('sender').order_by('-created_at')[:50])[::-1]
+    body = "\n\n".join(f"{(m.sender.full_name or m.sender.email) if m.sender else 'Someone'}: {m.body}" for m in messages)[-12000:]
+    ok, error = _ai_summarize(request, conv.subject or 'Conversation', body)
+    return error if error else ok
+
+
+def _resolve_target_language(request, explicit) -> str:
+    """The reader's language, in priority order: what they asked for this time, their guardian
+    profile's preferred language, then the school's own default (docs table "AI Translation")."""
+    from services.core.tenants.localization import LANGUAGES, school_locale
+    from services.education.students.models import Guardian
+
+    code = str(explicit or '').strip().lower()
+    if code in LANGUAGES:
+        return code
+    g = Guardian.objects.filter(user=request.user).exclude(preferred_language='').first()
+    if g and g.preferred_language.lower() in LANGUAGES:
+        return g.preferred_language.lower()
+    return school_locale(getattr(request, 'tenant', None))['language']
+
+
+def _ai_translate(request, title, body, lang_code):
+    """{title, body, lang_code} -> {translated_text, language, source}, or an error Response
+    (docs table "AI Translation")."""
+    from services.ai.context import AIContext
+    from services.ai.generation import generate_translation, template_translation
+    from services.ai.llm import LLMError, get_llm_client
+    from services.ai.quota import AIQuotaExceeded, check_rate_limit, check_token_budget, feature_enabled, record_usage
+    from services.core.tenants.localization import LANGUAGES
+
+    lang_name = LANGUAGES.get(lang_code, (lang_code,))[0]
+    if not body.strip():
+        return None, Response({'error': 'There is nothing to translate yet.'}, status=400)
+    if get_llm_client() is None:
+        return Response({**template_translation(title=title, body=body, target_language=lang_name), 'language': lang_code}), None
+
+    ctx = AIContext.from_request(request)
+    if not feature_enabled('ai_translation', ctx):
+        return None, Response({'error': 'This AI feature is turned off for your school.'}, status=403)
+    llm = get_llm_client()
+    try:
+        check_rate_limit(ctx, 'ai_translation')
+        check_token_budget(ctx)
+    except AIQuotaExceeded as exc:
+        return None, Response({'error': str(exc)}, status=429)
+    try:
+        result, usage, model = generate_translation(llm, title=title, body=body, target_language=lang_name)
+    except LLMError:
+        logger.exception('Translation failed')
+        return None, Response({'error': 'Could not translate this right now. Please try again.'}, status=502)
+    record_usage(ctx, 'ai_translation', llm.provider, model, usage)
+    return Response({**result, 'source': 'ai', 'language': lang_code}), None
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def translate_message(request, conv_id, message_id):
+    conv = _my_conversation(request, conv_id)
+    m = get_object_or_404(ChatMessage, pk=message_id, conversation=conv)
+    lang = _resolve_target_language(request, request.data.get('target_language'))
+    ok, error = _ai_translate(request, conv.subject or '', m.body, lang)
+    return error if error else ok
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
@@ -524,6 +623,38 @@ def announcements(request):
         deliver(a)
         a.refresh_from_db()
     return Response(_ann_payload(a, staff=True), status=201)
+
+
+def _visible_announcement(user, ann_id):
+    role = get_user_role(user)
+    if role == 'admin':
+        qs = Announcement.objects.all()
+    elif role == 'teacher':
+        qs = Announcement.objects.filter(Q(created_by=user) | Q(receipts__user=user)).distinct()
+    else:
+        qs = Announcement.objects.filter(receipts__user=user, sent_at__isnull=False).distinct()
+    return qs.filter(pk=ann_id).first()
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def summarize_announcement(request, ann_id):
+    a = _visible_announcement(request.user, ann_id)
+    if a is None:
+        return Response({'error': 'Announcement not found.'}, status=404)
+    ok, error = _ai_summarize(request, a.title, a.body)
+    return error if error else ok
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def translate_announcement(request, ann_id):
+    a = _visible_announcement(request.user, ann_id)
+    if a is None:
+        return Response({'error': 'Announcement not found.'}, status=404)
+    lang = _resolve_target_language(request, request.data.get('target_language'))
+    ok, error = _ai_translate(request, a.title, a.body, lang)
+    return error if error else ok
 
 
 @api_view(['POST', 'DELETE'])

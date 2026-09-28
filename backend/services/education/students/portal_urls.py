@@ -13,6 +13,7 @@ urlpatterns = [
     path('<str:student_id>/overview/', portal.overview, name='portal-overview'),
     path('<str:student_id>/assignments/', portal.assignments, name='portal-assignments'),
     path('<str:student_id>/homework/<str:homework_id>/attachment/', portal.homework_attachment, name='portal-homework-attachment'),
+    path('<str:student_id>/homework/<str:homework_id>/help/', portal.homework_help, name='portal-homework-help'),
     path('<str:student_id>/progress/', portal.progress, name='portal-progress'),
     path('<str:student_id>/documents/', portal.documents, name='portal-documents'),
 ]

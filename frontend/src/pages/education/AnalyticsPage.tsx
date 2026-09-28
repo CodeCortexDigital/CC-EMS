@@ -257,13 +257,24 @@ setTeacherPerformance(rawTeachers);
     }
   };
 
-  // Not connected to messaging yet (docs/AI_UPGRADE_TODO.md, P3.3).
-  const notifyCounselor = (studentName: string) => {
-    toast.info(`Counselor notifications are not connected yet. Please contact the counselor about ${studentName} directly.`);
+  const notifyCounselor = async (studentId: string | number, studentName: string) => {
+    try {
+      const res = await api.post('/ai/dropout-risk/notify/', { student_id: studentId });
+      toast.success(res.data?.notified > 0
+        ? `Notified ${res.data.notified} staff member(s) about ${studentName}.`
+        : `Logged a follow-up for ${studentName}, but no class teacher or admin was found to notify.`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || `Could not notify staff about ${studentName}.`);
+    }
   };
 
-  const sendFeeReminder = (studentName: string) => {
-    toast.info(`Automated fee reminders are not connected yet. Please send ${studentName}'s reminder from the Finance module.`);
+  const sendFeeReminder = async (studentId: string | number, studentName: string) => {
+    try {
+      const res = await api.post(`/auth/finance/communication/student-reminder/${studentId}/`);
+      toast.success(res.data?.message || `Reminder emailed to ${studentName}'s family.`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || `Could not send ${studentName}'s reminder.`);
+    }
   };
 
   const totalStudents = currentTotalStudents || (studentGrowth.length > 0 ? studentGrowth[studentGrowth.length - 1].count : 0);
@@ -1335,7 +1346,7 @@ setTeacherPerformance(rawTeachers);
                             <Button 
                               size="sm" 
                               className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-1"
-                              onClick={() => notifyCounselor(s.name)}
+                              onClick={() => notifyCounselor(s.id, s.name)}
                             >
                               <ShieldAlert className="w-3 h-3" /> Counsel
                             </Button>
@@ -1345,7 +1356,7 @@ setTeacherPerformance(rawTeachers);
                               size="sm" 
                               variant="outline" 
                               className="border-yellow-600 text-yellow-700 hover:bg-yellow-50 flex items-center gap-1"
-                              onClick={() => sendFeeReminder(s.name)}
+                              onClick={() => sendFeeReminder(s.id, s.name)}
                             >
                               <Mail className="w-3 h-3" /> Remind
                             </Button>

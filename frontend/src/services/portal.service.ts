@@ -90,6 +90,9 @@ const portal = {
     (await api.get<{ student: PortalStudent; items: WorkItem[]; counts: Record<string, number>; subjects: string[] }>(`${base}/${id}/assignments/`)).data,
   homeworkAttachment: async (id: string, homeworkId: string) =>
     (await api.get<{ name: string; data: string }>(`${base}/${id}/homework/${homeworkId}/attachment/`)).data,
+  homeworkHelp: async (id: string, homeworkId: string, question: string, previousHints: string[]) =>
+    (await api.post<{ hint: string; source: 'ai' | 'template' }>(`${base}/${id}/homework/${homeworkId}/help/`,
+      { question, previous_hints: previousHints })).data,
   progress: async (id: string) => (await api.get<Progress>(`${base}/${id}/progress/`)).data,
   documents: async (id: string) => (await api.get<DocumentList>(`${base}/${id}/documents/`)).data,
   upload: async (id: string, body: { file: File; title: string; category: string; visible_to_family?: boolean }) => {

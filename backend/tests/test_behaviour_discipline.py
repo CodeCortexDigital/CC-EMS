@@ -1,5 +1,6 @@
 """Behaviour management: categories, the behaviour log, actions, family alerts, milestones, history and reports (Phase 9)."""
 from datetime import date, timedelta
+from unittest import mock
 
 import pytest
 from django.core import mail
@@ -188,3 +189,83 @@ def test_legacy_behaviour_endpoints_are_read_only_for_families(school):
     assert [r['comments'] for r in rows] == ['Kind']
     assert p4.post('/api/v1/education/behaviour/skills/', {'name': 'Hack'}, format='json').status_code == 403
     assert _client(d['green']).post('/api/v1/education/behaviour/skills/', {'name': 'Teamwork'}, format='json').status_code == 201
+
+
+@pytest.mark.django_db
+class TestBehaviourPatternDetection:
+    """docs table "AI Behaviour Pattern Detection": a rule-based flag, explained by AI,
+    notified to staff — a draft finding, never a decision."""
+
+    @pytest.fixture(autouse=True)
+    def _clean(self, settings):
+        from django.core.cache import cache
+
+        settings.OPENAI_API_KEY = ''
+        settings.ANTHROPIC_API_KEY = ''
+        settings.AI_RATE_LIMIT = 30
+        cache.clear()
+
+    def _log(self, school, student, category_name, days_ago, count=1):
+        from services.education.behaviour.models import BehaviourIncident
+
+        today = date.today()
+        with use_tenant(school['s']):
+            cat = _cat(_client(school['admin']), category_name)
+            from services.education.behaviour.models import BehaviourCategory
+            category = BehaviourCategory.objects.get(pk=cat['id'])
+            for _ in range(count):
+                BehaviourIncident.objects.create(
+                    tenant=school['s'], student=student, category=category, kind=category.kind,
+                    points=category.points, severity=category.severity, date=today - timedelta(days=days_ago))
+
+    def test_no_pattern_with_too_few_incidents(self, school):
+        d = school
+        self._log(d, d['kid4'], 'Late to class', days_ago=5, count=1)
+        res = _client(d['green']).post(f'{URL}/students/{d["kid4"].id}/detect-pattern/', {}, format='json')
+        assert res.status_code == 200 and res.json()['detected'] is False
+
+    def test_high_severity_incident_flagged_with_template_fallback_and_notifies_staff(self, school):
+        d = school
+        self._log(d, d['kid4'], 'Bullying', days_ago=3, count=1)
+        self._log(d, d['kid4'], 'Late to class', days_ago=10, count=1)
+        res = _client(d['green']).post(f'{URL}/students/{d["kid4"].id}/detect-pattern/', {}, format='json')
+        assert res.status_code == 200, res.content
+        body = res.json()
+        assert body['detected'] is True and body['pattern_type'] == 'high_severity' and body['source'] == 'template'
+        assert body['notified'] >= 1  # Ms Green (class teacher) and/or the office admin
+
+        from services.education.behaviour.models import BehaviourPattern
+        assert BehaviourPattern.objects.filter(student=d['kid4'], pattern_type='high_severity').exists()
+
+    def test_repeated_category_uses_ai_explanation_and_records_usage(self, school):
+        from services.ai.models import AIUsage
+        from tests.test_ai_platform import FakeLLM
+
+        d = school
+        self._log(d, d['kid4'], 'Homework not done', days_ago=20, count=3)  # all in the first half: not "escalating"
+
+        llm = FakeLLM([])
+        llm.structured_results = [{'summary': "Kid Four has repeated homework incidents.",
+                                   'recommended_actions': ['Talk to the student about homework routines.']}]
+        with mock.patch('services.ai.llm.get_llm_client', return_value=llm):
+            res = _client(d['green']).post(f'{URL}/students/{d["kid4"].id}/detect-pattern/', {}, format='json')
+        assert res.status_code == 200, res.content
+        body = res.json()
+        assert body['detected'] is True and body['pattern_type'] == 'repeated_category' and body['source'] == 'ai'
+        assert 'Homework not done' in llm.calls[0]['prompt']
+        assert AIUsage.objects.get(user=d['green'], feature='ai_behaviour_pattern').output_tokens == 50
+
+    def test_only_staff_can_detect(self, school):
+        d = school
+        self._log(d, d['kid4'], 'Bullying', days_ago=1, count=1)
+        self._log(d, d['kid4'], 'Late to class', days_ago=10, count=1)
+        res = _client(d['p4']).post(f'{URL}/students/{d["kid4"].id}/detect-pattern/', {}, format='json')
+        assert res.status_code == 403
+
+    def test_family_cannot_see_patterns_list(self, school):
+        d = school
+        self._log(d, d['kid4'], 'Bullying', days_ago=1, count=1)
+        self._log(d, d['kid4'], 'Late to class', days_ago=10, count=1)
+        _client(d['green']).post(f'{URL}/students/{d["kid4"].id}/detect-pattern/', {}, format='json')
+        assert _client(d['green']).get(f'{URL}/students/{d["kid4"].id}/patterns/').json() != []
+        assert _client(d['p4']).get(f'{URL}/students/{d["kid4"].id}/patterns/').json() == []

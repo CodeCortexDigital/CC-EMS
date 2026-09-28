@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ClipboardList, Loader2, Paperclip } from 'lucide-react';
+import { ArrowLeft, BookOpen, ClipboardList, Loader2, Paperclip, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import portal, { WorkItem } from '@/services/portal.service';
 import ChildPicker, { usePortalChild, usePortalHome } from '@/components/portal/ChildPicker';
@@ -32,6 +32,10 @@ export default function StudentAssignmentsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [subject, setSubject] = useState('');
+  const [helpOpen, setHelpOpen] = useState<Record<string, boolean>>({});
+  const [hints, setHints] = useState<Record<string, string[]>>({});
+  const [question, setQuestion] = useState<Record<string, string>>({});
+  const [helping, setHelping] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) { if (!kidsLoading) setLoading(false); return; }
@@ -58,6 +62,19 @@ export default function StudentAssignmentsPage() {
       link.click();
     } catch {
       toast.error('The attachment could not be opened.');
+    }
+  };
+
+  const askForHint = async (w: WorkItem) => {
+    setHelping(w.id);
+    try {
+      const res = await portal.homeworkHelp(id, w.id.split(':')[1], question[w.id] || '', hints[w.id] || []);
+      setHints((h) => ({ ...h, [w.id]: [...(h[w.id] || []), res.hint] }));
+      setQuestion((q) => ({ ...q, [w.id]: '' }));
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Could not get a hint. Please try again.');
+    } finally {
+      setHelping(null);
     }
   };
 
@@ -123,6 +140,31 @@ export default function StudentAssignmentsPage() {
                     <button onClick={() => openAttachment(w)} className="ml-auto inline-flex items-center gap-1 text-blue-600 font-bold"><Paperclip size={12} /> Attachment</button>
                   )}
                 </div>
+                {w.source === 'homework' && !['graded', 'submitted'].includes(w.status) && (
+                  <div className="mt-3 border-t border-slate-100 pt-2">
+                    <button onClick={() => setHelpOpen((o) => ({ ...o, [w.id]: !o[w.id] }))}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-600">
+                      <Sparkles size={12} /> {helpOpen[w.id] ? 'Hide AI hints' : 'Ask AI for a hint'}
+                    </button>
+                    {helpOpen[w.id] && (
+                      <div className="mt-2 space-y-1.5">
+                        {(hints[w.id] || []).map((h, i) => (
+                          <p key={i} className="text-xs bg-indigo-50 border border-indigo-100 rounded-lg px-2.5 py-1.5">
+                            <strong>Hint {i + 1}:</strong> {h}
+                          </p>
+                        ))}
+                        <div className="flex gap-2">
+                          <input className="flex-1 rounded-lg border border-slate-300 px-2 py-1.5 text-xs" placeholder="What are you stuck on? (optional)"
+                            value={question[w.id] || ''} onChange={(e) => setQuestion((q) => ({ ...q, [w.id]: e.target.value }))} />
+                          <button disabled={helping === w.id} onClick={() => askForHint(w)}
+                            className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold disabled:opacity-50 whitespace-nowrap">
+                            {helping === w.id ? <Loader2 size={12} className="animate-spin" /> : (hints[w.id]?.length ? 'Next hint' : 'Get a hint')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </article>
             );
           })}

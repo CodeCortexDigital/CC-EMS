@@ -4,11 +4,24 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from django.apps import apps
-from django.db.models import Avg, Sum
+from django.db.models import Avg, Q, Sum
 from django.db import transaction
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(CURRENT_DIR, "performance_model.pkl")
+
+
+def _model_path(tenant_id=None) -> str:
+    tenant_str = str(tenant_id) if tenant_id else "default"
+    return os.path.join(CURRENT_DIR, f"performance_model_{tenant_str}.pkl")
+
+
+def _tenant_students(tenant_id=None):
+    """Active students, scoped to one school (plus legacy rows with no tenant set) when given."""
+    Student = apps.get_model('education_students', 'Student')
+    students = Student.objects.filter(is_active=True)
+    if tenant_id:
+        students = students.filter(Q(tenant_id=tenant_id) | Q(tenant_id__isnull=True))
+    return students
 
 def get_student_feature_row(student) -> dict:
     AttendanceRecord = apps.get_model('education_attendance', 'AttendanceRecord')
@@ -59,11 +72,10 @@ def generate_synthetic_training_data(n_samples: int = 200) -> pd.DataFrame:
         "risk_level": targets
     })
 
-def train_and_save_model() -> str:
+def train_and_save_model(tenant_id=None) -> str:
     # 1. Fetch real student data
-    Student = apps.get_model('education_students', 'Student')
-    students = Student.objects.filter(is_active=True)
-    
+    students = _tenant_students(tenant_id)
+
     real_rows = []
     for s in students:
         row = get_student_feature_row(s)
@@ -90,31 +102,32 @@ def train_and_save_model() -> str:
     model.fit(X, y)
     
     # Serialize model to disk
-    with open(MODEL_PATH, "wb") as f:
+    model_path = _model_path(tenant_id)
+    with open(model_path, "wb") as f:
         pickle.dump(model, f)
-        
+
     return f"Model trained successfully on {len(df_combined)} samples (Real: {len(df_real)}, Synthetic: {len(df_synth)}) and saved to disk."
 
-def predict_student_performance() -> list:
+def predict_student_performance(tenant_id=None) -> list:
     # Load model
-    if not os.path.exists(MODEL_PATH):
-        train_and_save_model()
-        
-    with open(MODEL_PATH, "rb") as f:
+    model_path = _model_path(tenant_id)
+    if not os.path.exists(model_path):
+        train_and_save_model(tenant_id)
+
+    with open(model_path, "rb") as f:
         model = pickle.load(f)
-        
-    Student = apps.get_model('education_students', 'Student')
+
     StudentRisk = apps.get_model('analytics', 'StudentRisk')
     AcademicPrediction = apps.get_model('analytics', 'AcademicPrediction')
-    
-    students = Student.objects.filter(is_active=True)
+
+    students = list(_tenant_students(tenant_id))
     results = []
-    
+
     with transaction.atomic():
-        # Clean old predictions to avoid redundancy
-        StudentRisk.objects.all().delete()
-        AcademicPrediction.objects.all().delete()
-        
+        # Clean old predictions for these students only — other schools' rows are untouched.
+        StudentRisk.objects.filter(student__in=students).delete()
+        AcademicPrediction.objects.filter(student__in=students).delete()
+
         for student in students:
             features = get_student_feature_row(student)
             X_pred = pd.DataFrame([features])

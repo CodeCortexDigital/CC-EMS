@@ -13,5 +13,7 @@ urlpatterns = [
     path('classes/', d.my_classes, name='behaviour-my-classes'),
     path('classes/<str:class_id>/points/', d.class_points, name='behaviour-class-points'),
     path('students/<str:student_id>/summary/', d.student_summary, name='behaviour-student-summary'),
+    path('students/<str:student_id>/detect-pattern/', d.detect_pattern, name='behaviour-detect-pattern'),
+    path('students/<str:student_id>/patterns/', d.behaviour_patterns, name='behaviour-patterns'),
     path('report/', d.report, name='behaviour-report'),
 ]

@@ -2,6 +2,7 @@
 report cards (with release to families) and transcripts."""
 from __future__ import annotations
 
+import logging
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
@@ -11,6 +12,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+logger = logging.getLogger("erp.ai")
 
 from services.core.accounts.decorators import (
     _get_teacher_class_ids, ensure_student_access, get_user_role, is_admin,
@@ -498,6 +501,117 @@ def comment(request):
     ReportComment.objects.update_or_create(student=student, term=term, class_subject=cs, defaults={
         'tenant_id': student.tenant_id, 'comment': text[:4000], 'written_by': request.user})
     return Response({'saved': True})
+
+
+# ---------------------------------------------------------------------------
+# AI-drafted comments (docs table "AI Report Card Comments")
+# ---------------------------------------------------------------------------
+
+def _ai_grade_summary(student, term, cs, scale) -> str:
+    """Plain-language grade summary for one subject, or all subjects (homeroom, cs=None)."""
+    if cs is not None:
+        g = calc.term_grade(student, cs, term, scale)
+        if g.percent is None:
+            return f"No grades recorded yet in {cs.subject.name} this term."
+        text = f"{g.percent}% ({g.letter or 'ungraded'}) in {cs.subject.name}"
+        return text + (f", with {g.missing} missing assignment(s)" if g.missing else "")
+    rows, weak = [], []
+    for c in ClassSubject.objects.filter(class_ref_id=student.current_class_id).select_related('subject').order_by('subject__name'):
+        g = calc.term_grade(student, c, term, scale)
+        if g.percent is None:
+            continue
+        rows.append(f"{c.subject.name} {g.percent}% ({g.letter})")
+        if g.passing is False:
+            weak.append(c.subject.name)
+    if not rows:
+        return "No grades recorded yet this term."
+    summary = "; ".join(rows)
+    if weak:
+        summary += f". Below the passing mark in: {', '.join(weak)}"
+    return summary
+
+
+def _ai_attendance_summary(student, term) -> str:
+    from services.education.attendance.models import AttendanceRecord
+
+    att = AttendanceRecord.objects.filter(student=student, date__range=(term.start_date, term.end_date)).exclude(status='holiday')
+    total = att.count()
+    if not total:
+        return "No attendance recorded yet this term."
+    attended = att.filter(status__in=('present', 'late', 'early_dismissal')).count()
+    tardy = att.filter(status='late').count()
+    rate = round(attended / total * 100, 1)
+    return f"{rate}% attendance ({attended}/{total} school days)" + (f", {tardy} late arrival(s)" if tardy else "")
+
+
+def _ai_behaviour_summary(student, term) -> str:
+    from services.education.behaviour.models import BehaviourIncident
+
+    incidents = BehaviourIncident.objects.filter(
+        student=student, date__range=(term.start_date, term.end_date)).select_related('category')
+    merits = [i for i in incidents if i.kind == 'positive']
+    concerns = [i for i in incidents if i.kind == 'negative']
+    parts = []
+    if merits:
+        parts.append(f"{len(merits)} positive behaviour record(s) ({', '.join(sorted({m.category.name for m in merits}))})")
+    if concerns:
+        parts.append(f"{len(concerns)} behaviour concern(s) ({', '.join(sorted({c.category.name for c in concerns}))})")
+    return "; ".join(parts) or "No behaviour incidents recorded this term."
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def ai_comment_draft(request):
+    """{student, term, class_subject (empty for homeroom), tone?, language?} -> a draft comment
+    from grades/attendance/behaviour for the teacher to review and edit before saving via /comments/."""
+    from services.ai.context import AIContext
+    from services.ai.generation import generate_report_comment, template_report_comment
+    from services.ai.llm import LLMError, get_llm_client
+    from services.ai.quota import AIQuotaExceeded, check_rate_limit, check_token_budget, feature_enabled, record_usage
+    from services.education.students.models import Student
+
+    student = get_object_or_404(Student, pk=request.data.get('student'))
+    term = get_object_or_404(Term, pk=request.data.get('term'))
+    cs = ClassSubject.objects.filter(pk=request.data.get('class_subject')).select_related('class_ref', 'subject').first() \
+        if request.data.get('class_subject') else None
+    allowed = can_grade(request.user, cs) if cs else (is_admin(request.user) or (
+        get_user_role(request.user) == 'teacher' and str(student.current_class_id) in {str(c) for c in _get_teacher_class_ids(request.user)}))
+    if not allowed:
+        return _forbidden()
+
+    tone = str(request.data.get('tone') or 'supportive').strip().lower()
+    if tone not in ('supportive', 'neutral', 'concerned'):
+        tone = 'supportive'
+    language = str(request.data.get('language') or 'English').strip()[:30] or 'English'
+
+    scale = calc.default_scale()
+    kwargs = dict(
+        student_name=student.full_name, subject_name=cs.subject.name if cs else None,
+        grade_summary=_ai_grade_summary(student, term, cs, scale),
+        attendance_summary=_ai_attendance_summary(student, term),
+        behaviour_summary=_ai_behaviour_summary(student, term),
+        tone=tone, language=language,
+    )
+
+    if get_llm_client() is None:
+        return Response(template_report_comment(**kwargs))
+
+    ctx = AIContext.from_request(request)
+    if not feature_enabled('ai_report_comments', ctx):
+        return Response({'error': 'This AI feature is turned off for your school.'}, status=403)
+    llm = get_llm_client()
+    try:
+        check_rate_limit(ctx, 'ai_report_comments')
+        check_token_budget(ctx)
+    except AIQuotaExceeded as exc:
+        return Response({'error': str(exc)}, status=429)
+    try:
+        result, usage, model = generate_report_comment(llm, **kwargs)
+    except LLMError:
+        logger.exception("Report comment generation failed")
+        return Response({'error': 'Comment generation failed. Please try again.'}, status=502)
+    record_usage(ctx, 'ai_report_comments', llm.provider, model, usage)
+    return Response({**result, 'source': 'ai'})
 
 
 def _released(term, student) -> bool:

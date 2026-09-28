@@ -22,30 +22,31 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
-FIRST_M = ["Ali", "Ahmed", "Hamza", "Usman", "Bilal", "Hassan", "Zain", "Saad", "Omar", "Faizan",
-           "Talha", "Hamid", "Imran", "Danish", "Rayyan", "Ibrahim", "Arham", "Moiz", "Shayan", "Taha"]
-FIRST_F = ["Fatima", "Ayesha", "Zainab", "Maryam", "Hira", "Sana", "Iqra", "Amna", "Mahnoor", "Areeba",
-           "Hafsa", "Laiba", "Noor", "Aleena", "Eman", "Khadija", "Anaya", "Rida", "Mehwish", "Zoya"]
-LAST = ["Khan", "Ahmed", "Malik", "Qureshi", "Sheikh", "Butt", "Chaudhry", "Raza", "Hussain", "Siddiqui",
-        "Mirza", "Abbasi", "Javed", "Iqbal", "Aslam", "Farooq", "Anwar", "Akhtar", "Rana", "Hashmi"]
-CITIES = ["Lahore", "Karachi", "Islamabad", "Rawalpindi", "Faisalabad"]
+FIRST_M = ["Liam", "Noah", "Ethan", "Mason", "Lucas", "Jackson", "Aiden", "Logan", "Caleb", "Ryan",
+           "Nathan", "Owen", "Wyatt", "Dylan", "Carter", "Isaac", "Hunter", "Connor", "Evan", "Jordan"]
+FIRST_F = ["Emma", "Olivia", "Ava", "Sophia", "Isabella", "Mia", "Charlotte", "Amelia", "Harper", "Ella",
+           "Grace", "Chloe", "Lily", "Zoe", "Hannah", "Layla", "Natalie", "Addison", "Aubrey", "Savannah"]
+LAST = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez",
+        "Wilson", "Anderson", "Taylor", "Thomas", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson"]
+CITIES = ["New York", "Brooklyn", "Jersey City", "Yonkers", "Newark"]
 
 CLASSES = [("Grade 5", "G05"), ("Grade 6", "G06"), ("Grade 7", "G07"),
            ("Grade 8", "G08"), ("Grade 9", "G09"), ("Grade 10", "G10")]
-SUBJECTS = [("Mathematics", "MATH"), ("English", "ENG"), ("Urdu", "URD"),
-            ("General Science", "SCI"), ("Computer Science", "CS"), ("Islamic Studies", "ISL")]
+SUBJECTS = [("Mathematics", "MATH"), ("English", "ENG"), ("Social Studies", "SOC"),
+            ("General Science", "SCI"), ("Computer Science", "CS"), ("Physical Education", "PE")]
 # One teacher per subject keeps the Latin-square timetable clash-free.
+# Emails are kept stable across reseeds (the demo teacher login and timetable/payroll lookups key off them).
 TEACHERS = [  # name, email, qualification, gender, monthly salary
-    ("Ayesha Khan", "teacher@code.com", "M.Sc Mathematics", "female", 85000),   # demo teacher login
-    ("Imran Qureshi", "imran.qureshi@school.edu", "M.A English", "male", 72000),
-    ("Nadia Hussain", "nadia.hussain@school.edu", "M.A Urdu", "female", 68000),
-    ("Kamran Malik", "kamran.malik@school.edu", "M.Sc Physics", "male", 78000),
-    ("Sara Siddiqui", "sara.siddiqui@school.edu", "M.Sc Computer Science", "female", 80000),
-    ("Abdul Rehman", "abdul.rehman@school.edu", "M.A Islamic Studies", "male", 65000),
+    ("Sarah Mitchell", "teacher@code.com", "M.Sc Mathematics", "female", 6200),   # demo teacher login
+    ("James Anderson", "imran.qureshi@school.edu", "M.A English", "male", 5400),
+    ("Emily Carter", "nadia.hussain@school.edu", "M.A Social Studies", "female", 5100),
+    ("Michael Turner", "kamran.malik@school.edu", "M.Sc Physics", "male", 5800),
+    ("Rachel Bennett", "sara.siddiqui@school.edu", "M.Sc Computer Science", "female", 6000),
+    ("David Coleman", "abdul.rehman@school.edu", "B.S. Physical Education", "male", 4800),
 ]
 # Class teacher per class code (the demo teacher is Grade 8's class teacher).
 CLASS_TEACHER = {"G05": 1, "G06": 2, "G07": 3, "G08": 0, "G09": 4, "G10": 5}
-MONTHLY_FEE = {"Grade 5": 6500, "Grade 6": 7000, "Grade 7": 7500, "Grade 8": 8000, "Grade 9": 9000, "Grade 10": 9500}
+MONTHLY_FEE = {"Grade 5": 650, "Grade 6": 700, "Grade 7": 750, "Grade 8": 800, "Grade 9": 900, "Grade 10": 950}
 DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"]
 DEMO_PREFIX = "DS-"
 
@@ -68,10 +69,15 @@ DEMO_INSTITUTE = {
     "name": "CodeCortex Model School",
     "tagline": "Excellence in learning since 2010",
     "motto": "Excellence in learning since 2010",
-    "phone": "+92 42 3578 1100",
-    "website": "https://codecortex.pk",
-    "address": "12-B Main Boulevard, Gulberg III, Lahore",
-    "country": "Pakistan",
+    "phone": "+1 (212) 555-0148",
+    "website": "https://codecortexmodel.us",
+    "address": "245 Madison Avenue, New York, NY 10016",
+    "country": "United States",
+    "currency": "USD",
+    "language": "en",
+    "region": "us",
+    "region_chosen": True,
+    "timezone": "America/New_York",
 }
 
 
@@ -358,9 +364,9 @@ class Command(BaseCommand):
     def _homework_behaviour(self, M, st, students, rng):
         Homework = M("education_academics", "Homework")
         BehaviourRating, Observation = M("behaviour", "BehaviourRating"), M("behaviour", "Observation")
-        topics = {"Mathematics": "Fractions worksheet", "English": "Essay: My Hometown", "Urdu": "Mazmoon: Hamara Mulk",
+        topics = {"Mathematics": "Fractions worksheet", "English": "Essay: My Hometown", "Social Studies": "Map of the 50 states",
                   "General Science": "Plant cell diagram", "Computer Science": "Scratch mini-game",
-                  "Islamic Studies": "Surah Al-Asr translation"}
+                  "Physical Education": "Fitness log"}
         for c_idx, sc in enumerate(st["classes"]):
             for s_idx, sub in enumerate(st["subjects"]):
                 if (c_idx + s_idx) % 2:
@@ -390,11 +396,11 @@ class Command(BaseCommand):
         month = self.today.replace(day=1)
         prev = (month - timedelta(days=1)).replace(day=1)
         for t in st["teachers"]:
-            basic = Decimal(t.monthly_salary or 70000)
+            basic = Decimal(t.monthly_salary or 5500)
             for m, paid in ((prev, True), (month, False)):
                 Payslip.objects.get_or_create(employee=t, month=m, defaults={
-                    "basic_salary": basic, "allowances": Decimal("5000"), "deductions": Decimal("2000"),
-                    "net_salary": basic + 3000, "paid_amount": basic + 3000 if paid else 0,
+                    "basic_salary": basic, "allowances": Decimal("400"), "deductions": Decimal("150"),
+                    "net_salary": basic + 250, "paid_amount": basic + 250 if paid else 0,
                     "status": "paid" if paid else "pending", "payment_date": m + timedelta(days=4) if paid else None})
 
     def _notifications(self, M):

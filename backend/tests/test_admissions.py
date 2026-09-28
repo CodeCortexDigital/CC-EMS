@@ -1,13 +1,15 @@
 """Online admissions, review pipeline, enrolment and re-enrolment (Phase 2)."""
 import json
+from unittest import mock
 
 import pytest
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from services.core.tenants.models import TenantMembership
-from services.education.admissions.models import Application, ReEnrollmentResponse
+from services.education.admissions.models import Applicant, Application, ReEnrollmentResponse
 from services.education.students.models import Student, StudentGuardian
 from tests.conftest import ClassFactory, SchoolFactory, StudentFactory, UserFactory
 
@@ -146,3 +148,63 @@ def test_settings_and_reenrollment(school):
     summary = admin.get(f'/api/v1/auth/admissions/reenrollment/{campaign_id}/').json()
     assert summary['counts']['returning'] == 1
     assert ReEnrollmentResponse.objects.get(pk=rid).signature_name == 'Jin Park'
+
+
+def _application(school, **kwargs):
+    applicant = Applicant.objects.create(
+        tenant=school, full_name='Nora Ali', email='nora@example.com', gender='F',
+        applying_for_class='Grade 3', **kwargs)
+    return Application.objects.create(applicant=applicant, academic_year='2027-2028')
+
+
+@pytest.mark.django_db
+class TestAiScreening:
+    """docs table "AI Admission Screening": a draft score/summary for a human reviewer."""
+
+    @pytest.fixture(autouse=True)
+    def _clean(self, settings):
+        settings.OPENAI_API_KEY = ''
+        settings.ANTHROPIC_API_KEY = ''
+        settings.AI_RATE_LIMIT = 30
+        cache.clear()
+
+    def test_template_without_provider(self, school):
+        app = _application(school)
+        admin = _client(_admin(school))
+        res = admin.post(f'/api/v1/auth/admissions/applications/{app.id}/ai-screen/')
+        assert res.status_code == 200, res.content
+        assert res.json()['source'] == 'template'
+        app.refresh_from_db()
+        assert app.ai_screening_score is not None and app.ai_screened_at is not None
+
+    def test_screens_against_the_schools_criteria_and_logs_an_event(self, school):
+        from services.ai.models import AIUsage
+        from tests.test_ai_platform import FakeLLM
+
+        school.settings_json = {**(school.settings_json or {}), 'admissions': {
+            'criteria': ['Sibling already enrolled gets priority', 'Previous school report required']}}
+        school.save()
+        app = _application(school, sibling_at_school='Leo Ali (Grade 5)', previous_school='Oak Elementary')
+        admin_user = _admin(school)
+        admin = _client(admin_user)
+
+        llm = FakeLLM([])
+        llm.structured_results = [{'score': 82, 'summary': 'Strong match: sibling already enrolled.', 'concerns': ['No report card uploaded yet.']}]
+        with mock.patch('services.ai.llm.get_llm_client', return_value=llm):
+            res = admin.post(f'/api/v1/auth/admissions/applications/{app.id}/ai-screen/')
+        assert res.status_code == 200, res.content
+        body = res.json()
+        assert body['source'] == 'ai' and body['score'] == 82 and 'sibling' in body['summary'].lower()
+        assert body['concerns'] == ['No report card uploaded yet.']
+        assert 'Sibling already enrolled gets priority' in llm.calls[0]['prompt']
+        assert 'Leo Ali' in llm.calls[0]['prompt']
+
+        app.refresh_from_db()
+        assert app.ai_screening_score == 82
+        assert app.events.filter(note__icontains='AI screening: 82/100').exists()
+        assert AIUsage.objects.get(user=admin_user, feature='ai_admission_screening').output_tokens == 50
+
+    def test_only_admins_can_screen(self, school):
+        app = _application(school)
+        stranger = _client(UserFactory(email='stranger2@example.com'))
+        assert stranger.post(f'/api/v1/auth/admissions/applications/{app.id}/ai-screen/').status_code == 403

@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   CalendarClock, ClipboardList, Copy, ExternalLink, FileText, Globe, Loader2, Plus, RefreshCw, Repeat, Search,
-  Settings2, Trash2, Upload, UserCheck,
+  Settings2, Sparkles, Trash2, Upload, UserCheck,
 } from 'lucide-react';
 import admissionService, {
   STATUS_META, type AdmissionSettings, type Application, type ApplicationStatus, type Campaign,
@@ -347,6 +347,23 @@ function ApplicationDrawer({ id, onClose, onChanged }: { id: string; onClose: ()
           </div>
         </section>
 
+        {/* AI screening */}
+        <section>
+          <p className="font-bold mb-2 inline-flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> AI screening</p>
+          {app.ai_screening_score != null ? (
+            <div className="rounded-lg border border-slate-200 p-3 space-y-1">
+              <p className="font-semibold">{app.ai_screening_score}/100 <span className="font-normal text-slate-500">· screened {fmt(app.ai_screened_at)}</span></p>
+              <p className="text-slate-700">{app.ai_screening_summary}</p>
+            </div>
+          ) : (
+            <p className="text-slate-500">Not screened yet.</p>
+          )}
+          <button disabled={busy} onClick={() => act(() => admissionService.screen(app.id), 'Screening complete — review before deciding')}
+            className="mt-2 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 font-semibold">
+            <Sparkles className="w-4 h-4" /> {app.ai_screening_score != null ? 'Re-screen with AI' : 'Screen with AI'}
+          </button>
+        </section>
+
         {/* Interview */}
         <section>
           <p className="font-bold mb-2 inline-flex items-center gap-1.5"><CalendarClock className="w-4 h-4" /> Interview or assessment</p>
@@ -543,6 +560,12 @@ function SettingsTab({ settings, onSaved, publicUrl }: { settings: AdmissionSett
       </div>
       <div><label className="block text-xs font-semibold text-slate-600 mb-1" htmlFor="as-intro">Welcome text on the form</label><textarea id="as-intro" rows={3} className={input} value={form.intro} onChange={(e) => setForm({ ...form, intro: e.target.value })} /></div>
       <div><label className="block text-xs font-semibold text-slate-600 mb-1" htmlFor="as-docs">Documents to upload (one per line)</label><textarea id="as-docs" rows={4} className={input} value={form.required_documents.join('\n')} onChange={(e) => setForm({ ...form, required_documents: e.target.value.split('\n') })} /></div>
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 mb-1" htmlFor="as-criteria">Admission criteria (one per line)</label>
+        <textarea id="as-criteria" rows={4} className={input} placeholder="e.g. Siblings already enrolled get priority&#10;Applicant's previous grade must be a pass"
+          value={(form.criteria || []).join('\n')} onChange={(e) => setForm({ ...form, criteria: e.target.value.split('\n') })} />
+        <p className="text-xs text-slate-500 mt-1">What AI screening (and reviewers) check each application against.</p>
+      </div>
       <div><label className="block text-xs font-semibold text-slate-600 mb-1" htmlFor="as-decl">Declaration parents sign</label><textarea id="as-decl" rows={3} className={input} value={form.declaration} onChange={(e) => setForm({ ...form, declaration: e.target.value })} /></div>
       <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold disabled:opacity-60">{saving ? 'Saving…' : 'Save settings'}</button>
     </div>

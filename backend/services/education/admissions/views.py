@@ -91,6 +91,8 @@ def _settings(school):
         'required_documents': raw.get('required_documents') or list(DEFAULT_DOCUMENTS),
         'declaration': raw.get('declaration') or DEFAULT_DECLARATION,
         'notify_email': raw.get('notify_email') or '',
+        # What AI screening (and a human reviewer) checks applications against.
+        'criteria': raw.get('criteria') or [],
     }
 
 
@@ -343,6 +345,11 @@ def admissions_settings(request):
             if isinstance(docs, str):
                 docs = [x.strip() for x in docs.split('\n')]
             cfg['required_documents'] = [str(x).strip()[:60] for x in docs if str(x).strip()][:12]
+        if 'criteria' in data:
+            items = data['criteria']
+            if isinstance(items, str):
+                items = [x.strip() for x in items.split('\n')]
+            cfg['criteria'] = [str(x).strip()[:200] for x in items if str(x).strip()][:20]
         with use_tenant(None):
             fresh = School.objects.get(pk=school.pk)
             fresh.settings_json = {**(fresh.settings_json or {}), 'admissions': cfg}
@@ -450,6 +457,86 @@ def update_application_status(request, id):
         _email(application.applicant.email, f'Application {application.application_no}: {application.get_status_display()}',
                f"{STATUS_MESSAGES.get(new_status, '')}\n\n{note}".strip())
     return Response({'status': new_status, 'status_label': application.get_status_display()})
+
+
+def _applicant_summary(applicant: Applicant) -> str:
+    parts = [f"Name: {applicant.full_name}", f"Applying for: {applicant.applying_for_class}" +
+             (f" section {applicant.applying_for_section}" if applicant.applying_for_section else '')]
+    if applicant.date_of_birth:
+        age = (timezone.now().date() - applicant.date_of_birth).days // 365
+        parts.append(f"Age: {age}")
+    if applicant.previous_school:
+        parts.append(f"Previous school: {applicant.previous_school}"
+                     + (f", grade {applicant.previous_class}" if applicant.previous_class else '')
+                     + (f", result {applicant.previous_grade}" if applicant.previous_grade else ''))
+    else:
+        parts.append("No previous school on file (first-time applicant).")
+    if applicant.sibling_at_school:
+        parts.append(f"Sibling already at this school: {applicant.sibling_at_school}")
+    if applicant.special_needs:
+        parts.append(f"Special needs noted: {applicant.special_needs}")
+    if applicant.medical_notes:
+        parts.append(f"Medical notes: {applicant.medical_notes}")
+    return "\n".join(f"- {p}" for p in parts)
+
+
+def _documents_summary(application: Application, required: list[str]) -> str:
+    have = {d.doc_type for d in application.documents.all()}
+    if not required:
+        return f"{len(have)} document(s) uploaded; the school has not listed required documents."
+    lines = [f"- {doc}: {'submitted' if doc in have else 'MISSING'}" for doc in required]
+    return "\n".join(lines)
+
+
+@api_view(['POST'])
+@permission_classes([AdminOnly])
+def ai_screen_application(request, id):
+    """Score and summarise one application against the school's admission criteria
+    (docs table "AI Admission Screening") — a draft for a human reviewer, never a decision."""
+    from services.ai.context import AIContext
+    from services.ai.generation import generate_admission_screening, template_admission_screening
+    from services.ai.llm import LLMError, get_llm_client
+    from services.ai.quota import AIQuotaExceeded, check_rate_limit, check_token_budget, feature_enabled, record_usage
+
+    application = get_object_or_404(Application.objects.select_related('applicant').prefetch_related('documents'), id=id)
+    school = getattr(request, 'tenant', None)
+    cfg = _settings(school) if school else {'criteria': [], 'required_documents': []}
+    kwargs = dict(
+        applicant_summary=_applicant_summary(application.applicant),
+        documents_summary=_documents_summary(application, cfg['required_documents']),
+        criteria=cfg['criteria'],
+    )
+
+    if get_llm_client() is None:
+        result = template_admission_screening(**kwargs)
+    else:
+        ctx = AIContext.from_request(request)
+        if not feature_enabled('ai_admission_screening', ctx):
+            return Response({'error': 'This AI feature is turned off for your school.'}, status=403)
+        llm = get_llm_client()
+        try:
+            check_rate_limit(ctx, 'ai_admission_screening')
+            check_token_budget(ctx)
+        except AIQuotaExceeded as exc:
+            return Response({'error': str(exc)}, status=429)
+        try:
+            result, usage, model = generate_admission_screening(llm, **kwargs)
+        except LLMError:
+            logger.exception('Admission screening failed')
+            return Response({'error': 'Screening failed. Please try again.'}, status=502)
+        record_usage(ctx, 'ai_admission_screening', llm.provider, model, usage)
+        result = {**result, 'source': 'ai'}
+
+    application.ai_screening_score = result['score']
+    application.ai_screening_summary = result['summary']
+    application.ai_screened_at = timezone.now()
+    application.save(update_fields=['ai_screening_score', 'ai_screening_summary', 'ai_screened_at'])
+    _log(application, application.status, f"AI screening: {result['score']}/100 — {result['summary'][:150]}", request.user)
+    return Response({
+        'score': application.ai_screening_score, 'summary': application.ai_screening_summary,
+        'concerns': result.get('concerns', []), 'screened_at': application.ai_screened_at,
+        'source': result.get('source', 'ai'),
+    })
 
 
 @api_view(['POST'])

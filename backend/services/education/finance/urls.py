@@ -64,6 +64,7 @@ urlpatterns = [
     
     # Email Communication
     path('communication/reminder/<str:invoice_id>/', views.send_fee_reminder, name='send-fee-reminder'),
+    path('communication/student-reminder/<str:student_id>/', views.send_student_fee_reminder, name='send-student-fee-reminder'),
     path('communication/confirmation/<str:payment_id>/', views.send_payment_confirmation, name='send-payment-confirmation'),
     path('communication/defaulter-notice/<str:invoice_id>/', views.send_defaulter_notice, name='send-defaulter-notice'),
     path('communication/defaulter-whatsapp/<str:invoice_id>/', views.send_defaulter_whatsapp_notice, name='send-defaulter-whatsapp-notice'),

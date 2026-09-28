@@ -12,6 +12,7 @@ import tempfile
 
 from django.apps import apps
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -123,73 +124,89 @@ def ai_lesson_plan(request):
     record_usage(ctx, 'ai_lesson_plans', llm.provider, model, usage)
     return Response({**plan, "source": "ai"}, status=status.HTTP_200_OK)
 
+def _run_risk_scan(tenant_id=None) -> dict:
+    """Train the grade, dropout and fee-default models and write scores into StudentRisk.
+
+    `tenant_id` scopes training and scoring to one school (plus legacy rows with no tenant
+    set) so schools don't share a "default" model or see each other's students. Used by the
+    manual "Run AI Risk Scan" admin action and by the nightly scheduled scan (services/analytics/tasks.py).
+    """
+    # 1. Train Random Forest model and predict performance
+    train_msg = train_and_save_model(tenant_id=tenant_id)
+    perf_results = predict_student_performance(tenant_id=tenant_id)
+
+    # 2. Train Logistic Regression & XGBoost for Fee Default and Dropout Risk
+    train_fd_msg = train_and_save_fee_dropout_models(tenant_id=tenant_id)
+
+    # 3. Run Isolation Forest anomaly checks
+    anomaly_results = detect_anomalies()
+
+    # 4. Save fee default and dropout scores inside StudentRisk models
+    StudentRisk = apps.get_model('analytics', 'StudentRisk')
+    Student = apps.get_model('education_students', 'Student')
+
+    students = Student.objects.filter(is_active=True)
+    if tenant_id:
+        students = students.filter(Q(tenant_id=tenant_id) | Q(tenant_id__isnull=True))
+
+    for student in students:
+        predictions = predict_fee_dropout_risk(student, tenant_id=tenant_id)
+
+        # Retrieve or create student risk object to append dropout and fee default scores
+        risk_obj, created = StudentRisk.objects.get_or_create(
+            student=student,
+            defaults={'risk_level': 'low', 'risk_score': 0.0}
+        )
+        factors = risk_obj.factors or {}
+        factors["fee_default_risk"] = predictions["fee_default_risk"]
+        factors["dropout_risk"] = predictions["dropout_risk"]
+
+        # Map factors details
+        if predictions["fee_default_risk"] > 50.0:
+            factors["finance"] = f"High fee default risk: {predictions['fee_default_risk']:.1f}% probability."
+        else:
+            factors.pop("finance", None)
+
+        if predictions["dropout_risk"] > 50.0:
+            factors["dropout_alert"] = f"Student shows a high dropout risk of {predictions['dropout_risk']:.1f}%."
+        else:
+            factors.pop("dropout_alert", None)
+
+        risk_obj.factors = factors
+
+        # Update risk level and risk_score dynamically based on both Dropout & Fee Default risk
+        max_score = max(predictions["dropout_risk"], predictions["fee_default_risk"])
+        risk_obj.risk_score = max_score
+
+        if predictions["dropout_risk"] > 75.0 or (predictions["dropout_risk"] > 50.0 and predictions["fee_default_risk"] > 50.0):
+            risk_obj.risk_level = 'critical'
+        elif predictions["dropout_risk"] > 50.0 or predictions["fee_default_risk"] > 50.0:
+            risk_obj.risk_level = 'high'
+        elif predictions["dropout_risk"] > 25.0 or predictions["fee_default_risk"] > 25.0:
+            risk_obj.risk_level = 'medium'
+        else:
+            risk_obj.risk_level = 'low'
+
+        risk_obj.save()
+
+    return {
+        'model_training': f"{train_msg} | {train_fd_msg}",
+        'students_evaluated': len(perf_results),
+        'anomalies_detected': len(anomaly_results),
+        'anomalies': anomaly_results,
+    }
+
+
 @api_view(['POST'])
 @permission_classes([IsAIAdmin])
 def train_and_predict(request):
     if not RISK_ML_AVAILABLE:
         return _unavailable('AI risk scanning')
+    ctx = AIContext.from_request(request)
+    tenant_id = str(ctx.tenant.id) if ctx.tenant else None
     try:
-        # 1. Train Random Forest model and predict performance
-        train_msg = train_and_save_model()
-        perf_results = predict_student_performance()
-        
-        # 2. Train Logistic Regression & XGBoost for Fee Default and Dropout Risk
-        train_fd_msg = train_and_save_fee_dropout_models()
-        
-        # 3. Run Isolation Forest anomaly checks
-        anomaly_results = detect_anomalies()
-        
-        # 4. Save fee default and dropout scores inside StudentRisk models
-        StudentRisk = apps.get_model('analytics', 'StudentRisk')
-        Student = apps.get_model('education_students', 'Student')
-        
-        for student in Student.objects.filter(is_active=True):
-            predictions = predict_fee_dropout_risk(student)
-            
-            # Retrieve or create student risk object to append dropout and fee default scores
-            risk_obj, created = StudentRisk.objects.get_or_create(
-                student=student,
-                defaults={'risk_level': 'low', 'risk_score': 0.0}
-            )
-            factors = risk_obj.factors or {}
-            factors["fee_default_risk"] = predictions["fee_default_risk"]
-            factors["dropout_risk"] = predictions["dropout_risk"]
-            
-            # Map factors details
-            if predictions["fee_default_risk"] > 50.0:
-                factors["finance"] = f"High fee default risk: {predictions['fee_default_risk']:.1f}% probability."
-            else:
-                factors.pop("finance", None)
-                
-            if predictions["dropout_risk"] > 50.0:
-                factors["dropout_alert"] = f"Student shows a high dropout risk of {predictions['dropout_risk']:.1f}%."
-            else:
-                factors.pop("dropout_alert", None)
-                
-            risk_obj.factors = factors
-            
-            # Update risk level and risk_score dynamically based on both Dropout & Fee Default risk
-            max_score = max(predictions["dropout_risk"], predictions["fee_default_risk"])
-            risk_obj.risk_score = max_score
-            
-            if predictions["dropout_risk"] > 75.0 or (predictions["dropout_risk"] > 50.0 and predictions["fee_default_risk"] > 50.0):
-                risk_obj.risk_level = 'critical'
-            elif predictions["dropout_risk"] > 50.0 or predictions["fee_default_risk"] > 50.0:
-                risk_obj.risk_level = 'high'
-            elif predictions["dropout_risk"] > 25.0 or predictions["fee_default_risk"] > 25.0:
-                risk_obj.risk_level = 'medium'
-            else:
-                risk_obj.risk_level = 'low'
-                
-            risk_obj.save()
-        
-        return Response({
-            'status': 'success',
-            'model_training': f"{train_msg} | {train_fd_msg}",
-            'students_evaluated': len(perf_results),
-            'anomalies_detected': len(anomaly_results),
-            'anomalies': anomaly_results
-        }, status=status.HTTP_200_OK)
+        result = _run_risk_scan(tenant_id)
+        return Response({'status': 'success', **result}, status=status.HTTP_200_OK)
     except Exception:
         logger.exception("AI model training / risk scan failed")
         return Response({'status': 'error', 'message': 'AI risk scan failed. See server logs.'},
@@ -232,6 +249,51 @@ def get_student_predictions(request):
         })
         
     return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@permission_classes([IsAIEducator])
+def notify_dropout_risk(request):
+    """{student_id} -> tell the student's class teachers and school admins about a dropout-risk
+    finding, and log a Recommendation, so a prediction turns into an actual intervention
+    (docs table "AI Attendance Insights": "Early intervention saves students")."""
+    from services.core.accounts.models import TeacherProfile
+    from services.core.tenants.models import TenantMembership
+    from services.core.user_notifications.utils import create_user_notification
+
+    StudentRisk = apps.get_model('analytics', 'StudentRisk')
+    Recommendation = apps.get_model('analytics', 'Recommendation')
+    Student = apps.get_model('education_students', 'Student')
+
+    ctx = AIContext.from_request(request)
+    student = Student.objects.filter(pk=request.data.get('student_id'), id__in=_visible_student_ids(ctx)).first()
+    if student is None:
+        return Response({'error': 'Student not found.'}, status=status.HTTP_404_NOT_FOUND)
+    risk = StudentRisk.objects.filter(student=student).first()
+    dropout_risk = (risk.factors or {}).get('dropout_risk') if risk else None
+    if dropout_risk is None:
+        return Response({'error': 'Run the AI risk scan for this school first.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    message = f"{student.full_name} shows a {dropout_risk:.0f}% dropout risk (attendance, grades and behaviour). Please follow up."
+    rec = Recommendation.objects.create(
+        student=student, recommendation_type='attendance', title='Dropout risk follow-up',
+        description=message, action_items=['Meet with the student', 'Contact the family',
+                                           'Review attendance and recent grades'])
+
+    recipients = {t.user_id: t.user for t in TeacherProfile.objects.filter(
+        assigned_classes=student.current_class_id).select_related('user') if t.user_id}
+    if student.tenant_id:
+        recipients.update({m.user_id: m.user for m in TenantMembership.objects.filter(
+            school_id=student.tenant_id, role='admin').select_related('user')})
+    notified = 0
+    for user in recipients.values():
+        if create_user_notification(user, 'Dropout risk alert', message, 'academic'):
+            notified += 1
+
+    risk.recommendations = (risk.recommendations or []) + [
+        {'action': 'counsel_notified', 'at': timezone.now().isoformat(), 'by': request.user.email, 'notified': notified}]
+    risk.save(update_fields=['recommendations'])
+    return Response({'notified': notified, 'recommendation_id': str(rec.id)})
+
 
 @api_view(['GET'])
 @permission_classes([IsAIEducator])
@@ -412,12 +474,80 @@ def face_attendance(request):
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
+def _timetable_preview_rows(slots):
+    ClassSubject = apps.get_model('education_academics', 'ClassSubject')
+    Teacher = apps.get_model('education_academics', 'Teacher')
+    Classroom = apps.get_model('education_academics', 'Classroom')
+    Period = apps.get_model('education_academics', 'Period')
+    Section = apps.get_model('education_academics', 'Section')
+
+    cs_map = {c.id: c for c in ClassSubject.objects.select_related('subject', 'class_ref')
+             .filter(id__in={s['class_subject_id'] for s in slots})}
+    teacher_map = {t.id: t for t in Teacher.objects.filter(id__in={s['teacher_id'] for s in slots})}
+    room_map = {r.id: r for r in Classroom.objects.filter(id__in={s['classroom_id'] for s in slots})}
+    period_map = {p.id: p for p in Period.objects.filter(id__in={s['period_id'] for s in slots})}
+    section_map = {sec.id: sec for sec in Section.objects.filter(
+        id__in={s['section_id'] for s in slots if s.get('section_id')})}
+
+    rows = []
+    for s in slots:
+        cs = cs_map.get(s['class_subject_id'])
+        teacher = teacher_map.get(s['teacher_id'])
+        room = room_map.get(s['classroom_id'])
+        period = period_map.get(s['period_id'])
+        section = section_map.get(s.get('section_id'))
+        rows.append({
+            'class_name': cs.class_ref.name if cs else '', 'subject': cs.subject.name if cs else '',
+            'section': section.name if section else '', 'teacher': teacher.full_name if teacher else '',
+            'classroom': room.name if room else '', 'day_of_week': s['day_of_week'],
+            'period_number': period.period_number if period else None, 'period_name': period.name if period else '',
+        })
+    return rows
+
+
 @api_view(['POST'])
 @permission_classes([IsAIAdmin])
 def generate_timetable(request):
-    # Server-side optimisation is not wired up yet (docs/AI_UPGRADE_TODO.md, P3.8).
-    return Response({'error': 'Server-side timetable optimisation is not available yet.'},
-                    status=status.HTTP_501_NOT_IMPLEMENTED)
+    """{academic_year, commit?, generations?, pop_size?} -> a genetic-algorithm timetable for the
+    school's own classes and rooms (docs table "AI Timetable Generator"). Defaults to a preview
+    (commit=false, nothing saved); pass commit=true to replace the school's existing timetable for
+    that year — this has no undo, so the frontend should show the preview and ask for confirmation first."""
+    from academics.timetable_optimizer import optimize_timetable
+
+    academic_year = request.data.get('academic_year')
+    if not academic_year:
+        return Response({'error': 'academic_year is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    ctx = AIContext.from_request(request)
+    if not feature_enabled('ai_timetable', ctx):
+        return Response({'error': 'This AI feature is turned off for your school.'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        check_rate_limit(ctx, 'ai_timetable')
+    except AIQuotaExceeded as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+    try:
+        generations = max(5, min(int(request.data.get('generations', 60)), 300))
+    except (TypeError, ValueError):
+        generations = 60
+    try:
+        pop_size = max(10, min(int(request.data.get('pop_size', 60)), 200))
+    except (TypeError, ValueError):
+        pop_size = 60
+    commit = bool(request.data.get('commit', False))
+    tenant_id = str(ctx.tenant.id) if ctx.tenant else None
+
+    try:
+        result = optimize_timetable(academic_year, tenant_id=tenant_id, generations=generations,
+                                    pop_size=pop_size, commit=commit)
+    except Exception:
+        logger.exception('Timetable generation failed')
+        return Response({'error': 'Timetable generation failed. See server logs.'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    if result.get('error'):
+        return Response(result, status=status.HTTP_400_BAD_REQUEST)
+    if not commit:
+        result['slots'] = _timetable_preview_rows(result['slots'])
+    return Response(result, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([IsAIEducator])

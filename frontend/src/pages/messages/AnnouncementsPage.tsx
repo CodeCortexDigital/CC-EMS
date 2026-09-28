@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Megaphone, Pin, Trash2 } from 'lucide-react';
-import messaging, { type Announcement } from '@/services/messaging.service';
+import { Languages, Loader2, Megaphone, Pin, Sparkles, Trash2 } from 'lucide-react';
+import messaging, { type AiSummary, type AiTranslation, type Announcement } from '@/services/messaging.service';
 import classSectionService, { type ClassWithSections } from '@/services/classSection.service';
 import { useAuth } from '@/contexts/AuthContext';
+import { LANGUAGES } from '@/i18n/languages';
 
 const input = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm';
 const AUDIENCES = [['everyone', 'Everyone'], ['parents', 'All parents'], ['staff', 'All staff'], ['students', 'All students'], ['class', 'Chosen classes'], ['grade', 'Grade levels']];
@@ -15,6 +16,11 @@ export default function AnnouncementsPage() {
   const [rows, setRows] = useState<Announcement[] | null>(null);
   const [classes, setClasses] = useState<ClassWithSections[]>([]);
   const [sms, setSms] = useState(false);
+  const [summaries, setSummaries] = useState<Record<string, AiSummary>>({});
+  const [summarizing, setSummarizing] = useState<string | null>(null);
+  const [translations, setTranslations] = useState<Record<string, AiTranslation>>({});
+  const [translating, setTranslating] = useState<string | null>(null);
+  const [translateLang, setTranslateLang] = useState<Record<string, string>>({});
   const [f, setF] = useState({ title: '', body: '', audience: role === 'teacher' ? 'class' : 'everyone', class_ids: [] as string[], grade_levels: [] as number[],
     include_parents: true, include_students: false, send_email: true, send_sms: false, is_pinned: false, scheduled_for: '' });
 
@@ -35,6 +41,28 @@ export default function AnnouncementsPage() {
     } catch (e: any) { toast.error(e?.response?.data?.error || 'Could not post the announcement.'); }
   };
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+  const summarize = async (id: string) => {
+    setSummarizing(id);
+    try {
+      const result = await messaging.summarizeAnnouncement(id);
+      setSummaries((s) => ({ ...s, [id]: result }));
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'Could not summarise this announcement.');
+    } finally {
+      setSummarizing(null);
+    }
+  };
+  const translate = async (id: string) => {
+    setTranslating(id);
+    try {
+      const result = await messaging.translateAnnouncement(id, translateLang[id]);
+      setTranslations((t) => ({ ...t, [id]: result }));
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'Could not translate this announcement.');
+    } finally {
+      setTranslating(null);
+    }
+  };
   const grades = [...new Set(classes.map((c: any) => c.grade_level).filter((g: any) => g !== null && g !== undefined))].sort((a: any, b: any) => a - b) as number[];
 
   return (
@@ -74,6 +102,38 @@ export default function AnnouncementsPage() {
                 <span className="text-xs text-slate-500 shrink-0">{a.sent_at ? new Date(a.sent_at).toLocaleString() : `Scheduled ${a.scheduled_for ? new Date(a.scheduled_for).toLocaleString() : ''}`}</span>
               </div>
               <p className="text-sm whitespace-pre-wrap mt-1">{a.body}</p>
+              {summaries[a.id] ? (
+                <div className="mt-2 rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2 text-xs">
+                  <p className="font-bold inline-flex items-center gap-1"><Sparkles className="w-3 h-3" /> {summaries[a.id].summary}</p>
+                  {summaries[a.id].key_points.length > 0 && (
+                    <ul className="list-disc pl-4 mt-1 space-y-0.5">{summaries[a.id].key_points.map((k, i) => <li key={i}>{k}</li>)}</ul>
+                  )}
+                </div>
+              ) : a.body.length > 240 && (
+                <button onClick={() => summarize(a.id)} disabled={summarizing === a.id}
+                  className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline disabled:opacity-50">
+                  {summarizing === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} Summarise with AI
+                </button>
+              )}
+              {translations[a.id] && (
+                <div className="mt-2 rounded-lg bg-sky-50 border border-sky-100 px-3 py-2 text-xs">
+                  <p className="font-bold inline-flex items-center gap-1 text-sky-800">
+                    <Languages className="w-3 h-3" /> {LANGUAGES.find((l) => l.code === translations[a.id].language)?.name || translations[a.id].language}
+                  </p>
+                  <p className="whitespace-pre-wrap mt-1 text-slate-700">{translations[a.id].translated_text}</p>
+                </div>
+              )}
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <select aria-label="Translate to" className="rounded border border-slate-200 text-xs px-1.5 py-1"
+                  value={translateLang[a.id] || ''} onChange={(e) => setTranslateLang((t) => ({ ...t, [a.id]: e.target.value }))}>
+                  <option value="">My language</option>
+                  {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
+                </select>
+                <button onClick={() => translate(a.id)} disabled={translating === a.id}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline disabled:opacity-50">
+                  {translating === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />} Translate
+                </button>
+              </div>
               <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                 <span>{a.author} · {a.audience_label}</span>
                 {a.recipient_count !== undefined && a.sent_at && <span>Delivered to {a.recipient_count} · read by {a.read_count} · {a.email_count} emails{a.sms_count ? ` · ${a.sms_count} texts` : ''}</span>}

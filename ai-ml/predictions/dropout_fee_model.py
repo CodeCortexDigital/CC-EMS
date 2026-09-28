@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from django.apps import apps
-from django.db.models import Avg, Sum
+from django.db.models import Avg, Q, Sum
 
 try:
     from xgboost import XGBClassifier
@@ -65,10 +65,15 @@ def get_student_predictive_features(student) -> dict:
     }
 
 def train_and_save_fee_dropout_models(tenant_id=None) -> str:
-    """Trains Logistic Regression (Fee Default) and XGBoost (Dropout) models on synthetic & real data."""
+    """Trains Logistic Regression (Fee Default) and XGBoost (Dropout) models on synthetic & real data.
+
+    `tenant_id` scopes training to one school (plus legacy rows with no tenant set); without it
+    every school's students would be pooled into one shared "default" model."""
     Student = apps.get_model('education_students', 'Student')
     students = Student.objects.filter(is_active=True)
-    
+    if tenant_id:
+        students = students.filter(Q(tenant_id=tenant_id) | Q(tenant_id__isnull=True))
+
     # Fetch real records features
     real_rows = []
     for s in students:

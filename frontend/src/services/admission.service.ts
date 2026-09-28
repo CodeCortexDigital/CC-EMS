@@ -69,6 +69,7 @@ export interface AdmissionSettings {
   required_documents: string[];
   declaration: string;
   notify_email: string;
+  criteria: string[];
   public_slug: string;
 }
 
@@ -113,6 +114,9 @@ export interface Application {
   interview_date: string | null;
   interview_notes: string;
   interview_rating: number | null;
+  ai_screening_score: number | null;
+  ai_screening_summary: string;
+  ai_screened_at: string | null;
   signature_name: string;
   signed_at: string | null;
   consents: Record<string, unknown>;
@@ -176,6 +180,8 @@ const admissionService = {
   setStatus: async (id: string, status: ApplicationStatus, note = '', notify = true) =>
     (await api.post(`${base}/applications/${id}/update-status/`, { status, note, notify })).data,
   addNote: async (id: string, note: string) => (await api.post(`${base}/applications/${id}/notes/`, { note })).data,
+  screen: async (id: string) => (await api.post<{ score: number; summary: string; concerns: string[]; screened_at: string; source: 'ai' | 'template' }>(
+    `${base}/applications/${id}/ai-screen/`)).data,
   uploadDocument: async (id: string, type: string, file: File) => {
     const fd = new FormData();
     fd.append(`doc:${type}`, file);

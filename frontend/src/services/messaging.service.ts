@@ -10,6 +10,8 @@ export interface ConversationSummary {
   last_message: { body: string; at: string; sender: string } | null; last_message_at: string; unread: number;
 }
 export interface ChatMessage { id: string; body: string; at: string; sender: { id: string; name: string }; attachment: { name: string; url: string } | null }
+export interface AiSummary { summary: string; key_points: string[]; source: 'ai' | 'template' }
+export interface AiTranslation { translated_text: string; language: string; source: 'ai' | 'template' }
 export interface Announcement {
   id: string; title: string; body: string; audience: string; audience_label: string; class_ids: string[]; grade_levels: number[];
   is_pinned: boolean; scheduled_for: string | null; sent_at: string | null; created_at: string; author: string; read?: boolean;
@@ -22,6 +24,10 @@ const messaging = {
   start: async (body: { participants: string[]; subject: string; body: string; student?: string }) =>
     (await api.post<ConversationSummary>(`${base}/conversations/`, body)).data,
   thread: async (id: string) => (await api.get<ConversationSummary & { messages: ChatMessage[] }>(`${base}/conversations/${id}/`)).data,
+  summarizeConversation: async (id: string) => (await api.post<AiSummary>(`${base}/conversations/${id}/summarize/`)).data,
+  translateMessage: async (convId: string, messageId: string, targetLanguage?: string) =>
+    (await api.post<AiTranslation>(`${base}/conversations/${convId}/messages/${messageId}/translate/`,
+      { target_language: targetLanguage })).data,
   reply: async (id: string, body: string, file?: File | null) => {
     if (file) {
       const fd = new FormData();
@@ -35,6 +41,9 @@ const messaging = {
   announcements: async () => (await api.get<Announcement[]>(`${base}/announcements/`)).data,
   announce: async (body: Record<string, unknown>) => (await api.post<Announcement>(`${base}/announcements/`, body)).data,
   markRead: async (id: string) => api.post(`${base}/announcements/${id}/`, {}),
+  summarizeAnnouncement: async (id: string) => (await api.post<AiSummary>(`${base}/announcements/${id}/summarize/`)).data,
+  translateAnnouncement: async (id: string, targetLanguage?: string) =>
+    (await api.post<AiTranslation>(`${base}/announcements/${id}/translate/`, { target_language: targetLanguage })).data,
   removeAnnouncement: async (id: string) => api.delete(`${base}/announcements/${id}/`),
   smsSettings: async () => (await api.get(`${base}/sms/settings/`)).data as {
     account_sid: string; from_number: string; whatsapp_from: string; default_country_code: string; is_active: boolean; has_auth_token: boolean; ready: boolean },

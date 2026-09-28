@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Award, Loader2, ThumbsDown, ThumbsUp, Trophy } from 'lucide-react';
-import discipline, { type Incident, type StudentSummary } from '@/services/discipline.service';
+import { Award, Loader2, Sparkles, ThumbsDown, ThumbsUp, Trophy } from 'lucide-react';
+import { toast } from 'sonner';
+import discipline, { type BehaviourPattern, type Incident, type StudentSummary } from '@/services/discipline.service';
+
+const SEVERITY_TONE: Record<string, string> = {
+  low: 'bg-slate-100 text-slate-700', medium: 'bg-amber-100 text-amber-800',
+  high: 'bg-orange-100 text-orange-800', critical: 'bg-rose-100 text-rose-800',
+};
 
 const STATUS: Record<string, string> = { open: 'Open', in_review: 'In review', resolved: 'Resolved' };
 
@@ -34,14 +40,34 @@ export function IncidentLine({ i, onOpen, showStudent = false }: { i: Incident; 
 }
 
 /** A student's behaviour record: points, awards, and the history of merits and incidents. */
-export default function BehaviourHistory({ studentId, onOpen, refreshKey = 0 }: { studentId: string; onOpen?: (i: Incident) => void; refreshKey?: number }) {
+export default function BehaviourHistory({ studentId, onOpen, refreshKey = 0, staff = false }: { studentId: string; onOpen?: (i: Incident) => void; refreshKey?: number; staff?: boolean }) {
   const [data, setData] = useState<StudentSummary | null>(null);
   const [error, setError] = useState('');
+  const [patterns, setPatterns] = useState<BehaviourPattern[]>([]);
+  const [detecting, setDetecting] = useState(false);
   useEffect(() => {
     setData(null);
     setError('');
     discipline.summary(studentId).then(setData).catch((e) => setError(e?.response?.data?.error || 'Could not load behaviour.'));
-  }, [studentId, refreshKey]);
+    if (staff) discipline.patterns(studentId).then(setPatterns).catch(() => setPatterns([]));
+  }, [studentId, refreshKey, staff]);
+
+  const runDetection = async () => {
+    setDetecting(true);
+    try {
+      const res = await discipline.detectPattern(studentId);
+      if (!res.detected) {
+        toast.info('No behaviour pattern detected right now.');
+      } else {
+        toast.success(res.notified ? `Pattern flagged and ${res.notified} staff member(s) notified.` : 'Pattern flagged.');
+        discipline.patterns(studentId).then(setPatterns).catch(() => undefined);
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'Could not run pattern detection.');
+    } finally {
+      setDetecting(false);
+    }
+  };
 
   if (error) return <p className="text-sm text-rose-600">{error}</p>;
   if (!data) return <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-brand" /></div>;
@@ -49,6 +75,30 @@ export default function BehaviourHistory({ studentId, onOpen, refreshKey = 0 }: 
 
   return (
     <div className="space-y-4">
+      {staff && (
+        <div className="space-y-2">
+          {patterns.filter((p) => !p.is_resolved).map((p) => (
+            <div key={p.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-700" />
+                <b>{p.pattern_label}</b>
+                <span className={`text-[11px] rounded-full px-2 py-0.5 font-bold uppercase ${SEVERITY_TONE[p.severity]}`}>{p.severity}</span>
+              </div>
+              <p className="text-slate-700 mt-1">{p.summary}</p>
+              {p.recommended_actions.length > 0 && (
+                <ul className="list-disc pl-5 mt-1 text-xs text-slate-600 space-y-0.5">
+                  {p.recommended_actions.map((a, i) => <li key={i}>{a}</li>)}
+                </ul>
+              )}
+            </div>
+          ))}
+          <button onClick={runDetection} disabled={detecting}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline disabled:opacity-50">
+            {detecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {detecting ? 'Checking...' : 'Check for behaviour patterns'}
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-xl border border-slate-200 bg-white p-3"><p className="text-xs text-slate-500">Behaviour points</p><p className={`text-2xl font-black ${data.points >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>{data.points}</p></div>
         <div className="rounded-xl border border-slate-200 bg-white p-3"><p className="text-xs text-slate-500">Merits</p><p className="text-2xl font-black">{data.merits}</p><p className="text-[11px] text-slate-500">+{data.positive_points} points</p></div>

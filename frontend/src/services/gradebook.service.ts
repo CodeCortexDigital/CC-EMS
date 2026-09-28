@@ -82,6 +82,8 @@ const gradebook = {
     (await api.post(`${base}/standard-ratings/`, { term, ratings })).data,
   comment: async (body: { student: string; term: string; class_subject?: string | null; comment: string }) =>
     (await api.post(`${base}/comments/`, body)).data,
+  aiDraftComment: async (body: { student: string; term: string; class_subject?: string | null; tone?: string; language?: string }) =>
+    (await api.post<{ comment: string; source: 'ai' | 'template' }>(`${base}/ai-comment/`, body)).data,
   reportCard: async (studentId: string, term = '') => (await api.get<ReportCard>(`${base}/report-card/${studentId}/`, { params: term ? { term } : {} })).data,
   releases: async (term = '') => (await api.get<Array<{ id: string; term: string; term_name: string; class_id: string | null; class_name: string; released_at: string }>>(
     `${base}/releases/`, { params: term ? { term } : {} })).data,

@@ -147,6 +147,10 @@ class ClassSubject(models.Model):
     class_ref = models.ForeignKey(SchoolClass, on_delete=models.CASCADE, related_name='subjects')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='classes')
     marks = models.IntegerField(default=100)
+    # How many timetable periods a week this subject gets for this class (used by the AI timetable
+    # generator). Defaults to 1 lesson/week so existing data keeps its current one-slot-per-subject
+    # behaviour until a school raises it for subjects that meet more often.
+    periods_per_week = models.PositiveSmallIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

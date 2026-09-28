@@ -17,6 +17,7 @@ urlpatterns = [
     path('standards/<str:standard_id>/', api.standard_detail, name='gradebook-standard-detail'),
     path('standard-ratings/', api.standard_ratings, name='gradebook-standard-ratings'),
     path('comments/', api.comment, name='gradebook-comments'),
+    path('ai-comment/', api.ai_comment_draft, name='gradebook-ai-comment'),
     path('releases/', api.releases, name='gradebook-releases'),
     path('releases/<str:release_id>/', api.release_detail, name='gradebook-release-detail'),
     path('report-card/<str:student_id>/', api.report_card, name='gradebook-report-card'),

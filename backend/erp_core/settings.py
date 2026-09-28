@@ -546,6 +546,10 @@ try:
             'task': 'services.core.storage.tasks.cleanup_temp_files',
             'schedule': crontab(hour=4, minute=0),
         },
+        'ai-risk-scan-nightly': {
+            'task': 'services.analytics.tasks.nightly_risk_scan',
+            'schedule': crontab(hour=1, minute=30),
+        },
     }
 except ImportError:
     CELERY_BEAT_SCHEDULE = {}

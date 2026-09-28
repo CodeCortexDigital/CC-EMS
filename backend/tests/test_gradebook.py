@@ -1,8 +1,10 @@
 """Gradebook: weighted grades, statuses, exam sync, standards, report cards and transcripts (Phase 6)."""
 import datetime
 from decimal import Decimal
+from unittest import mock
 
 import pytest
+from django.core.cache import cache
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -166,6 +168,69 @@ def test_only_the_classes_teachers_grade(setup):
     assert stranger.get(f"/api/v1/auth/gradebook/grid/?class_subject={d['cs_math'].id}").status_code in (403, 404)
     assert stranger.post('/api/v1/auth/gradebook/assignments/', {'class_subject': str(d['cs_math'].id),
                          'title': 'x'}, format='json').status_code in (403, 404)
+
+
+@pytest.mark.django_db
+class TestAiCommentDraft:
+    """AI-drafted report card comments from grades/attendance/behaviour (docs table "AI Report Card Comments")."""
+
+    @pytest.fixture(autouse=True)
+    def _clean(self, settings):
+        settings.OPENAI_API_KEY = ''
+        settings.ANTHROPIC_API_KEY = ''
+        settings.AI_RATE_LIMIT = 30
+        cache.clear()
+
+    def test_template_without_provider(self, setup):
+        d = setup
+        api = _client(d['admin'])
+        res = api.post('/api/v1/auth/gradebook/ai-comment/', {
+            'student': str(d['kid'].id), 'term': str(d['t1'].id), 'class_subject': str(d['cs_math'].id),
+        }, format='json')
+        assert res.status_code == 200
+        assert res.json()['source'] == 'template'
+
+    def test_generates_and_records_usage(self, setup):
+        from services.ai.models import AIUsage
+        from tests.test_ai_platform import FakeLLM
+
+        d = setup
+        llm = FakeLLM([])
+        llm.structured_results = [{'comment': 'Ava is making steady progress in Algebra II.'}]
+        api = _client(d['admin'])
+        with mock.patch('services.ai.llm.get_llm_client', return_value=llm):
+            res = api.post('/api/v1/auth/gradebook/ai-comment/', {
+                'student': str(d['kid'].id), 'term': str(d['t1'].id), 'class_subject': str(d['cs_math'].id),
+            }, format='json')
+        assert res.status_code == 200
+        body = res.json()
+        assert body['source'] == 'ai' and body['comment'] == 'Ava is making steady progress in Algebra II.'
+        assert 'Algebra II' in llm.calls[0]['prompt']
+        assert AIUsage.objects.get(user=d['admin'], feature='ai_report_comments').output_tokens == 50
+
+    def test_homeroom_draft_needs_no_class_subject(self, setup):
+        from tests.test_ai_platform import FakeLLM
+
+        d = setup
+        llm = FakeLLM([])
+        llm.structured_results = [{'comment': 'Ava has had a strong term overall.'}]
+        api = _client(d['admin'])
+        with mock.patch('services.ai.llm.get_llm_client', return_value=llm):
+            res = api.post('/api/v1/auth/gradebook/ai-comment/', {
+                'student': str(d['kid'].id), 'term': str(d['t1'].id),
+            }, format='json')
+        assert res.status_code == 200 and res.json()['source'] == 'ai'
+        assert 'overall (homeroom)' in llm.calls[0]['prompt']
+
+    def test_only_the_classes_teachers_can_draft(self, setup):
+        d = setup
+        from tests.conftest import UserFactory
+
+        stranger = _client(UserFactory(email='y@maple.test'))
+        res = stranger.post('/api/v1/auth/gradebook/ai-comment/', {
+            'student': str(d['kid'].id), 'term': str(d['t1'].id), 'class_subject': str(d['cs_math'].id),
+        }, format='json')
+        assert res.status_code in (403, 404)
 
 
 def test_gpa_math():

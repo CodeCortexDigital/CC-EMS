@@ -20,7 +20,7 @@ from services.core.accounts.decorators import (
     _get_teacher_class_ids, ensure_student_access, filter_students_for_user, get_user_role, is_admin,
 )
 
-from .models import BehaviourAction, BehaviourCategory, BehaviourIncident, BehaviourSettings, MilestoneAward
+from .models import BehaviourAction, BehaviourCategory, BehaviourIncident, BehaviourPattern, BehaviourSettings, MilestoneAward
 
 logger = logging.getLogger(__name__)
 
@@ -475,6 +475,102 @@ def student_summary(request, student_id):
         'next_milestone': upcoming,
         'history': [_payload(i, request.user, family) for i in rows[:200]],
     })
+
+
+def _pattern_payload(p: BehaviourPattern) -> dict:
+    return {'id': str(p.id), 'pattern_type': p.pattern_type, 'pattern_label': p.get_pattern_type_display(),
+            'severity': p.severity, 'window_days': p.window_days, 'incident_count': p.incident_count,
+            'summary': p.summary, 'recommended_actions': p.recommended_actions, 'source': p.source,
+            'is_resolved': p.is_resolved, 'detected_at': p.detected_at}
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def detect_pattern(request, student_id):
+    """{window_days?} -> a rule-based pattern across the student's recent incidents, explained by
+    AI and notified to the student's class teachers and school admins (docs table
+    "AI Behaviour Pattern Detection"). A draft finding for staff to review, never a decision."""
+    from services.ai.context import AIContext
+    from services.ai.generation import generate_behaviour_pattern_explanation, template_behaviour_pattern_explanation
+    from services.ai.llm import LLMError, get_llm_client
+    from services.ai.quota import AIQuotaExceeded, check_rate_limit, check_token_budget, feature_enabled, record_usage
+    from services.core.accounts.models import TeacherProfile
+    from services.core.tenants.models import TenantMembership
+    from services.core.user_notifications.utils import create_user_notification
+
+    from .patterns import detect_pattern as run_detection
+    from .patterns import incident_summary_text
+
+    s = get_object_or_404(_students().select_related('current_class'), pk=student_id)
+    if not _staff(request.user):
+        return Response({'error': 'Only staff can run behaviour pattern detection.'}, status=403)
+    if not is_admin(request.user) and str(s.current_class_id) not in {str(c) for c in _get_teacher_class_ids(request.user)}:
+        return Response({'error': 'Not your student.'}, status=403)
+
+    try:
+        window_days = max(7, min(int(request.data.get('window_days', 30)), 180))
+    except (TypeError, ValueError):
+        window_days = 30
+
+    found = run_detection(s, window_days=window_days)
+    if found is None:
+        return Response({'detected': False})
+
+    facts = incident_summary_text(found)
+    kwargs = dict(student_name=s.full_name, pattern_type=found['pattern_type'], severity=found['severity'], facts=facts)
+
+    if get_llm_client() is None:
+        result = template_behaviour_pattern_explanation(**kwargs)
+    else:
+        ctx = AIContext.from_request(request)
+        if not feature_enabled('ai_behaviour_pattern', ctx):
+            return Response({'error': 'This AI feature is turned off for your school.'}, status=403)
+        llm = get_llm_client()
+        try:
+            check_rate_limit(ctx, 'ai_behaviour_pattern')
+            check_token_budget(ctx)
+        except AIQuotaExceeded as exc:
+            return Response({'error': str(exc)}, status=429)
+        try:
+            result, usage, model = generate_behaviour_pattern_explanation(llm, **kwargs)
+        except LLMError:
+            logger.exception('Behaviour pattern explanation failed')
+            return Response({'error': 'Could not explain this pattern right now. Please try again.'}, status=502)
+        record_usage(ctx, 'ai_behaviour_pattern', llm.provider, model, usage)
+        result = {**result, 'source': 'ai'}
+
+    pattern = BehaviourPattern.objects.create(
+        tenant=s.tenant, student=s, pattern_type=found['pattern_type'], severity=found['severity'],
+        window_days=window_days, incident_count=found['incident_count'], summary=result['summary'],
+        recommended_actions=result['recommended_actions'], source=result.get('source', 'ai'))
+
+    message = f"{s.full_name} shows {pattern.get_pattern_type_display().lower()} in behaviour ({pattern.severity} severity). {pattern.summary}"
+    recipients = {t.user_id: t.user for t in TeacherProfile.objects.filter(
+        assigned_classes=s.current_class_id).select_related('user') if t.user_id}
+    if s.tenant_id:
+        recipients.update({m.user_id: m.user for m in TenantMembership.objects.filter(
+            school_id=s.tenant_id, role='admin').select_related('user')})
+    notified = 0
+    for user in recipients.values():
+        if create_user_notification(user, 'Behaviour pattern detected', message, 'academic'):
+            notified += 1
+    pattern.notified_count = notified
+    pattern.save(update_fields=['notified_count'])
+
+    return Response({'detected': True, 'notified': notified, **_pattern_payload(pattern)})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def behaviour_patterns(request, student_id):
+    s = get_object_or_404(_students(), pk=student_id)
+    if not ensure_student_access(request.user, s):
+        return Response({'error': 'Not your student.'}, status=403)
+    family = not _staff(request.user)
+    qs = BehaviourPattern.objects.filter(student=s)
+    if family:
+        qs = qs.none()  # patterns are a staff-side finding, not shown to families
+    return Response([_pattern_payload(p) for p in qs[:20]])
 
 
 @api_view(['GET'])

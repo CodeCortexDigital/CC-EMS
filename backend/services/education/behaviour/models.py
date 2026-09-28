@@ -205,3 +205,31 @@ class MilestoneAward(TenantScopedModel):
     class Meta:
         ordering = ['-awarded_at']
         constraints = [models.UniqueConstraint(fields=['student', 'points'], name='uniq_behaviour_milestone')]
+
+
+class BehaviourPattern(TenantScopedModel):
+    """An AI-detected pattern across a student's recent incidents (docs table
+    "AI Behaviour Pattern Detection") — a draft finding for staff to review, not a decision."""
+    TYPES = [
+        ('escalating', 'Escalating frequency'),
+        ('repeated_category', 'Repeated concern'),
+        ('high_severity', 'High-severity incident'),
+        ('frequent', 'Frequent incidents'),
+    ]
+    SEVERITIES = [('low', 'Low'), ('medium', 'Medium'), ('high', 'High'), ('critical', 'Critical')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey('education_students.Student', on_delete=models.CASCADE, related_name='behaviour_patterns')
+    pattern_type = models.CharField(max_length=20, choices=TYPES)
+    severity = models.CharField(max_length=10, choices=SEVERITIES)
+    window_days = models.PositiveSmallIntegerField(default=30)
+    incident_count = models.PositiveSmallIntegerField(default=0)
+    summary = models.TextField(blank=True, default='')
+    recommended_actions = models.JSONField(default=list, blank=True)
+    source = models.CharField(max_length=10, default='ai')  # 'ai' or 'template'
+    notified_count = models.PositiveSmallIntegerField(default=0)
+    is_resolved = models.BooleanField(default=False)
+    detected_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-detected_at']

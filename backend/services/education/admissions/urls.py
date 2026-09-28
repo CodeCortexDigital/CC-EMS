@@ -14,6 +14,7 @@ urlpatterns = [
     path('applications/<str:id>/', views.ApplicationDetailView.as_view(), name='application-detail'),
     path('applications/<str:id>/update-status/', views.update_application_status, name='update-status'),
     path('applications/<str:id>/notes/', views.add_note, name='application-notes'),
+    path('applications/<str:id>/ai-screen/', views.ai_screen_application, name='application-ai-screen'),
     path('applications/<str:id>/documents/', views.upload_documents, name='application-documents'),
     path('applications/<str:id>/documents/<str:doc_id>/', views.delete_document, name='application-document'),
     path('applications/<str:id>/convert-to-student/', views.convert_to_student, name='convert-to-student'),

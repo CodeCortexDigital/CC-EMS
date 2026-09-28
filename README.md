@@ -375,3 +375,43 @@ GitHub Actions runs backend/frontend tests, linting (flake8, ESLint), type check
 ## License
 
 Proprietary — all rights reserved.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+AI Inside CC-EMS (Schools)
+AI Feature	What It Does	Value
+
+✅AI Report Card Comments	Generates personalized teacher comments from grades, attendance, and behaviour	Saves teachers hours per term
+
+✅AI Attendance Insights	Predicts which students are at risk of dropping out	Early intervention saves students
+
+✅AI Fee Default Prediction	Predicts which families are likely to default on fees	Improves collection rate
+
+✅AI Admission Screening	Screens applications against school criteria	Speeds up admissions
+
+✅AI Homework Helper	Students get step-by-step help on homework	Parent-facing value
+
+✅AI Parent Message Summarizer	Summarizes long messages into key points	Saves parents time
+
+✅AI Timetable Generator	Creates optimal timetables from constraints	Saves admin weeks of work
+
+✅AI Behaviour Pattern Detection	Identifies patterns before they escalate	Protects students
+
+✅AI Translation	Translates communications into every parent's language	Improves inclusion

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Printer, ScrollText } from 'lucide-react';
+import { Loader2, Printer, ScrollText, Sparkles } from 'lucide-react';
 import gradebook, { LEVEL_LABEL, type ReportCard, type Transcript } from '@/services/gradebook.service';
 import { Modal } from '@/components/ui/Modal';
 
@@ -25,18 +25,44 @@ export function ReportCardView({ studentId, staff = false }: { studentId: string
   const [card, setCard] = useState<ReportCard | null>(null);
   const [error, setError] = useState('');
   const [transcript, setTranscript] = useState(false);
+  const [comments, setComments] = useState<Record<string, string>>({});
+  const [homeroom, setHomeroom] = useState('');
+  const [draftingKey, setDraftingKey] = useState<string | null>(null);
 
   useEffect(() => {
     setError('');
     gradebook.reportCard(studentId, term).then(setCard).catch((e) => { setCard(null); setError(e?.response?.data?.error || 'No report card yet.'); });
   }, [studentId, term]);
 
-  const saveComment = async (classSubject: string | null, text: string) => {
+  useEffect(() => {
     if (!card) return;
+    const map: Record<string, string> = {};
+    card.subjects.forEach((s) => { map[s.class_subject] = s.comment; });
+    setComments(map);
+    setHomeroom(card.homeroom_comment);
+  }, [card]);
+
+  const saveComment = async (classSubject: string | null, text: string, original: string) => {
+    if (!card || text === original) return;
     try {
       await gradebook.comment({ student: studentId, term: card.term.id, class_subject: classSubject, comment: text });
       toast.success('Comment saved');
     } catch (e: any) { toast.error(e?.response?.data?.error || 'Could not save the comment.'); }
+  };
+
+  const draftWithAi = async (classSubject: string | null, key: string) => {
+    if (!card) return;
+    setDraftingKey(key);
+    try {
+      const res = await gradebook.aiDraftComment({ student: studentId, term: card.term.id, class_subject: classSubject });
+      if (classSubject) setComments((c) => ({ ...c, [classSubject]: res.comment }));
+      else setHomeroom(res.comment);
+      toast.success(res.source === 'template' ? 'Draft filled in — review and edit before saving.' : 'Comment drafted by AI — review and edit before saving.');
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'AI comment drafting failed. Please try again.');
+    } finally {
+      setDraftingKey(null);
+    }
   };
 
   return (
@@ -76,8 +102,16 @@ export function ReportCardView({ studentId, staff = false }: { studentId: string
                   <td className="py-2 pr-2 text-xs text-slate-600">{s.categories.filter((c) => c.percent != null).map((c) => `${c.name} ${c.percent}%`).join(' · ') || '—'}</td>
                   <td className="py-2 min-w-[220px]">
                     {staff ? (
-                      <textarea className="w-full rounded border border-slate-200 px-2 py-1 text-sm no-print" rows={2} defaultValue={s.comment} aria-label={`Comment for ${s.subject}`}
-                        onBlur={(e) => e.target.value !== s.comment && saveComment(s.class_subject, e.target.value)} />
+                      <div className="space-y-1 no-print">
+                        <textarea className="w-full rounded border border-slate-200 px-2 py-1 text-sm" rows={2}
+                          value={comments[s.class_subject] ?? ''} aria-label={`Comment for ${s.subject}`}
+                          onChange={(e) => setComments((c) => ({ ...c, [s.class_subject]: e.target.value }))}
+                          onBlur={(e) => saveComment(s.class_subject, e.target.value, s.comment)} />
+                        <button type="button" onClick={() => draftWithAi(s.class_subject, s.class_subject)} disabled={draftingKey === s.class_subject}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline disabled:opacity-50">
+                          {draftingKey === s.class_subject ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} Draft with AI
+                        </button>
+                      </div>
                     ) : null}
                     <span className={staff ? 'hidden print:block' : ''}>{s.comment}</span>
                   </td>
@@ -95,7 +129,17 @@ export function ReportCardView({ studentId, staff = false }: { studentId: string
           </div>
           <div>
             <h3 className="font-bold">Homeroom comment</h3>
-            {staff ? <textarea className="w-full rounded border border-slate-200 px-2 py-1 no-print" rows={2} defaultValue={card.homeroom_comment} aria-label="Homeroom comment" onBlur={(e) => e.target.value !== card.homeroom_comment && saveComment(null, e.target.value)} /> : null}
+            {staff ? (
+              <div className="space-y-1 no-print">
+                <textarea className="w-full rounded border border-slate-200 px-2 py-1" rows={2} value={homeroom} aria-label="Homeroom comment"
+                  onChange={(e) => setHomeroom(e.target.value)}
+                  onBlur={(e) => saveComment(null, e.target.value, card.homeroom_comment)} />
+                <button type="button" onClick={() => draftWithAi(null, '__homeroom__')} disabled={draftingKey === '__homeroom__'}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline disabled:opacity-50">
+                  {draftingKey === '__homeroom__' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} Draft with AI
+                </button>
+              </div>
+            ) : null}
             <p className={staff ? 'hidden print:block' : 'text-slate-700'}>{card.homeroom_comment || (staff ? '' : '—')}</p>
           </div>
           <p className="text-xs text-slate-500">Grading scale: {card.scale.bands.map((b) => `${b.label} ${b.min_percent}%+`).join(' · ')}</p>

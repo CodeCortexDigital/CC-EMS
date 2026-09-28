@@ -2,7 +2,7 @@
 
 **Project:** CC-EMS (Code Cortex Education Management System), from a Pakistani-style school system to an international-standard, multi-school SaaS platform.
 **This document:** what is finished (with details), how deployment stands, and what is planned next (with details).
-**Last updated:** 27 September 2026
+**Last updated:** 28 September 2026 (reprioritised P21/P27/P28 for US market entry; corrected P27's status against the 9 AI features shipped this term)
 
 ## Summary
 
@@ -2308,7 +2308,7 @@ After the first paying schools are live and stable. These improve daily use and 
 - Phase 22 navigation, the Phase 18 accessible charts, P5 CI.
 
 **When**
-- Before selling to public-sector or US/EU schools.
+- Now, as part of the US-readiness push (with P27, P28) — not deferred until a sale depends on it. ADA Title II's WCAG 2.1 AA deadline for large public entities has already passed; smaller districts follow in 2027.
 
 ### P22: Sales CRM and market pages
 
@@ -2400,33 +2400,47 @@ Do the items for a market only when a school there is signing.
 
 **Roadmap items:** 78, 79
 
-**What to build**
-- AI on or off per school and per feature, usage limits, an AI activity log, teacher confirmation for AI suggestions, masking of personal data sent to the AI, and zero-retention providers where available.
+**Already built** (as of the 9-feature AI rollout — report comments, attendance/fee risk actions, admission screening, homework helper, message summarizer/translator, timetable generator, behaviour pattern detection):
+- AI on/off per school and per feature (`feature_enabled`, wired into all 9 features).
+- Per-user rate limits and per-school monthly token budgets (`services/ai/quota.py`).
+- Default-on masking of contact fields (phone, email, CNIC, address) before any tool result reaches an LLM (`services/ai/tools.py`).
+- Every AI conversation and usage event is logged (`AIConversation`/`AIMessage`/`AIUsage`) — the raw data for an activity log already exists.
+
+**What's still missing**
+- A human-confirmation step before AI output is treated as final on a real record — none of the 9 features require a teacher/admin to confirm before a report comment, behaviour-pattern flag, or admission score counts as saved (beyond "it's sitting in a text box until they hit save").
+- Masking only covers 5 hard-coded structured fields, not free text — a student's own typed question to the homework helper isn't filtered at all.
+- No zero-data-retention provider setting where OpenAI/Anthropic offer one.
+- No admin-facing oversight dashboard over the AI usage/conversation data that's already being recorded.
 
 **Why it matters**
-- Schools and regulators expect control over AI use with children's data.
+- Schools and regulators expect control over AI use with children's data; several US states are actively legislating AI-in-ed-tech right now, and this is a live differentiator, not just a compliance checkbox.
 
 **Builds on**
-- The existing AI assistant with its quotas (P11 includes the AI module per plan).
+- The existing AI assistant, quotas and masking already shipped.
 
 **When**
-- Before EU schools, or when a school asks.
+- Now — priority, alongside P21 and P28, ahead of the rest of Tier 2/3. Not gated on an EU school signing.
 
 ### P28: US readiness
 
 **Roadmap items:** 67, 68, 74, 75
 
-**What to build**
-- FERPA and COPPA controls (directory information settings, disclosure logs, parental consent), the NDPA and state addenda, Clever and ClassLink sign-in, and OneRoster rostering.
+**Already built and reusable, not from scratch:** the P14 Privacy app already has a public sub-processor page, a DSAR-style request queue (access/correction/restriction/erasure/objection with a 30-day SLA), a breach/incident register (severity, notified-at timestamps, checklist playbook), and a generic parental-consent engine (`ConsentType`/`ConsentRecord`) that already scopes a parent to consenting only for their own linked children. Access control already enforces FERPA's "legitimate educational interest" pattern in practice — teachers see only their own classes, parents only their own children — it's just not labelled as a FERPA control anywhere. Card payments already go through Stripe Checkout (hosted), which should keep PCI scope at SAQ-A.
+
+**What to build, in priority order**
+1. **Legal/labelling (cheap, do first):** directory-information flags with an opt-out, and a disclosure log (extend the existing audit log rather than a new model); a COPPA-labelled consent type built on the existing `ConsentType`/`ConsentRecord` engine (schools already act in loco parentis); an NDPA (Student Data Privacy Consortium) template plus 2–3 state addenda — California SOPIPA, New York Ed Law 2-d, and Illinois SOPPA are the most commonly demanded; a PPRA survey-topic flag once/if a survey feature exists.
+2. **Security/infra:** SOC 2 (Type I at minimum — districts routinely require it in RFPs); make the breach-notification deadline configurable per state instead of the hard-coded 72-hour constant on the `Incident` model; formally confirm the Stripe Checkout PCI scope; a US-only hosting/data-residency option (today only an EU region is planned under P26).
+3. **Go-to-market packaging:** bundle the sub-processor page, privacy policy, SOC 2 report and the P21 VPAT into one public "Trust & Security" page.
+4. Clever and ClassLink sign-in, and OneRoster rostering, as originally planned.
 
 **Why it matters**
-- US districts will not sign without these.
+- US districts will not sign without a DPA/NDPA, and increasingly won't take a demo without a VPAT and SOC 2 evidence.
 
 **Builds on**
-- P14 consent, Phase 21 audit log, Phase 17 SSO pattern.
+- P14 consent/privacy infrastructure, Phase 21 audit log, P21 accessibility, P27 AI governance, Phase 17 SSO pattern.
 
 **When**
-- Before the first US school.
+- Now — the active near-term market target, alongside P21 and P27, not deferred until a US school signs.
 
 ### P29: Remaining Google and Microsoft integration
 
@@ -2668,6 +2682,13 @@ So the overall roadmap becomes:
 - **P18–P23:** Tier 2 — Growth and daily-use quality (PENDING)
 - **P24–P30:** Tier 3 — When entering a new country (PENDING)
 - **P31–P35:** Tier 4 — Enterprise scale and certification (PENDING)
+
+**Near-term priority (US market entry):** pull P28, P27 and P21 forward, ahead of the rest of Tier 2 and Tier 3, in this order:
+1. **P28's legal/labelling items** (directory information + opt-out, disclosure log, COPPA-labelled consent, NDPA + state addenda) — cheapest, mostly paperwork plus small extensions of the existing Privacy app, and unblocks selling conversations before anything else here is done.
+2. **P27 AI governance hardening** (human-confirmation gate, free-text masking, zero-retention provider setting, admin oversight dashboard) — urgent now that 9 AI features touching student data are live.
+3. **P21 accessibility** (WCAG 2.1 AA audit, remediation, VPAT) — ADA Title II's deadline for large public entities has already passed, so this is overdue rather than upcoming.
+4. **P28's security/infra and go-to-market items** (SOC 2, configurable breach-notification deadline, PCI confirmation, US data residency, a bundled Trust & Security page).
+5. The rest of Tier 2 (P18–P20, P22–P23), then the rest of Tier 3 (P24–P26, P29–P30).
 
 This keeps the original **22 modules untouched** and puts the additional work into the **next upgrade phase**, rather than repeating Student Records, Admissions, Billing, Attendance, Academics, Gradebook, Communication, Calendar, etc.
 

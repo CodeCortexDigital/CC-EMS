@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2, MessageSquarePlus, Paperclip, Search, Send } from 'lucide-react';
-import messaging, { type ChatMessage, type Contact, type ConversationSummary } from '@/services/messaging.service';
+import { ArrowLeft, Languages, Loader2, MessageSquarePlus, Paperclip, Search, Send, Sparkles } from 'lucide-react';
+import messaging, { type AiSummary, type AiTranslation, type ChatMessage, type Contact, type ConversationSummary } from '@/services/messaging.service';
 import { useAuth } from '@/contexts/AuthContext';
 import { Modal } from '@/components/ui/Modal';
 
@@ -25,6 +25,10 @@ export default function MessagesPage() {
   const [file, setFile] = useState<File | null>(null);
   const [composing, setComposing] = useState(false);
   const [search, setSearch] = useState('');
+  const [threadSummary, setThreadSummary] = useState<AiSummary | null>(null);
+  const [summarizingThread, setSummarizingThread] = useState(false);
+  const [msgTranslations, setMsgTranslations] = useState<Record<string, AiTranslation>>({});
+  const [translatingMsg, setTranslatingMsg] = useState<string | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
   const loadList = useCallback(() => messaging.conversations().then(setList).catch(() => setList([])), []);
@@ -34,11 +38,38 @@ export default function MessagesPage() {
 
   useEffect(() => { loadList(); const t = window.setInterval(loadList, 20000); return () => window.clearInterval(t); }, [loadList]);
   useEffect(() => {
+    setThreadSummary(null);
+    setMsgTranslations({});
     if (!openId) { setThread(null); return; }
     loadThread(openId);
     const t = window.setInterval(() => loadThread(openId), 15000);
     return () => window.clearInterval(t);
   }, [openId, loadThread]);
+
+  const summarizeThread = async () => {
+    if (!thread) return;
+    setSummarizingThread(true);
+    try {
+      setThreadSummary(await messaging.summarizeConversation(thread.id));
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'Could not summarise this conversation.');
+    } finally {
+      setSummarizingThread(false);
+    }
+  };
+
+  const translateMessage = async (messageId: string) => {
+    if (!thread) return;
+    setTranslatingMsg(messageId);
+    try {
+      const result = await messaging.translateMessage(thread.id, messageId);
+      setMsgTranslations((t) => ({ ...t, [messageId]: result }));
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'Could not translate this message.');
+    } finally {
+      setTranslatingMsg(null);
+    }
+  };
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [thread?.messages.length]);
 
   const send = async () => {
@@ -85,11 +116,25 @@ export default function MessagesPage() {
             <>
               <header className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
                 <button onClick={() => setParams({})} className="md:hidden p-1.5 rounded hover:bg-slate-100" aria-label="Back to messages"><ArrowLeft className="w-4 h-4" /></button>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="font-bold truncate">{thread.subject}</p>
                   <p className="text-xs text-slate-500 truncate">{thread.participants.map((p) => `${p.name}${p.role ? ` (${p.role})` : ''}`).join(', ')}{thread.student ? ` · about ${thread.student.full_name}` : ''}</p>
                 </div>
+                {thread.messages.length > 4 && (
+                  <button onClick={summarizeThread} disabled={summarizingThread}
+                    className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline disabled:opacity-50">
+                    {summarizingThread ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} Summarise
+                  </button>
+                )}
               </header>
+              {threadSummary && (
+                <div className="mx-4 mt-3 rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2 text-xs">
+                  <p className="font-bold inline-flex items-center gap-1"><Sparkles className="w-3 h-3" /> {threadSummary.summary}</p>
+                  {threadSummary.key_points.length > 0 && (
+                    <ul className="list-disc pl-4 mt-1 space-y-0.5">{threadSummary.key_points.map((k, i) => <li key={i}>{k}</li>)}</ul>
+                  )}
+                </div>
+              )}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[60vh]">
                 {thread.messages.map((m) => {
                   const mine = m.sender.id === String(user?.id);
@@ -99,7 +144,16 @@ export default function MessagesPage() {
                         {!mine && <p className="text-xs font-semibold mb-0.5">{m.sender.name}</p>}
                         <p className="whitespace-pre-wrap break-words">{m.body}</p>
                         {m.attachment && <a href={m.attachment.url} target="_blank" rel="noreferrer" className={`mt-1 inline-flex items-center gap-1 text-xs underline ${mine ? 'text-white' : 'text-brand'}`}><Paperclip className="w-3 h-3" />{m.attachment.name}</a>}
-                        <p className={`text-[10px] mt-1 ${mine ? 'text-white/70' : 'text-slate-500'}`}>{new Date(m.at).toLocaleString()}</p>
+                        {msgTranslations[m.id] && (
+                          <p className={`mt-1 text-xs italic whitespace-pre-wrap ${mine ? 'text-white/90' : 'text-slate-600'}`}>{msgTranslations[m.id].translated_text}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className={`text-[10px] ${mine ? 'text-white/70' : 'text-slate-500'}`}>{new Date(m.at).toLocaleString()}</p>
+                          <button onClick={() => translateMessage(m.id)} disabled={translatingMsg === m.id}
+                            className={`inline-flex items-center gap-0.5 text-[10px] font-semibold hover:underline disabled:opacity-50 ${mine ? 'text-white/80' : 'text-brand'}`}>
+                            {translatingMsg === m.id ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Languages className="w-2.5 h-2.5" />} Translate
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );

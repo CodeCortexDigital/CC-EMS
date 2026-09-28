@@ -11,6 +11,7 @@ Staff (office and the student's teachers) use the same endpoints from the studen
 """
 from __future__ import annotations
 
+import logging
 import mimetypes
 from collections import defaultdict
 from datetime import date, timedelta
@@ -34,6 +35,7 @@ from .households import find_student
 from .models import Certificate, Enrollment, Student, StudentDocument
 
 ATTENDED = ('present', 'late', 'early_dismissal')
+logger = logging.getLogger('erp.ai')
 
 
 def _staff(user) -> bool:
@@ -228,6 +230,53 @@ def homework_attachment(request, student_id, homework_id):
     if h is None or not h.attachment_data:
         return Response({'error': 'No attachment.'}, status=404)
     return Response({'name': h.attachment_name or 'attachment', 'data': h.attachment_data})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def homework_help(request, student_id, homework_id):
+    """{question?, previous_hints?} -> one step-by-step hint toward the answer, never the
+    answer itself (docs table "AI Homework Helper")."""
+    from services.ai.context import AIContext
+    from services.ai.generation import generate_homework_hint, template_homework_hint
+    from services.ai.llm import LLMError, get_llm_client
+    from services.ai.quota import AIQuotaExceeded, check_rate_limit, check_token_budget, feature_enabled, record_usage
+    from services.education.academics.models import Homework
+
+    s = _student_or_404(request, student_id)
+    if s is None or not s.current_class_id:
+        return Response({'error': 'Student not found.'}, status=404)
+    h = Homework.objects.filter(pk=homework_id).filter(
+        Q(class_ref_id=s.current_class_id) | Q(class_ref__isnull=True, class_name__iexact=s.current_class.name)).first()
+    if h is None:
+        return Response({'error': 'Homework not found.'}, status=404)
+    if not (h.description or '').strip():
+        return Response({'error': 'This homework has no instructions written yet — ask your teacher.'}, status=400)
+
+    question = str(request.data.get('question') or '').strip()[:500]
+    previous_hints = [str(x).strip()[:500] for x in (request.data.get('previous_hints') or []) if str(x).strip()][:10]
+    kwargs = dict(title=h.title, subject=h.subject_name, instructions=h.description,
+                 question=question, previous_hints=previous_hints)
+
+    if get_llm_client() is None:
+        return Response(template_homework_hint(**kwargs))
+
+    ctx = AIContext.from_request(request)
+    if not feature_enabled('ai_homework_help', ctx):
+        return Response({'error': 'This AI feature is turned off for your school.'}, status=403)
+    llm = get_llm_client()
+    try:
+        check_rate_limit(ctx, 'ai_homework_help')
+        check_token_budget(ctx)
+    except AIQuotaExceeded as exc:
+        return Response({'error': str(exc)}, status=429)
+    try:
+        result, usage, model = generate_homework_hint(llm, **kwargs)
+    except LLMError:
+        logger.exception('Homework help failed')
+        return Response({'error': 'Could not get a hint right now. Please try again.'}, status=502)
+    record_usage(ctx, 'ai_homework_help', llm.provider, model, usage)
+    return Response({**result, 'source': 'ai'})
 
 
 # ---------------------------------------------------------------------------
