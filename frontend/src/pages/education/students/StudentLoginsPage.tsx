@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { GraduationCap, ArrowLeft, RotateCcw, Copy, Printer, ChevronDown, User, Lock, Eye, EyeOff } from 'lucide-react';
+import { GraduationCap, ArrowLeft, RotateCcw, Printer, User, Lock, Eye, EyeOff } from 'lucide-react';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportHelper';
 import studentService from '@/services/student.service';
 import academicService from '@/services/academic.service';
 import { extractListData } from '@/services/api';
@@ -168,7 +169,37 @@ export default function StudentLoginsPage() {
   };
 
   const handleExport = (type: string) => {
-    toast.success(`${type} export started!`);
+    const rows = filteredStudents.map((s) => ({
+      id: s.student_id || s.registration_no || '--',
+      name: s.full_name || s.name || '--',
+      class_name: s.class_name || s.current_class_name || s.current_class || '--',
+      username: credentials[s.id]?.student?.username || s.student_id || '--',
+    }));
+    const columns = [
+      { key: 'id' as const, header: 'ID' },
+      { key: 'name' as const, header: 'Student Name' },
+      { key: 'class_name' as const, header: 'Class' },
+      { key: 'username' as const, header: 'Username' },
+    ];
+    if (rows.length === 0) {
+      toast.warning('No students to export');
+      return;
+    }
+    switch (type) {
+      case 'Copy':
+        navigator.clipboard.writeText(rows.map((r) => `${r.id}\t${r.name}\t${r.class_name}\t${r.username}`).join('\n'));
+        toast.success('Copied to clipboard');
+        break;
+      case 'CSV':
+        exportToCSV(rows, 'student-logins', columns);
+        break;
+      case 'Excel':
+        exportToExcel(rows, 'Student Logins', columns);
+        break;
+      case 'PDF':
+        exportToPDF(rows, 'Student Logins', columns);
+        break;
+    }
   };
 
   // Filter students based on selection & search
@@ -322,7 +353,6 @@ export default function StudentLoginsPage() {
               <button onClick={() => handleExport('Excel')} className="px-2.5 py-1 bg-[#4C469D] text-white rounded-lg hover:bg-[#3d387d] transition-all">Excel</button>
               <button onClick={() => handleExport('PDF')} className="px-2.5 py-1 bg-[#4C469D] text-white rounded-lg hover:bg-[#3d387d] transition-all">PDF</button>
               <button onClick={() => window.print()} className="px-2.5 py-1 bg-[#4C469D] text-white rounded-lg hover:bg-[#3d387d] transition-all flex items-center gap-1"><Printer className="w-3 h-3" /> Print</button>
-              <button className="px-2.5 py-1 text-slate-600 flex items-center gap-1">Column visibility <ChevronDown className="w-3 h-3" /></button>
             </div>
 
             <div className="relative">
