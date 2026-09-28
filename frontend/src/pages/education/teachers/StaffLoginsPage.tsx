@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { GraduationCap, ArrowLeft, RotateCcw, Copy, Printer, ChevronDown, User, Lock, Eye, EyeOff } from 'lucide-react';
+import { GraduationCap, ArrowLeft, RotateCcw, Printer, User, Lock, Eye, EyeOff } from 'lucide-react';
 import teacherService from '@/services/teacher.service';
 import { extractListData } from '@/services/api';
 import credentialsService, { passwordLabel, type StaffLogins } from '@/services/credentials.service';
+import { exportToCSV, exportToExcel, exportToPDF } from '@/utils/exportHelper';
 
 export default function StaffLoginsPage() {
   const navigate = useNavigate();
@@ -73,7 +74,37 @@ export default function StaffLoginsPage() {
   };
 
   const handleExport = (type: string) => {
-    toast.success(`${type} export started!`);
+    const rows = filteredTeachers.map((t) => ({
+      id: t.employee_id || 'N/A',
+      name: t.full_name,
+      role: t.designation || t.specializations?.[0] || 'Teacher',
+      username: credentials[t.id]?.staff?.username || t.employee_id || '--',
+    }));
+    const columns = [
+      { key: 'id' as const, header: 'ID' },
+      { key: 'name' as const, header: 'Staff Name' },
+      { key: 'role' as const, header: 'Role' },
+      { key: 'username' as const, header: 'Username' },
+    ];
+    if (rows.length === 0) {
+      toast.warning('No staff to export');
+      return;
+    }
+    switch (type) {
+      case 'Copy':
+        navigator.clipboard.writeText(rows.map((r) => `${r.id}\t${r.name}\t${r.role}\t${r.username}`).join('\n'));
+        toast.success('Copied to clipboard');
+        break;
+      case 'CSV':
+        exportToCSV(rows, 'staff-logins', columns);
+        break;
+      case 'Excel':
+        exportToExcel(rows, 'Staff Logins', columns);
+        break;
+      case 'PDF':
+        exportToPDF(rows, 'Staff Logins', columns);
+        break;
+    }
   };
 
   // Filter staff based on selection & search
@@ -206,7 +237,6 @@ export default function StaffLoginsPage() {
               <button onClick={() => handleExport('Excel')} className="px-2.5 py-1 bg-[#4C469D] text-white rounded-lg hover:bg-[#3d387d] transition-all">Excel</button>
               <button onClick={() => handleExport('PDF')} className="px-2.5 py-1 bg-[#4C469D] text-white rounded-lg hover:bg-[#3d387d] transition-all">PDF</button>
               <button onClick={() => window.print()} className="px-2.5 py-1 bg-[#4C469D] text-white rounded-lg hover:bg-[#3d387d] transition-all flex items-center gap-1"><Printer className="w-3 h-3" /> Print</button>
-              <button className="px-2.5 py-1 text-slate-600 flex items-center gap-1">Column visibility <ChevronDown className="w-3 h-3" /></button>
             </div>
 
             <div className="relative">

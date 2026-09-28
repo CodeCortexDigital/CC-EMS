@@ -75,6 +75,7 @@ export default function AnalyticsPage() {
      pathname.includes('/custom') ? 'custom' : null);
 
   const [loading, setLoading] = useState(true);
+  const [ownRecordNotFound, setOwnRecordNotFound] = useState(false);
   const [attendanceTrends, setAttendanceTrends] = useState<AttendanceTrend[]>([]);
   const [feeTrends, setFeeTrends] = useState<FeeTrend[]>([]);
   const [atRiskStudents, setAtRiskStudents] = useState<AtRiskStudent[]>([]);
@@ -161,14 +162,12 @@ export default function AnalyticsPage() {
       const queryStudentId = searchParams.get('student_id');
       let targetStudent = null;
       if (isStudent) {
-        targetStudent = mapped.find((s: any) => 
-          String(s.id) === String(user?.id) || 
+        targetStudent = mapped.find((s: any) =>
+          String(s.id) === String(user?.id) ||
           String(s.student_id) === String(user?.id) ||
           s.full_name?.toLowerCase() === user?.full_name?.toLowerCase()
         );
-        if (!targetStudent && mapped.length > 0) {
-          targetStudent = mapped[0];
-        }
+        setOwnRecordNotFound(!targetStudent);
       } else if (queryStudentId) {
         targetStudent = mapped.find((s: any) => 
           String(s.id) === String(queryStudentId) || 
@@ -303,9 +302,16 @@ setTeacherPerformance(rawTeachers);
       return (
         <div className="space-y-6 bg-slate-50 min-h-screen p-6 text-slate-800">
           {isStudent ? (
-            <div className="flex justify-center items-center py-12">
-              <RefreshCw className="animate-spin rounded-full h-8 w-8 text-[#5C53CD]" />
-            </div>
+            ownRecordNotFound ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-2 text-center">
+                <p className="text-sm font-bold text-slate-700">Your report card isn't available yet</p>
+                <p className="text-xs text-slate-400">Ask your school office to link your student record to this account.</p>
+              </div>
+            ) : (
+              <div className="flex justify-center items-center py-12">
+                <RefreshCw className="animate-spin rounded-full h-8 w-8 text-[#5C53CD]" />
+              </div>
+            )
           ) : (
             <div className="max-w-2xl mx-auto space-y-6">
               <div className="text-center space-y-2">
