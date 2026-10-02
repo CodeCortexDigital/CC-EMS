@@ -24,7 +24,7 @@ services:
     # The sample school loads in the background after the server is up (about 3 to 5 minutes the first time); the command does
     # nothing once the school is there. No admin account is created from the environment: only the demo accounts exist.
     startCommand: python manage.py migrate --noinput && python manage.py collectstatic --noinput && (python manage.py setup_demo > /tmp/setup_demo.log 2>&1 &) && daphne -b 0.0.0.0 -p $PORT erp_core.asgi:application
-    healthCheckPath: /api/v1/health/
+    healthCheckPath: /api/v1/health/live/
     envVars:
       - key: APP_ENV
         value: staging

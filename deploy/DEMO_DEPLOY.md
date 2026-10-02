@@ -41,7 +41,7 @@ Then in Render > Environment set:
 3. Deploy. If you use "Continue with Google", add the Vercel address under Firebase console > Authentication > Settings > Authorized domains.
 
 ## 3. Check it
-- Open `https://<backend>.onrender.com/api/v1/health/` (should answer).
+- Open `https://<backend>.onrender.com/api/v1/health/live/` (should answer {"status":"alive"}; the plain `/health/` reports 503 here because there is no Celery worker).
 - Open the Vercel address, sign in as `admin@code.com`: 214 students, Staff & HR with open cover requests.
 - Settings > Import data > Download: the data pack of the school.
 
