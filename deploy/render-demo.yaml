@@ -1,0 +1,99 @@
+# Demo site for a client: the sample US school (Maple Grove Academy) and the four demo accounts, nothing else.
+#
+# Create it once in Render: New > Blueprint > this repository > Blueprint path "deploy/render-demo.yaml". The steps, including
+# how to wipe a Render site that already has data and how to connect the Vercel frontend, are in deploy/DEMO_DEPLOY.md.
+#
+# Free plan notes: the web service sleeps when idle (about a minute to wake) and the free Postgres database is time-limited.
+# Runs as APP_ENV=staging so the demo accounts (public passwords) are allowed and no real email is sent.
+
+databases:
+  - name: erp-demo-db
+    databaseName: erp_demo
+    user: erp_demo_user
+    plan: free
+
+services:
+  - type: keyvalue
+    name: erp-demo-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere
+
+  - type: web
+    name: erp-demo-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    # The sample school loads in the background after the server is up (about 3 to 5 minutes the first time); the command does
+    # nothing once the school is there. No admin account is created from the environment: only the demo accounts exist.
+    startCommand: python manage.py migrate --noinput && python manage.py collectstatic --noinput && (python manage.py setup_demo > /tmp/setup_demo.log 2>&1 &) && daphne -b 0.0.0.0 -p $PORT erp_core.asgi:application
+    healthCheckPath: /api/v1/health/
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: DJANGO_SETTINGS_MODULE
+        value: erp_core.settings
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,localhost,127.0.0.1"
+      - key: DB_HOST
+        fromDatabase:
+          name: erp-demo-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: erp-demo-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: erp-demo-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: erp-demo-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: erp-demo-db
+          property: password
+      - key: REDIS_URL
+        fromService:
+          name: erp-demo-redis
+          type: keyvalue
+          property: connectionString
+      - key: CACHE_URL
+        fromService:
+          name: erp-demo-redis
+          type: keyvalue
+          property: connectionString
+      - key: CHANNEL_REDIS_URL
+        fromService:
+          name: erp-demo-redis
+          type: keyvalue
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: erp-demo-redis
+          type: keyvalue
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          name: erp-demo-redis
+          type: keyvalue
+          property: connectionString
+      - key: FIREBASE_PROJECT_ID
+        value: school-erp-c53b4
+      # Set these two in the Render dashboard once the Vercel address is known (see deploy/DEMO_DEPLOY.md).
+      - key: FRONTEND_ORIGINS
+        sync: false
+      - key: PUBLIC_API_URL
+        sync: false
+      # Set to 1 for ONE deploy to wipe every school and account and load the demo again; then delete the variable.
+      - key: DEMO_RESET
+        sync: false

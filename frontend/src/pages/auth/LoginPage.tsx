@@ -28,11 +28,10 @@ const HINTS: Record<LoginRole, { placeholder: string; hint: string }> = {
 
 const REMEMBER_KEY = 'login_remembered_username';
 
-// Test accounts on the sign-in page while testing: on a developer's computer, or where VITE_SHOW_TEST_LOGINS=true is
-// set. Remove that setting after testing. The live site refuses these demo passwords anyway (P7).
-const SHOW_TEST_LOGINS = import.meta.env.DEV || import.meta.env.VITE_SHOW_TEST_LOGINS === 'true';
-const TEST_LOGINS: { label: string; email: string; password: string; role: LoginRole }[] = [
-  { label: 'Admin', email: import.meta.env.VITE_TEST_ADMIN_EMAIL || 'codecortex105@gmail.com', password: 'Admin@123', role: 'admin' },
+// Demo accounts: shown only on a demo site, where VITE_DEMO_LOGINS=true is set in the build environment (never on a live site).
+const SHOW_DEMO_LOGINS = import.meta.env.VITE_DEMO_LOGINS === 'true';
+const DEMO_LOGINS: { label: string; email: string; password: string; role: LoginRole }[] = [
+  { label: 'Admin', email: 'admin@code.com', password: 'Admin@123', role: 'admin' },
   { label: 'Teacher', email: 'teacher@code.com', password: 'Teacher@123', role: 'employee' },
   { label: 'Parent', email: 'parent@code.com', password: 'Parent@123', role: 'student' },
   { label: 'Student', email: 'student@code.com', password: 'Student@123', role: 'student' },
@@ -274,11 +273,11 @@ export default function LoginPage() {
         </button>
       </form>
 
-      {SHOW_TEST_LOGINS && (
-        <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900" aria-label="Test accounts">
-          <p className="mb-2 font-semibold">Test accounts (shown while testing only). Click one to fill it in:</p>
+      {SHOW_DEMO_LOGINS && (
+        <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900" aria-label="Demo accounts">
+          <p className="mb-2 font-semibold">Demo school (sample data). Click an account to fill it in:</p>
           <ul className="space-y-1">
-            {TEST_LOGINS.map((a) => (
+            {DEMO_LOGINS.map((a) => (
               <li key={a.email}>
                 <button type="button" onClick={() => { setRole(a.role); setUserId(a.email); setPassword(a.password); setError(''); }}
                   className="w-full rounded-lg bg-white/70 px-2 py-1 text-start hover:bg-white">

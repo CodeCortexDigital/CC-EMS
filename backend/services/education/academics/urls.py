@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import structure, views
+from . import scheduling_api, structure, views
 from services.education.academics.views import AllTimetableEntriesView
 
 router = DefaultRouter()
@@ -85,6 +85,16 @@ urlpatterns = [
     path('timetable-substitutions/', views.TimetableSubstitutionListView.as_view(), name='timetable-substitution-list'),
     path('leave-balances/', views.LeaveBalanceListView.as_view(), name='leave-balance-list'),
     path('leave-balances/set-defaults/', views.leave_balance_set_defaults, name='leave-balance-set-defaults'),
+    path('leave-balances/carry-over/', views.leave_balance_carry_over, name='leave-balance-carry-over'),
+    path('leave-policy/', views.leave_policy, name='leave-policy'),
+    path('scheduling/policy/', scheduling_api.scheduling_policy, name='scheduling-policy'),
+    path('scheduling/eligible-teachers/', scheduling_api.eligible_teachers, name='scheduling-eligible'),
+    path('scheduling/coverage/', scheduling_api.teaching_coverage, name='scheduling-coverage'),
+    path('timetable-snapshots/', scheduling_api.snapshots, name='timetable-snapshots'),
+    path('timetable-snapshots/<str:snapshot_id>/undo/', scheduling_api.undo_snapshot, name='timetable-snapshot-undo'),
+    path('teachers/<str:teacher_id>/subjects/', scheduling_api.teacher_subjects, name='teacher-subjects'),
+    path('leave-calendar/', views.leave_calendar, name='leave-calendar'),
+    path('leave-days/', views.leave_day_count, name='leave-days'),
     path('leave-balances/<str:id>/', views.LeaveBalanceDetailView.as_view(), name='leave-balance-detail'),
     path('homework/', views.HomeworkListCreateView.as_view(), name='homework-list'),
     path('homework/<str:id>/', views.HomeworkDetailView.as_view(), name='homework-detail'),

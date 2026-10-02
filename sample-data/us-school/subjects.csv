@@ -1,0 +1,10 @@
+﻿Subject *,Code,Department,Elective (yes/no)
+Mathematics,MATH,Math,no
+English Language Arts,ELA,English,no
+Science,SCI,Science,no
+Social Studies,SOC,Social Studies,no
+Art,ART,Arts,no
+Music,MUS,Arts,no
+Physical Education,PE,Physical Education,no
+Spanish,SPA,World Languages,no
+Computer Science,CS,Technology,no

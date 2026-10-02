@@ -1,0 +1,73 @@
+﻿Class *,Subject code *,Periods per week,Total marks
+Kindergarten,MATH,5,100
+Kindergarten,ELA,5,100
+Kindergarten,SCI,3,100
+Kindergarten,SOC,3,100
+Kindergarten,ART,1,100
+Kindergarten,MUS,1,100
+Kindergarten,PE,2,100
+Grade 1,MATH,5,100
+Grade 1,ELA,5,100
+Grade 1,SCI,3,100
+Grade 1,SOC,3,100
+Grade 1,ART,1,100
+Grade 1,MUS,1,100
+Grade 1,PE,2,100
+Grade 2,MATH,5,100
+Grade 2,ELA,5,100
+Grade 2,SCI,3,100
+Grade 2,SOC,3,100
+Grade 2,ART,1,100
+Grade 2,MUS,1,100
+Grade 2,PE,2,100
+Grade 3,MATH,5,100
+Grade 3,ELA,5,100
+Grade 3,SCI,3,100
+Grade 3,SOC,3,100
+Grade 3,ART,1,100
+Grade 3,MUS,1,100
+Grade 3,PE,2,100
+Grade 3,SPA,2,100
+Grade 4,MATH,5,100
+Grade 4,ELA,5,100
+Grade 4,SCI,3,100
+Grade 4,SOC,3,100
+Grade 4,ART,1,100
+Grade 4,MUS,1,100
+Grade 4,PE,2,100
+Grade 4,SPA,2,100
+Grade 5,MATH,5,100
+Grade 5,ELA,5,100
+Grade 5,SCI,3,100
+Grade 5,SOC,3,100
+Grade 5,ART,1,100
+Grade 5,MUS,1,100
+Grade 5,PE,2,100
+Grade 5,SPA,2,100
+Grade 6,MATH,5,100
+Grade 6,ELA,5,100
+Grade 6,SCI,3,100
+Grade 6,SOC,3,100
+Grade 6,ART,1,100
+Grade 6,MUS,1,100
+Grade 6,PE,2,100
+Grade 6,SPA,2,100
+Grade 6,CS,2,100
+Grade 7,MATH,5,100
+Grade 7,ELA,5,100
+Grade 7,SCI,3,100
+Grade 7,SOC,3,100
+Grade 7,ART,1,100
+Grade 7,MUS,1,100
+Grade 7,PE,2,100
+Grade 7,SPA,2,100
+Grade 7,CS,2,100
+Grade 8,MATH,5,100
+Grade 8,ELA,5,100
+Grade 8,SCI,3,100
+Grade 8,SOC,3,100
+Grade 8,ART,1,100
+Grade 8,MUS,1,100
+Grade 8,PE,2,100
+Grade 8,SPA,2,100
+Grade 8,CS,2,100

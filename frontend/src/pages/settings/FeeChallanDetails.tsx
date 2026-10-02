@@ -53,10 +53,10 @@ export default function FeeChallanDetails() {
       const defaultBanks = [
         {
           id: 1,
-          name: 'HBL',
+          name: 'First Community Bank',
           logo: 'https://images.unsplash.com/photo-1628527264098-f29450945a67?w=80',
-          accountNo: '343546535356555',
-          branchAddress: 'Karachi, Pakistan',
+          accountNo: '000123456789',
+          branchAddress: '120 Main Street, Springfield, MA',
           instructions: 'Please pay fee on or before due date.'
         }
       ];

@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from './hooks/useAuth'
 import { Toaster } from 'sonner'
 import { useEffect, memo } from 'react'
 import Layout from '@/components/layout/Layout';
 import ModuleTabsLayout from './components/layout/ModuleTabsLayout';
-import { gradebookTabs, accountsTabs, feesTabs, salaryTabs, attendanceTabs, timetableTabs, behaviourTabs, examTabs, subjectsTabs, communicationTabs, certificatesTabs, reportsTabs, academicSetupTabs } from './components/layout/moduleTabs';
+import { gradebookTabs, accountsTabs, feesTabs, salaryTabs, attendanceTabs, timetableTabs, behaviourTabs, examTabs, subjectsTabs, communicationTabs, certificatesTabs, reportsTabs, academicSetupTabs, hrTabs } from './components/layout/moduleTabs';
 import ProtectedRoute from './components/ProtectedRoute'
 import { RoleBasedRoute } from './components/auth/RoleBasedRoute'
 import { CanAccess } from './components/auth/CanAccess'
@@ -106,6 +107,7 @@ import TeacherMyTimetablePage from './pages/education/timetable/TeacherMyTimetab
 import StaffLeavePage from './pages/education/timetable/StaffLeavePage'
 import TeacherLeaveApplyPage from './pages/education/timetable/TeacherLeaveApplyPage'
 import LeaveLimitsPage from './pages/education/timetable/LeaveLimitsPage'
+import TeachingRulesPage from './pages/education/timetable/TeachingRulesPage'
 
 // Progress
 import ProgressTrackingPage from './pages/education/progress/ProgressTrackingPage'
@@ -210,6 +212,15 @@ import MyTransportPage from './pages/portals/MyTransportPage'
 import CafeteriaTillPage from './pages/education/cafeteria/CafeteriaTillPage'
 import CafeteriaMenuPage from './pages/education/cafeteria/CafeteriaMenuPage'
 import CafeteriaAccountsPage from './pages/education/cafeteria/CafeteriaAccountsPage'
+import HrOverviewPage from './pages/education/hr/HrOverviewPage'
+import CoverRequestsPage from './pages/education/hr/CoverRequestsPage'
+import LeaveCalendarPage from './pages/education/hr/LeaveCalendarPage'
+import DirectoryPage from './pages/education/hr/DirectoryPage'
+import RecruitmentPage from './pages/education/hr/RecruitmentPage'
+import RecordsPage from './pages/education/hr/RecordsPage'
+import PerformancePage from './pages/education/hr/PerformancePage'
+import PayrollSetupPage from './pages/education/hr/PayrollSetupPage'
+import MyHrPage from './pages/education/hr/MyHrPage'
 import MyCafeteriaPage from './pages/portals/MyCafeteriaPage'
 import { UtensilsCrossed, CalendarRange, Wallet as WalletIcon } from 'lucide-react'
 import { Bus, Route as RouteIcon, Users2 as RidersIcon, Truck, PieChart as ReportIcon } from 'lucide-react'
@@ -273,6 +284,12 @@ const inventoryTabs = [
   { id: 'suppliers', path: '/education/inventory/suppliers', label: 'Suppliers & Categories', icon: Factory },
   { id: 'report', path: '/education/inventory/report', label: 'Report', icon: BarChart2 },
 ]
+
+/** The HR landing page: the overview for administrators, HR and managers, cover requests for everyone else. */
+function HrIndex() {
+  const { role } = useAuth()
+  return ['admin', 'hr', 'manager'].includes(String(role)) ? <HrOverviewPage /> : <Navigate to="/education/hr/cover" replace />
+}
 
 const cafeteriaTabs = [
   { id: 'till', path: '/education/cafeteria', label: 'Till', icon: UtensilsCrossed },
@@ -470,6 +487,7 @@ function App() {
                   <Route path="leave" element={<StaffLeavePage />} />
                   <Route path="my-leave" element={<TeacherLeaveApplyPage />} />
                   <Route path="leave-limits" element={<RoleBasedRoute allowedRoles={['admin']}><LeaveLimitsPage /></RoleBasedRoute>} />
+                  <Route path="rules" element={<RoleBasedRoute allowedRoles={['admin']}><TeachingRulesPage /></RoleBasedRoute>} />
                 </Route>
                 
                 {/* Progress */}
@@ -601,6 +619,18 @@ function App() {
                   <Route index element={<CafeteriaTillPage />} />
                   <Route path="menu" element={<CafeteriaMenuPage />} />
                   <Route path="accounts" element={<CafeteriaAccountsPage />} />
+                </Route>
+                {/* Staff & HR: managers see everything; every staff member gets cover requests, who is out, the directory and their own HR page */}
+                <Route path="education/hr" element={<RoleBasedRoute allowedRoles={['admin', 'hr', 'manager', 'staff', 'teacher']}><ModuleTabsLayout tabs={hrTabs} scopeClass="hr-scope" /></RoleBasedRoute>}>
+                  <Route index element={<HrIndex />} />
+                  <Route path="cover" element={<CoverRequestsPage />} />
+                  <Route path="leave-calendar" element={<LeaveCalendarPage />} />
+                  <Route path="directory" element={<DirectoryPage />} />
+                  <Route path="recruitment" element={<RoleBasedRoute allowedRoles={['admin', 'hr', 'manager']}><RecruitmentPage /></RoleBasedRoute>} />
+                  <Route path="records" element={<RecordsPage />} />
+                  <Route path="performance" element={<PerformancePage />} />
+                  <Route path="pay" element={<RoleBasedRoute allowedRoles={['admin', 'hr']}><PayrollSetupPage /></RoleBasedRoute>} />
+                  <Route path="me" element={<MyHrPage />} />
                 </Route>
                 <Route path="cafeteria/till" element={<CafeteriaTillPage standalone />} />
                 <Route path="education/live-class/room" element={<LiveRoomPage />} />

@@ -7,6 +7,8 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import teacherService from '@/services/teacher.service';
+import hrService, { leaveTypeLabel, LeavePolicy } from '@/services/hr.service';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function StaffLeavePage() {
@@ -26,6 +28,8 @@ export default function StaffLeavePage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [subsByLeave, setSubsByLeave] = useState<Record<string, any[]>>({});
   const [balances, setBalances] = useState<Record<string, any>>({});
+  const [policy, setPolicy] = useState<LeavePolicy | null>(null);
+  const isAdminRole = ['admin', 'superuser'].includes(String(role || '').toLowerCase());
 
   const load = async () => {
     setLoading(true);
@@ -59,6 +63,7 @@ export default function StaffLeavePage() {
 
   useEffect(() => {
     load();
+    hrService.leave.policy().then(setPolicy).catch(() => setPolicy(null));
   }, []);
 
   const toggleSubs = async (leaveId: string) => {
@@ -90,24 +95,33 @@ export default function StaffLeavePage() {
     }
   };
 
-  const approveLeave = async (leaveId: string) => {
+  const decide = async (leaveId: string, status: 'approved' | 'recommended' | 'rejected') => {
+    let note = '';
+    if (status === 'rejected') {
+      const answer = window.prompt('Why is this leave being declined? (the person will see this)');
+      if (answer === null) return;
+      note = answer;
+    }
     setBusyId(leaveId);
     try {
-      await teacherService.leaves.update(leaveId, { status: 'approved' });
+      await teacherService.leaves.update(leaveId, note ? { status, decision_note: note } : { status });
+      toast.success(status === 'approved' ? 'Leave approved.' : status === 'recommended' ? 'Recommended for final approval.' : 'Leave declined.');
       await load();
-    } catch (err) {
-      console.error('Error approving leave:', err);
+    } catch (err: any) {
+      const d = err?.response?.data;
+      toast.error(d?.error || (d && (Object.values(d).flat()[0] as string)) || 'That did not work.');
     } finally {
       setBusyId(null);
     }
   };
 
-  const activeLeaves = useMemo(() => leaves.filter(l => l.status === 'approved' || l.status === 'pending'), [leaves]);
+  const activeLeaves = useMemo(() => leaves.filter(l => ['approved', 'pending', 'recommended'].includes(l.status)), [leaves]);
   const pastLeaves = useMemo(() => leaves.filter(l => l.status === 'cancelled' || l.status === 'rejected'), [leaves]);
 
   const statusVariant = (s: string) => {
     if (s === 'approved') return 'success';
     if (s === 'pending') return 'warning';
+    if (s === 'recommended') return 'info';
     return 'secondary';
   };
 
@@ -121,8 +135,10 @@ export default function StaffLeavePage() {
           <div>
             <p className="text-sm font-bold text-slate-800">{l.applicant_display || l.teacher_name}</p>
             <p className="text-[10px] text-slate-400 font-semibold capitalize">
-              {l.leave_type} leave &middot; {l.start_date} → {l.end_date}
+              {leaveTypeLabel(l.leave_type)}{l.day_part === 'am' ? ' (morning)' : l.day_part === 'pm' ? ' (afternoon)' : ''} &middot; {l.start_date} → {l.end_date} &middot; {l.days} working day(s)
             </p>
+            {l.status === 'recommended' && <p className="text-[10px] text-sky-600 font-semibold">Recommended by {l.recommended_by}</p>}
+            {l.decision_note && <p className="text-[10px] text-slate-500 font-semibold">Note: {l.decision_note}</p>}
           </div>
         </div>
         {balances[l.id] && (
@@ -146,12 +162,28 @@ export default function StaffLeavePage() {
           <Button variant="outline" className="h-8 px-3 text-xs" onClick={() => toggleSubs(l.id)}>
             {expanded === l.id ? 'Hide' : 'Substitutions'}
           </Button>
-          {l.status === 'pending' && canApprove && !isOwner(l) && (
-            <Button variant="success" className="h-8 px-3 text-xs" onClick={() => approveLeave(l.id)} disabled={busyId === l.id}>
-              {busyId === l.id ? 'Approving...' : 'Approve'}
-            </Button>
-          )}
-          {(l.status === 'approved' || l.status === 'pending') && (isOwner(l) || canApprove) && (
+          {(l.status === 'pending' || l.status === 'recommended') && canApprove && !isOwner(l) && (() => {
+            const twoStep = !!policy?.two_step_approval && !isAdminRole;
+            return (
+              <>
+                {twoStep ? (
+                  l.status === 'pending' && (
+                    <Button variant="success" className="h-8 px-3 text-xs" onClick={() => decide(l.id, 'recommended')} disabled={busyId === l.id}>
+                      Recommend
+                    </Button>
+                  )
+                ) : (
+                  <Button variant="success" className="h-8 px-3 text-xs" onClick={() => decide(l.id, 'approved')} disabled={busyId === l.id}>
+                    {busyId === l.id ? 'Saving...' : l.status === 'recommended' ? 'Give final approval' : 'Approve'}
+                  </Button>
+                )}
+                <Button variant="outline" className="h-8 px-3 text-xs" onClick={() => decide(l.id, 'rejected')} disabled={busyId === l.id}>
+                  Decline
+                </Button>
+              </>
+            );
+          })()}
+          {(l.status === 'approved' || l.status === 'pending' || l.status === 'recommended') && (isOwner(l) || canApprove) && (
             <Button variant="destructive" className="h-8 px-3 text-xs" onClick={() => cancelLeave(l.id)} disabled={busyId === l.id}>
               {busyId === l.id ? 'Cancelling...' : 'Cancel'}
             </Button>
@@ -161,23 +193,25 @@ export default function StaffLeavePage() {
       {expanded === l.id && (
         <div className="border-t bg-slate-50 p-4">
           {(subsByLeave[l.id] || []).length === 0 ? (
-            <p className="text-xs text-slate-500 font-semibold">No periods required coverage or no relief teacher available.</p>
+            <p className="text-xs text-slate-500 font-semibold">No periods needed cover on the days of this leave.</p>
           ) : (
             <div className="overflow-x-auto border rounded-lg bg-white">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-500 uppercase text-[9px]">
                   <tr>
-                    <th className="p-2.5">Day</th>
+                    <th className="p-2.5">Date</th>
+                    <th className="p-2.5">Period</th>
                     <th className="p-2.5">Subject</th>
-                    <th className="p-2.5">Relief Teacher</th>
+                    <th className="p-2.5">Covered by</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {subsByLeave[l.id].map((s) => (
                     <tr key={s.id}>
-                      <td className="p-2.5 font-bold capitalize">{s.day_of_week}</td>
+                      <td className="p-2.5 font-bold">{s.date ? new Date(`${s.date}T00:00:00`).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }) : s.day_of_week}</td>
+                      <td className="p-2.5">{s.period_name}</td>
                       <td className="p-2.5">{s.subject_name}</td>
-                      <td className="p-2.5">{s.relief_teacher_name}</td>
+                      <td className="p-2.5">{s.relief_teacher_name || <span className="text-amber-600 font-bold">Needs cover (HR has been told)</span>}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { Settings2, ArrowLeft, RotateCcw, Check, UserCheck, UserX, Upload, X, User } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import teacherService from '@/services/teacher.service';
+import scheduling from '@/services/scheduling.service';
+import SubjectPicker from '@/components/teacher/SubjectPicker';
 
 export default function EditTeacherPage() {
   const { id } = useParams<{ id: string }>();
@@ -78,6 +80,13 @@ export default function EditTeacherPage() {
     setProfilePicture('');
     setProfilePictureFile(null);
   };
+
+  const [subjectIds, setSubjectIds] = useState<string[]>([]);
+  const [subjectsLoaded, setSubjectsLoaded] = useState(false);
+  useEffect(() => {
+    if (!id) return;
+    scheduling.teacherSubjects(id).then((list) => { setSubjectIds(list.map((x) => x.id)); setSubjectsLoaded(true); }).catch(() => setSubjectsLoaded(false));
+  }, [id]);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -224,6 +233,9 @@ try {
       }
 
       await teacherService.update(id!, formDataToSend);
+      if (subjectsLoaded) {
+        try { await scheduling.saveTeacherSubjects(id!, subjectIds); } catch { toast.error('Details saved, but the subjects they teach could not be saved.'); }
+      }
 
       toast.success('Employee details updated successfully!');
       navigate(`/education/teachers`);
@@ -325,6 +337,12 @@ try {
                 <option value="Store Manager">Store Manager</option>
                 <option value="Other">Other</option>
               </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">SUBJECTS THEY TEACH</label>
+              <SubjectPicker value={subjectIds} onChange={setSubjectIds} />
+              <p className="text-[10px] text-slate-400 mt-1">The timetable and substitute cover only give lessons to teachers qualified for the subject.</p>
             </div>
 
             <div className="flex flex-col items-center justify-center space-y-2 border border-slate-100 rounded-xl p-3 bg-slate-50">

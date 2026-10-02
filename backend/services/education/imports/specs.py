@@ -140,6 +140,7 @@ def check_student(row, ctx):
     for key in ('phone', 'father_name', 'mother_name', 'guardian_name', 'guardian_phone', 'address', 'city', 'religion',
                 'blood_group', 'birth_form_id', 'previous_school'):
         clean[key] = text(row.get(key))
+    clean['select_family'] = text(row.get('family'))
     sid = text(row.get('student_id'))
     duplicate = ''
     if sid:
@@ -160,13 +161,21 @@ def check_student(row, ctx):
     clean['student_id'] = sid
     if sid:
         ctx['seen_ids'].add(sid)
+        if not clean['email'] and not errors and not duplicate:
+            # Students sign in with their student number; the account is tied to an email, so make one (like the Add Student form does).
+            clean['email'] = f'{sid.lower()}@school.edu'
     return clean, errors, duplicate, note
+
+
+def _fields(clean):
+    """The values to save: helper keys that start with an underscore are for the importer only."""
+    return {k: v for k, v in clean.items() if not k.startswith('_')}
 
 
 def create_student(clean, ctx):
     Student = apps.get_model('education_students', 'Student')
     tenant = ctx['school']
-    return Student.objects.create(tenant=tenant, **clean)
+    return Student.objects.create(tenant=tenant, **_fields(clean))
 
 
 # ---- Staff ------------------------------------------------------------------------------------------------------
@@ -226,7 +235,7 @@ def check_staff(row, ctx):
 
 def create_staff(clean, ctx):
     Teacher = apps.get_model('education_academics', 'Teacher')
-    return Teacher.objects.create(tenant=ctx['school'], **clean)
+    return Teacher.objects.create(tenant=ctx['school'], **_fields(clean))
 
 
 # ---- Classes and sections ---------------------------------------------------------------------------------------
@@ -317,7 +326,7 @@ def check_subject(row, ctx):
 
 def create_subject(clean, ctx):
     Subject = apps.get_model('education_academics', 'Subject')
-    return Subject.objects.create(tenant=ctx['school'], **clean)
+    return Subject.objects.create(tenant=ctx['school'], **_fields(clean))
 
 
 # ---- Opening fee balances ---------------------------------------------------------------------------------------
@@ -363,9 +372,11 @@ def check_balance(row, ctx):
 
 def create_balance(clean, ctx):
     Invoice = apps.get_model('education_finance', 'Invoice')
-    return Invoice.objects.create(student=clean['student'], amount=clean['amount'], due_date=clean['due_date'],
-                                  issue_date=timezone.localdate(), description=clean['description'],
-                                  invoice_type='miscellaneous', status='issued')
+    invoice = Invoice(student=clean['student'], amount=clean['amount'], due_date=clean['due_date'], issue_date=timezone.localdate(),
+                      description=clean['description'], invoice_type='miscellaneous', status='issued')
+    invoice._silent = True      # a brought-forward balance is not a new bill: the family is not notified
+    invoice.save()
+    return invoice
 
 
 KINDS = {
@@ -412,8 +423,9 @@ KINDS = {
                     ('guardian_phone', 'Guardian phone', False, ['parentphone', 'fatherphone', 'fathermobile', 'contact']),
                     ('address', 'Address', False, ['homeaddress']), ('city', 'City', False, ['town']), ('religion', 'Religion', False, []),
                     ('blood_group', 'Blood group', False, ['bloodgroup']), ('birth_form_id', 'Birth certificate / B-Form', False, ['bform', 'birthcertificate']),
-                    ('previous_school', 'Previous school', False, [])],
-        'example': [['Ali Raza', 'Grade 1', 'A', '', 'Male', '2019-04-12', '', '', '', 'Raza Khan', 'Amna Raza', '', '0300 7654321', '12 Park Road', 'Lahore', '', '', '', '']],
+                    ('previous_school', 'Previous school', False, []),
+                    ('family', 'Family (siblings share the name)', False, ['familyname', 'household', 'selectfamily'])],
+        'example': [['Ali Raza', 'Grade 1', 'A', '', 'Male', '2019-04-12', '', '', '', 'Raza Khan', 'Amna Raza', '', '0300 7654321', '12 Park Road', 'Lahore', '', '', '', '', 'Raza family']],
         'check': check_student, 'create': create_student,
     },
     'balances': {
@@ -426,3 +438,13 @@ KINDS = {
         'check': check_balance, 'create': create_balance,
     },
 }
+
+
+# The pack kinds (declared in pack.py's style) join the original five. Imported last: they use the helpers above.
+from . import kinds_academic, kinds_core, kinds_money, kinds_people, kinds_records  # noqa: E402
+
+kinds_academic.install()
+kinds_people.install()
+kinds_money.install()
+kinds_records.install()
+kinds_core.install()

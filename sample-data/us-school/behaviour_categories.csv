@@ -1,0 +1,11 @@
+﻿Category *,Type *,Points,Severity,Tell the family (yes/no),Order
+Helping others,positive,2,low,no,1
+Excellent effort,positive,3,low,no,2
+Leadership,positive,2,low,no,3
+Kindness,positive,2,low,no,4
+Great teamwork,positive,2,low,no,5
+Disrupting class,negative,-1,low,no,6
+Late to class,negative,-1,low,no,7
+Homework missing,negative,-1,low,no,8
+Unkind words,negative,-2,medium,yes,9
+Physical conflict,negative,-4,high,yes,10

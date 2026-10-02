@@ -13,8 +13,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Briefcase,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { MyHrPanel } from '@/pages/education/hr/MyHrPage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import payrollService, { Payslip } from '@/services/payroll.service';
@@ -38,6 +40,7 @@ const ViewComponents: Record<string, React.ComponentType> = {
   payroll: PayrollView,
   leave: LeaveView,
   documents: DocumentsView,
+  hr: HrView,
   announcements: AnnouncementsView,
   profile: ProfileView,
   reports: ReportsView,
@@ -50,6 +53,7 @@ const portalNavigation = [
   { id: 'payroll', label: 'Payroll', icon: DollarSign, roles: ['all'] },
   { id: 'leave', label: 'Leave', icon: Calendar, roles: ['all'] },
   { id: 'documents', label: 'Documents', icon: FileText, roles: ['all'] },
+  { id: 'hr', label: 'My HR', icon: Briefcase, roles: ['all'] },
   { id: 'announcements', label: 'Announcements', icon: Megaphone, roles: ['all'] },
   { id: 'profile', label: 'Profile', icon: User, roles: ['all'] },
   { id: 'reports', label: 'Reports', icon: BarChart2, roles: ['manager', 'admin', 'hr'] },
@@ -471,6 +475,11 @@ function PayrollView() {
     </Card>
   );
 }
+/** Contract, credentials, goals, onboarding and cover: what HR holds about this employee. */
+function HrView() {
+  return <MyHrPanel />;
+}
+
 function LeaveView() {
   const { canAccessModule } = useEmployeePortal();
   const [leaves, setLeaves] = useState<TeacherLeave[]>([]);

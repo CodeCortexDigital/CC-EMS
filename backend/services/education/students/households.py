@@ -73,6 +73,12 @@ def ensure_household(student: Student) -> Household | None:
                 if sibling:
                     household = sibling.household
                     break
+        if household is None and _clean(student.select_family):
+            # Students given the same family name (for example in an import) are siblings.
+            sibling = (Student.objects.filter(select_family__iexact=_clean(student.select_family), household__isnull=False)
+                       .exclude(pk=student.pk).select_related('household').first())
+            if sibling:
+                household = sibling.household
         if household is None:
             # Siblings who share a parent portal login belong together too.
             sibling = (Student.objects.filter(parents__in=student.parents.all(), household__isnull=False)

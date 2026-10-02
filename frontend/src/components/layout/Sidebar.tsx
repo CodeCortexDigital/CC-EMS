@@ -6,7 +6,7 @@ import {
   Eye, MessageSquare, Video, FileQuestion,
   Edit, Award, Lock, Unlock, Search, X, ChevronRight, ChevronLeft, LogOut,
   DollarSign, User, Star, Building2, ClipboardList, Mail, Megaphone, CalendarDays, Handshake, TrendingUp, Library, Bus, Boxes, UtensilsCrossed, Plug, FileSpreadsheet, ShieldCheck,
-  LifeBuoy,
+  LifeBuoy, Briefcase,
 } from 'lucide-react';
 import cafeteriaService from '@/services/cafeteria.service';
 import transportService from '@/services/transport.service';
@@ -217,6 +217,7 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
     { id: 'students', label: 'Students', icon: <Users className="w-4 h-4" />, href: '/education/students', group: 'people' },
     { id: 'admissions', label: 'Admissions', icon: <ClipboardList className="w-4 h-4" />, href: '/education/admissions', group: 'people' },
     { id: 'employees', label: 'Staff', icon: <Users className="w-4 h-4" />, href: '/education/teachers', group: 'people' },
+    { id: 'staff-hr', label: 'Staff & HR', icon: <Briefcase className="w-4 h-4" />, href: '/education/hr', always: true, group: 'people' },
     { id: 'academic-setup', label: 'Academic Setup', icon: <GraduationCap className="w-4 h-4" />, href: '/education/academic-setup', group: 'academics' },
     { id: 'timetable', label: 'Timetable', icon: <Calendar className="w-4 h-4" />, href: '/education/timetable', group: 'academics' },
     { id: 'attendance', label: 'Attendance', icon: <Hand className="w-4 h-4" />, href: '/education/attendance', group: 'academics' },
@@ -258,6 +259,7 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
     },
     { id: 'my-classes', label: 'My Classes', icon: <GraduationCap className="w-4 h-4" />, href: '/teacher/classes', always: true, group: 'teaching' },
     { id: 'class-reports', label: 'Class Reports', icon: <ClipboardList className="w-4 h-4" />, href: '/teacher/reports', always: true, group: 'teaching' },
+    { id: 'staff-hr', label: 'Cover & My HR', icon: <Briefcase className="w-4 h-4" />, href: '/education/hr/cover', always: true, group: 'teaching' },
     { id: 'library', label: 'Library', icon: <Library className="w-4 h-4" />, href: '/library', always: true, group: 'services' },
     ...teacherQuickActions
       .filter((q) => canView(q.module))

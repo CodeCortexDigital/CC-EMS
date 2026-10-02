@@ -1,0 +1,10 @@
+﻿Class *,Sections,Grade level,Capacity,Tuition fee,Code
+Kindergarten,A,0,22,1150,K
+Grade 1,"A, B",1,22,1200,G1
+Grade 2,"A, B",2,22,1200,G2
+Grade 3,"A, B",3,22,1250,G3
+Grade 4,A,4,22,1300,G4
+Grade 5,A,5,22,1350,G5
+Grade 6,A,6,22,1500,G6
+Grade 7,A,7,22,1550,G7
+Grade 8,A,8,22,1650,G8

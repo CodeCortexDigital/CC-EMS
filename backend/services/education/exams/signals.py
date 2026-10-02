@@ -30,7 +30,7 @@ def track_exam_changes(sender, instance, **kwargs):
 @receiver(post_save, sender=ExamResult)
 def notify_on_result_creation(sender, instance, created, **kwargs):
     """Send notifications when a new exam result is created."""
-    if not created:
+    if not created or getattr(instance, '_silent', False):   # loading history (data pack import) tells nobody
         return
 
     logger.info(f"Result added for exam {instance.exam.exam_code} and student {instance.student.full_name}")

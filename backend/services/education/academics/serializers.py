@@ -179,15 +179,27 @@ class LearningResourceSerializer(serializers.ModelSerializer):
 
 # LEVEL 4: TEACHER MANAGEMENT
 class TeacherSerializer(serializers.ModelSerializer):
+    subject_names = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Teacher
         fields = '__all__'
+        read_only_fields = ['subjects']  # changed through teachers/<id>/subjects/ so the list can be validated
+
+    def get_subject_names(self, obj):
+        return sorted(s.name for s in obj.subjects.all())
 
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, 'copy') else dict(data)
         if data.get('date_of_birth') == '':
             data['date_of_birth'] = None
         return super().to_internal_value(data)
+
+
+def _policy_for(request, obj=None):
+    from .eligibility import get_policy
+    tenant = getattr(request, 'tenant', None) if request else None
+    return get_policy(tenant or getattr(obj, 'tenant', None))
 
 
 class TeacherSubjectAssignmentSerializer(serializers.ModelSerializer):
@@ -198,6 +210,24 @@ class TeacherSubjectAssignmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeacherSubjectAssignment
         fields = '__all__'
+
+    def validate(self, data):
+        """Only a teacher qualified for the subject may be assigned it. An administrator can override with a reason."""
+        from .eligibility import is_qualified, why_not
+        teacher = data.get('teacher') or getattr(self.instance, 'teacher', None)
+        cs = data.get('class_subject') or getattr(self.instance, 'class_subject', None)
+        changed = self.instance is None or 'teacher' in data or 'class_subject' in data
+        request = self.context.get('request')
+        if teacher and cs and changed and _policy_for(request, teacher).enforce_subject_match:
+            if not is_qualified(teacher, cs.subject):
+                reason = (data.get('override_reason') or '').strip()
+                if reason and request and is_admin(request.user):
+                    data['override_reason'] = reason
+                else:
+                    raise serializers.ValidationError(
+                        why_not(teacher, cs.subject) + (' Only an administrator can override this, with a reason.' if reason else
+                                                       ' An administrator can override this by giving a reason.'))
+        return data
 
 
 class TeacherAvailabilitySerializer(serializers.ModelSerializer):
@@ -231,6 +261,19 @@ class TimetableEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = TimetableEntry
         fields = '__all__'
+
+    def validate(self, data):
+        """A lesson goes to a qualified teacher, or one an administrator has already assigned to that class's subject."""
+        from .eligibility import is_qualified, why_not
+        teacher = data.get('teacher') or getattr(self.instance, 'teacher', None)
+        cs = data.get('class_subject') or getattr(self.instance, 'class_subject', None)
+        changed = self.instance is None or 'teacher' in data or 'class_subject' in data
+        request = self.context.get('request')
+        if teacher and cs and changed and _policy_for(request, teacher).enforce_subject_match:
+            assigned = TeacherSubjectAssignment.objects.filter(teacher=teacher, class_subject=cs, is_active=True).exists()
+            if not assigned and not is_qualified(teacher, cs.subject):
+                raise serializers.ValidationError(why_not(teacher, cs.subject))
+        return data
 
 
 # LEVEL 6: PROGRESS TRACKING
@@ -307,18 +350,20 @@ class TeacherLeaveSerializer(serializers.ModelSerializer):
     applicant_display = serializers.SerializerMethodField(read_only=True)
     is_currently_active = serializers.BooleanField(read_only=True)
     substitutions = serializers.SerializerMethodField(read_only=True)
+    days = serializers.FloatField(read_only=True)
 
     class Meta:
         model = TeacherLeave
         fields = [
             'id', 'teacher', 'teacher_name', 'applicant_name', 'applicant_email',
-            'applicant_display', 'leave_type', 'start_date',
-            'end_date', 'reason', 'status', 'substitute_assigned',
+            'applicant_display', 'leave_type', 'day_part', 'start_date',
+            'end_date', 'days', 'reason', 'status', 'substitute_assigned',
+            'recommended_by', 'decided_by', 'decided_at', 'decision_note',
             'created_by', 'created_at', 'updated_at',
             'is_currently_active', 'substitutions',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'substitute_assigned',
-                            'applicant_display']
+                            'applicant_display', 'recommended_by', 'decided_by', 'decided_at']
 
     def get_applicant_display(self, obj):
         if obj.teacher:
@@ -326,9 +371,9 @@ class TeacherLeaveSerializer(serializers.ModelSerializer):
         return obj.applicant_name or obj.applicant_email or 'Staff'
 
     def get_substitutions(self, obj):
-        return TimetableSubstitutionSerializer(
-            obj.substitutions.all(), many=True, context=self.context
-        ).data
+        rows = obj.cover.exclude(status='cancelled').select_related(
+            'requester', 'substitute', 'period', 'entry__class_subject__subject').order_by('date', 'period__period_number')
+        return TimetableSubstitutionSerializer(rows, many=True, context=self.context).data
 
     def validate(self, data):
         from django.utils import timezone
@@ -336,6 +381,9 @@ class TeacherLeaveSerializer(serializers.ModelSerializer):
         end = data.get('end_date')
         if start and end and end < start:
             raise serializers.ValidationError("End date cannot be before start date.")
+        part = data.get('day_part', getattr(self.instance, 'day_part', 'full'))
+        if part != 'full' and start and end and start != end:
+            raise serializers.ValidationError("A half-day leave must start and end on the same day.")
         # Reject past start dates (skip on partial updates that omit it).
         if start and start < timezone.localdate():
             raise serializers.ValidationError("Start date cannot be earlier than today.")
@@ -356,7 +404,7 @@ class TeacherLeaveSerializer(serializers.ModelSerializer):
             from django.db.models import Q
             overlapping = TeacherLeave.objects.filter(
                 Q(start_date__lte=end) & Q(end_date__gte=start),
-                status__in=['pending', 'approved'],
+                status__in=['pending', 'recommended', 'approved'],
             )
             if has_teacher:
                 overlapping = overlapping.filter(teacher=data.get('teacher') or instance.teacher)
@@ -374,7 +422,7 @@ class TeacherLeaveSerializer(serializers.ModelSerializer):
         if instance and 'status' in data:
             new_status = data['status']
             old_status = instance.status
-            if new_status != old_status and new_status in ('approved', 'rejected'):
+            if new_status != old_status and new_status in ('approved', 'rejected', 'recommended'):
                 request = self.context.get('request')
                 user = request.user if request else None
                 is_authorized = False
@@ -389,6 +437,12 @@ class TeacherLeaveSerializer(serializers.ModelSerializer):
                 if not is_authorized:
                     raise serializers.ValidationError(
                         "Only administrators, HR, or managers can approve or reject leave requests."
+                    )
+                from .leave_days import get_policy
+                tenant = getattr(request, 'tenant', None) or instance.tenant
+                if new_status == 'approved' and get_policy(tenant).two_step_approval and not is_admin(user):
+                    raise serializers.ValidationError(
+                        "This school uses two-step approval: managers and HR recommend, an administrator gives final approval."
                     )
                 
                 # Prevent self-approval or self-rejection
@@ -447,7 +501,27 @@ class TeacherLeaveSerializer(serializers.ModelSerializer):
         # (from pending/cancelled/rejected) restructures the timetable by
         # assigning available relief teachers; cancelling/rejecting reverts it.
         old_status = instance.status
+        old_span = (instance.start_date, instance.end_date, instance.day_part)
+        new = validated_data.get('status')
+        if new and new != old_status:
+            from django.utils import timezone
+            request = self.context.get('request')
+            who = getattr(getattr(request, 'user', None), 'email', '') or ''
+            if new == 'recommended':
+                validated_data['recommended_by'] = who
+            elif new in ('approved', 'rejected'):
+                validated_data['decided_by'] = who
+                validated_data['decided_at'] = timezone.now()
         leave = super().update(instance, validated_data)
+        if new and new != old_status and new in ('approved', 'rejected', 'recommended'):
+            from services.core.user_notifications.utils import create_user_notification, get_user_by_email
+            wording = {'approved': 'approved', 'rejected': 'declined', 'recommended': 'recommended for approval'}[new]
+            create_user_notification(
+                get_user_by_email(leave.applicant_email or (leave.teacher.email if leave.teacher else '')),
+                f'Leave {wording}',
+                f'Your {leave.get_leave_type_display().lower()} leave from {leave.start_date} to {leave.end_date} was {wording}.'
+                + (f' Note: {leave.decision_note}' if leave.decision_note else ''),
+                'system')
         from .substitution import (
             create_substitutions_for_leave,
             revert_substitutions_for_leave,
@@ -457,39 +531,48 @@ class TeacherLeaveSerializer(serializers.ModelSerializer):
             revert_substitutions_for_leave(leave)
         elif new_status == 'approved' and old_status != 'approved':
             create_substitutions_for_leave(leave)
+        elif new_status == 'approved' and old_span != (leave.start_date, leave.end_date, leave.day_part):
+            revert_substitutions_for_leave(leave)      # the dates moved: drop future cover and arrange it again
+            create_substitutions_for_leave(leave)
         return leave
 
 
-class TimetableSubstitutionSerializer(serializers.ModelSerializer):
-    original_teacher_name = serializers.CharField(
-        source='original_entry.teacher.full_name', read_only=True
-    )
-    relief_teacher_name = serializers.CharField(
-        source='relief_teacher.full_name', read_only=True
-    )
-    day_of_week = serializers.CharField(
-        source='original_entry.day_of_week', read_only=True
-    )
-    period_id = serializers.CharField(
-        source='original_entry.period_id', read_only=True
-    )
-    subject_name = serializers.CharField(
-        source='original_entry.class_subject.subject.name', read_only=True
-    )
+class TimetableSubstitutionSerializer(serializers.Serializer):
+    """One period of cover for a leave on one date (a ``hr.SubstituteRequest`` linked to the leave).
 
-    class Meta:
-        model = TimetableSubstitution
-        fields = [
-            'id', 'leave', 'original_entry', 'relief_teacher',
-            'original_teacher_name', 'relief_teacher_name',
-            'day_of_week', 'period_id', 'subject_name', 'created_at',
-        ]
-        read_only_fields = ['id', 'created_at']
+    Keeps the field names the leave screens already use (day_of_week, subject_name, relief_teacher_name)."""
+    id = serializers.CharField(read_only=True)
+    leave = serializers.CharField(source='leave_id', read_only=True)
+    date = serializers.DateField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    filled_how = serializers.CharField(read_only=True)
+    day_of_week = serializers.SerializerMethodField()
+    period_id = serializers.CharField(read_only=True)
+    period_name = serializers.SerializerMethodField()
+    subject_name = serializers.SerializerMethodField()
+    original_teacher_name = serializers.CharField(source='requester.full_name', read_only=True)
+    relief_teacher = serializers.CharField(source='substitute_id', read_only=True)
+    relief_teacher_name = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(read_only=True)
+
+    def get_day_of_week(self, obj):
+        return obj.date.strftime('%A').lower()
+
+    def get_period_name(self, obj):
+        p = obj.period
+        return (p.name or f'Period {p.period_number}') if p else ''
+
+    def get_subject_name(self, obj):
+        e = obj.entry
+        return e.class_subject.subject.name if e and e.class_subject_id else (obj.description or '')
+
+    def get_relief_teacher_name(self, obj):
+        return obj.substitute.full_name if obj.substitute_id else ''
 
 
 class LeaveBalanceSerializer(serializers.ModelSerializer):
-    used_days = serializers.IntegerField(read_only=True)
-    balance_days = serializers.IntegerField(read_only=True)
+    used_days = serializers.FloatField(read_only=True)
+    balance_days = serializers.FloatField(read_only=True)
     used_by_type = serializers.SerializerMethodField(read_only=True)
     balance_by_type = serializers.SerializerMethodField(read_only=True)
 
@@ -500,6 +583,8 @@ class LeaveBalanceSerializer(serializers.ModelSerializer):
             'annual_entitlement',
             'sick_entitlement', 'casual_entitlement', 'annual_type_entitlement',
             'maternity_entitlement', 'emergency_entitlement', 'other_entitlement',
+            'personal_entitlement', 'bereavement_entitlement', 'jury_entitlement', 'professional_entitlement',
+            'carried_over_days',
             'used_days', 'balance_days', 'used_by_type', 'balance_by_type',
             'created_at', 'updated_at',
         ]

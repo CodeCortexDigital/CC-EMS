@@ -1,0 +1,16 @@
+﻿Room code *,Room name *,Capacity,Category,Floor,Location
+R101,Room 101,24,classroom,first,Main building
+R102,Room 102,24,classroom,first,Main building
+R103,Room 103,24,classroom,first,Main building
+R104,Room 104,24,classroom,first,Main building
+R105,Room 105,24,classroom,first,Main building
+R106,Room 106,24,classroom,first,Main building
+R107,Room 107,24,classroom,second,Main building
+R108,Room 108,24,classroom,second,Main building
+R109,Room 109,24,classroom,second,Main building
+R110,Room 110,24,classroom,second,Main building
+R111,Room 111,24,classroom,second,Main building
+R112,Room 112,24,classroom,second,Main building
+GYM,Gymnasium,60,sports,ground,Sports hall
+LAB1,Computer Lab,26,lab,second,Main building
+ART,Art Room,24,classroom,ground,Main building

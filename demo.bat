@@ -25,11 +25,11 @@ if exist db.sqlite3 for %%A in (db.sqlite3) do if %%~zA==0 set FIRST_RUN=1
 echo [2/4] Preparing database...
 .venv\Scripts\python manage.py migrate --noinput || goto :fail
 if defined FIRST_RUN (
-  echo [3/4] Creating demo school data - takes about 2 minutes...
+  echo [3/4] Loading the sample US school, Maple Grove Academy. Takes about 1 to 2 minutes...
   .venv\Scripts\python manage.py seed_sample_users --force || goto :fail
-  .venv\Scripts\python manage.py seed_demo || goto :fail
+  .venv\Scripts\python manage.py seed_demo --pack us-school || goto :fail
 ) else (
-  echo [3/4] Demo data already present - to rebuild: .venv\Scripts\python manage.py seed_demo --reset
+  echo [3/4] Demo data already present. To switch to the US sample school run load-us-school.bat
 )
 
 echo [4/4] Starting servers...

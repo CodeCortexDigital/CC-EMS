@@ -508,11 +508,11 @@ def _timetable_preview_rows(slots):
 @api_view(['POST'])
 @permission_classes([IsAIAdmin])
 def generate_timetable(request):
-    """{academic_year, commit?, generations?, pop_size?} -> a genetic-algorithm timetable for the
-    school's own classes and rooms (docs table "AI Timetable Generator"). Defaults to a preview
-    (commit=false, nothing saved); pass commit=true to replace the school's existing timetable for
-    that year — this has no undo, so the frontend should show the preview and ask for confirmation first."""
-    from academics.timetable_optimizer import optimize_timetable
+    """{academic_year, commit?, seed?} -> a conflict-free timetable for the school's own classes, rooms and
+    qualified teachers (services/education/academics/scheduler.py). Defaults to a preview (commit=false, nothing
+    saved) that returns the seed; send the same seed with commit=true to save exactly that timetable. Committing
+    keeps a snapshot of the old timetable so it can be undone (timetable-snapshots/<id>/undo/)."""
+    from services.education.academics import scheduler
 
     academic_year = request.data.get('academic_year')
     if not academic_year:
@@ -526,19 +526,19 @@ def generate_timetable(request):
         return Response({'error': str(exc)}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
     try:
-        generations = max(5, min(int(request.data.get('generations', 60)), 300))
+        restarts = max(1, min(int(request.data.get('generations', 60)) // 10, 12))
     except (TypeError, ValueError):
-        generations = 60
+        restarts = 6
     try:
-        pop_size = max(10, min(int(request.data.get('pop_size', 60)), 200))
+        seed = int(request.data['seed']) if request.data.get('seed') not in (None, '') else None
     except (TypeError, ValueError):
-        pop_size = 60
+        seed = None
     commit = bool(request.data.get('commit', False))
     tenant_id = str(ctx.tenant.id) if ctx.tenant else None
 
     try:
-        result = optimize_timetable(academic_year, tenant_id=tenant_id, generations=generations,
-                                    pop_size=pop_size, commit=commit)
+        result = scheduler.run(academic_year, tenant_id=tenant_id, seed=seed, restarts=restarts, commit=commit,
+                               user=request.user)
     except Exception:
         logger.exception('Timetable generation failed')
         return Response({'error': 'Timetable generation failed. See server logs.'},

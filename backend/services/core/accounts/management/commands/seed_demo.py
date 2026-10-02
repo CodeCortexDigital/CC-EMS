@@ -2,6 +2,7 @@
 
     python manage.py seed_sample_users --force   # admin/teacher/parent/student logins
     python manage.py seed_demo
+    python manage.py seed_demo --pack us-school   # the sample US school from sample-data/us-school/ (loaded through the importer)
 
 Creates classes, subjects, teachers, a clash-free weekly timetable, ~120
 students, fee invoices with real payments, 30 school days of attendance,
@@ -18,7 +19,7 @@ from decimal import Decimal
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
@@ -85,6 +86,7 @@ class Command(BaseCommand):
     help = "Seed a complete demo school (classes, teachers, students, fees, attendance, exams)."
 
     def add_arguments(self, parser):
+        parser.add_argument("--pack", help="Load a sample school data pack (for example us-school) instead of the built-in demo school.")
         parser.add_argument("--reset", action="store_true", help="Delete existing demo students first.")
         parser.add_argument("--students-per-class", type=int, default=20)
 
@@ -93,6 +95,8 @@ class Command(BaseCommand):
         from services.core.tenants.context import use_tenant
 
         refuse_on_live('seed_demo')
+        if opts.get("pack"):
+            return self._seed_pack(opts["pack"], opts["reset"])
 
         M = lambda app, name: apps.get_model(app, name)  # noqa: E731
         self.school = self._demo_school(M)
@@ -100,6 +104,130 @@ class Command(BaseCommand):
         # and other schools' data is never touched.
         with use_tenant(self.school):
             self._seed(M, opts)
+
+    PACKS = {"us-school": {"school": "Maple Grove Academy", "code": "MGA", "subdomain": "maple",
+                           "profile": {"institute_name": "Maple Grove Academy", "name": "Maple Grove Academy",
+                                       "tagline": "Small classes, big futures", "motto": "Small classes, big futures",
+                                       "phone": "+1 (413) 555-0172", "website": "https://maplegrove.example",
+                                       "address": "88 Maple Avenue, Springfield, MA 01103", "country": "United States",
+                                       "currency": "USD", "language": "en", "region": "us", "region_chosen": True,
+                                       "timezone": "America/New_York"}}}
+
+    def _seed_pack(self, name, reset=False):
+        """Load a sample pack as the demo school and point the four demo logins at real people in it."""
+        from pathlib import Path
+
+        from django.conf import settings
+
+        from services.core.tenants.context import use_tenant
+        from services.education.imports import loader
+
+        if name not in self.PACKS:
+            raise CommandError(f"Unknown pack '{name}'. Available: {', '.join(self.PACKS)}.")
+        info = self.PACKS[name]
+        path = Path(settings.BASE_DIR).parent / "sample-data" / name
+        if not path.exists():
+            raise CommandError(f"The pack folder {path} is missing.")
+        M = lambda app, model: apps.get_model(app, model)  # noqa: E731
+        School = M("core_tenants", "School")
+        school = School.objects.filter(tenant_code=info["code"]).first() or School.objects.create(
+            tenant_code=info["code"], school_id=f"DEMO-{info['code']}", name=info["school"], subdomain=info["subdomain"], is_active=True)
+        school.settings_json = {**(school.settings_json or {}), **info["profile"]}
+        school.save(update_fields=["settings_json"])
+        self.school = school
+        if reset:
+            self._wipe_school(school)
+        with use_tenant(school):
+            if M("education_students", "Student").objects.exists():
+                self.stdout.write(self.style.WARNING(f"{info['school']} already has students; nothing loaded. Use --reset to start it again."))
+                return
+            with transaction.atomic():      # all or nothing: a failure leaves no half-loaded school behind
+                loader.load(path, school, "update", out=self.stdout.write)
+                self._link_pack_logins(M, school)
+            from services.education.academics.substitution import refresh_cover
+            self.stdout.write(f"Cover arranged for {refresh_cover(60, today=date(2026, 10, 2))} approved leave(s).")
+        self.stdout.write(self.style.SUCCESS(f"{info['school']} is ready. Log in as admin@code.com / Admin@123."))
+
+    def _wipe_school(self, school):
+        """Delete everything this one school owns (and nothing else), so a pack can be loaded again from scratch."""
+        from django.db import IntegrityError
+        from django.db.models import ProtectedError
+
+        from services.core.portability.data import school_querysets
+
+        sets = list(school_querysets(school))
+        for _ in range(8):
+            blocked = []
+            for label, Model, qs in sets:
+                try:
+                    with transaction.atomic():
+                        qs.delete()
+                except (ProtectedError, IntegrityError):
+                    blocked.append((label, Model, qs))
+            if not blocked:
+                break
+            sets = blocked
+        self.stdout.write(f"Cleared {school.name}.")
+
+    def _link_pack_logins(self, M, school):
+        """admin@code.com runs the school; teacher/parent/student logins are tied to a teacher, a family and a Grade 8 student."""
+        from services.core.accounts.credentials import issue_credential
+
+        User = get_user_model()
+        Membership = M("core_tenants", "TenantMembership")
+        Teacher, Student = M("education_academics", "Teacher"), M("education_students", "Student")
+        for email, role in (("admin@code.com", "admin"), ("teacher@code.com", "teacher"), ("parent@code.com", "parent"), ("student@code.com", "student")):
+            u = User.objects.filter(email=email).first()
+            if u:
+                # Make this school the one the login opens (an older demo school stays available but is no longer the default).
+                Membership.objects.filter(user=u).exclude(school=school).update(is_primary=False)
+                m, _ = Membership.objects.get_or_create(user=u, school=school, defaults={"role": role, "is_primary": True})
+                if not m.is_primary:
+                    m.is_primary = True
+                    m.save(update_fields=["is_primary"])
+        # The teacher login becomes the first maths teacher (so timetable, cover and HR pages have something to show).
+        teacher = Teacher.objects.filter(role="Teacher", subjects__code="MATH").order_by("employee_id").first()
+        login = User.objects.filter(email="teacher@code.com").first()
+        if teacher and login:
+            old = teacher.email
+            # The login email is unique across schools: an older demo school's record that holds it is renamed.
+            Teacher._base_manager.filter(email="teacher@code.com").exclude(pk=teacher.pk).update(email="former.demo.teacher@school.example")
+            Teacher.objects.filter(pk=teacher.pk).update(email="teacher@code.com")
+            User.objects.filter(email=old).exclude(pk=login.pk).delete()
+            login.full_name = teacher.full_name
+            login.save(update_fields=["full_name"])
+            TeacherProfile = M("core_accounts", "TeacherProfile")
+            tp, _ = TeacherProfile.objects.get_or_create(user=login, defaults={"employee_id": teacher.employee_id})
+            grade6 = M("education_academics", "SchoolClass").objects.filter(name="Grade 6").first()
+            if grade6:
+                tp.assigned_classes.add(grade6)
+        grade8 = list(Student.objects.filter(current_class__name="Grade 8").order_by("student_id"))
+        stu_login = User.objects.filter(email="student@code.com").first()
+        if grade8 and stu_login:
+            s = grade8[0]
+            Student._base_manager.filter(email="student@code.com").exclude(pk=s.pk).update(email="former.demo.student@school.example")
+            Student.objects.filter(pk=s.pk).update(email="student@code.com")
+            stu_login.full_name = s.full_name
+            stu_login.save(update_fields=["full_name"])
+        parent_login = User.objects.filter(email="parent@code.com").first()
+        if parent_login:
+            # A family with two children (a sibling pair if the pack has one, else the first two students).
+            fam = None
+            for f in Student.objects.exclude(household__isnull=True).values_list("household_id", flat=True).distinct():
+                kids = list(Student.objects.filter(household_id=f))
+                if len(kids) >= 2:
+                    fam = kids
+                    break
+            kids = fam or list(Student.objects.order_by("student_id")[:2])
+            ParentProfile = M("core_accounts", "ParentProfile")
+            pp, _ = ParentProfile.objects.get_or_create(user=parent_login, defaults={"relationship_type": "mother"})
+            pp.linked_students.add(*kids)
+            parent_login.full_name = f"{kids[0].mother_name or kids[0].father_name or 'Parent'}"
+            parent_login.save(update_fields=["full_name"])
+        for email, password in DEMO_PASSWORDS.items():
+            u = User.objects.filter(email=email).first()
+            if u:
+                issue_credential(u, password)
 
     def _demo_school(self, M):
         School = M("core_tenants", "School")

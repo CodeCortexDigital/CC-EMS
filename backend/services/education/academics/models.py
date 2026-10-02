@@ -375,6 +375,11 @@ class Teacher(SchoolAliasMixin, models.Model):
     blood_group = models.CharField(max_length=10, blank=True, default='')
     home_address = models.TextField(blank=True, default='')
     date_of_birth = models.DateField(null=True, blank=True)
+    # Reporting line, used by the org chart and to route leave approval.
+    manager = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='direct_reports')
+    # What this person is qualified to teach. `specializations` is free text (and the staff form has used it for the
+    # job title), so scheduling and cover rules use this list instead.
+    subjects = models.ManyToManyField('Subject', blank=True, related_name='qualified_teachers')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -395,6 +400,8 @@ class TeacherSubjectAssignment(models.Model):
     is_primary = models.BooleanField(default=True)  # Primary teacher for this subject
     assigned_date = models.DateField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+    override_reason = models.CharField(max_length=255, blank=True, default='',
+                                       help_text='Why an administrator assigned someone not qualified for the subject')
     
     class Meta:
         unique_together = ['teacher', 'class_subject', 'academic_year']
@@ -522,10 +529,17 @@ class TeacherLeave(models.Model):
         ('annual', 'Annual'),
         ('maternity', 'Maternity'),
         ('emergency', 'Emergency'),
+        ('personal', 'Personal day'),
+        ('bereavement', 'Bereavement'),
+        ('jury', 'Jury duty'),
+        ('professional', 'Professional development'),
+        ('unpaid', 'Unpaid'),
         ('other', 'Other'),
     ]
+    DAY_PARTS = [('full', 'Full day'), ('am', 'Morning only'), ('pm', 'Afternoon only')]
     STATUS_CHOICES = [
         ('pending', 'Pending'),
+        ('recommended', 'Recommended by manager'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
         ('cancelled', 'Cancelled'),
@@ -543,8 +557,14 @@ class TeacherLeave(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     reason = models.TextField(blank=True, default='')
+    day_part = models.CharField(max_length=4, choices=DAY_PARTS, default='full',
+                                help_text='Half-day leave: only for a single-day request')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     substitute_assigned = models.BooleanField(default=False)
+    recommended_by = models.CharField(max_length=255, blank=True, default='')
+    decided_by = models.CharField(max_length=255, blank=True, default='')
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.TextField(blank=True, default='')
     created_by = models.CharField(max_length=255, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -559,7 +579,65 @@ class TeacherLeave(models.Model):
     def is_active(self):
         from django.utils import timezone
         today = timezone.localdate()
-        return self.status in ('approved', 'pending') and self.start_date <= today <= self.end_date
+        return self.status in ('approved', 'pending', 'recommended') and self.start_date <= today <= self.end_date
+
+    @property
+    def days(self):
+        """Working days this leave uses (weekends and school holidays excluded, half-day = 0.5)."""
+        from .leave_days import leave_days
+        return leave_days(self)
+
+
+class SchedulingPolicy(models.Model):
+    """Teaching rules for one school: who may teach what, and how much one teacher can carry. One row per school."""
+    tenant = models.ForeignKey('core_tenants.School', on_delete=models.CASCADE, null=True, blank=True,
+                               related_name='+', db_index=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    enforce_subject_match = models.BooleanField(
+        default=True, help_text='Only teachers qualified for a subject may be given its lessons')
+    max_periods_per_day = models.PositiveSmallIntegerField(default=6)
+    max_periods_per_week = models.PositiveSmallIntegerField(default=30)
+    max_consecutive = models.PositiveSmallIntegerField(default=4, help_text='Most lessons in a row without a free period')
+    cover_allow_over_load = models.BooleanField(
+        default=False, help_text='Let cover go to a qualified teacher who is already at their weekly limit')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['tenant'], name='uniq_scheduling_policy_per_school')]
+
+
+class TimetableSnapshot(models.Model):
+    """The timetable as it was just before a generation replaced it, so the change can be undone."""
+    tenant = models.ForeignKey('core_tenants.School', on_delete=models.CASCADE, null=True, blank=True,
+                               related_name='+', db_index=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    academic_year = models.ForeignKey('AcademicYear', on_delete=models.CASCADE, related_name='timetable_snapshots')
+    created_by = models.ForeignKey('core_accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+    label = models.CharField(max_length=60, blank=True, default='')
+    entries = models.JSONField(default=list)
+    class_ids = models.JSONField(default=list)
+    undone = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class LeavePolicy(models.Model):
+    """How a school counts and approves leave. One row per school; defaults apply when there is none."""
+    tenant = models.ForeignKey('core_tenants.School', on_delete=models.CASCADE, null=True, blank=True,
+                               related_name='+', db_index=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    skip_weekends = models.BooleanField(default=True, help_text='Do not count non-working days against the balance')
+    skip_holidays = models.BooleanField(default=True, help_text='Do not count school holidays and closures')
+    two_step_approval = models.BooleanField(
+        default=False, help_text='A manager or HR recommends first, then an administrator gives final approval')
+    carry_over_max_days = models.PositiveSmallIntegerField(
+        default=0, help_text='Most unused annual-leave days that may move into the next year')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['tenant'], name='uniq_leave_policy_per_school')]
 
 
 class TimetableSubstitution(models.Model):
@@ -597,7 +675,8 @@ class LeaveBalance(models.Model):
     # School (tenant) this row belongs to; filled in automatically (tenants/scoping.py).
     tenant = models.ForeignKey('core_tenants.School', on_delete=models.CASCADE, null=True, blank=True,
                                related_name='+', db_index=True)
-    LEAVE_TYPE_FIELDS = ['sick', 'casual', 'annual', 'maternity', 'emergency', 'other']
+    LEAVE_TYPE_FIELDS = ['sick', 'casual', 'annual', 'maternity', 'emergency',
+                         'personal', 'bereavement', 'jury', 'professional', 'other']
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     teacher = models.ForeignKey(
@@ -613,6 +692,11 @@ class LeaveBalance(models.Model):
     maternity_entitlement = models.IntegerField(default=0, help_text="Maternity leave days allowed per year")
     emergency_entitlement = models.IntegerField(default=0, help_text="Emergency leave days allowed per year")
     other_entitlement = models.IntegerField(default=0, help_text="Other leave days allowed per year")
+    personal_entitlement = models.IntegerField(default=0, help_text="Personal days allowed per year")
+    bereavement_entitlement = models.IntegerField(default=0, help_text="Bereavement days allowed per year")
+    jury_entitlement = models.IntegerField(default=0, help_text="Jury duty days allowed per year")
+    professional_entitlement = models.IntegerField(default=0, help_text="Professional development days allowed per year")
+    carried_over_days = models.IntegerField(default=0, help_text="Unused annual days brought in from last year")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -636,26 +720,28 @@ class LeaveBalance(models.Model):
 
     def entitlement_for(self, leave_type: str) -> int:
         if leave_type == 'annual':
-            return self.annual_type_entitlement
+            return self.annual_type_entitlement + self.carried_over_days
         return getattr(self, f"{leave_type}_entitlement", 0)
 
-    def _approved_days_for(self, leave_type: str):
+    def _approved_days_for(self, leave_type: str, year=None):
+        """Working days of approved leave of this type that start in the leave year (calendar year)."""
         from django.db.models import Q
+        from django.utils import timezone
         leaves = TeacherLeave.objects.filter(
             Q(teacher=self.teacher) if self.teacher else Q(applicant_email=self.applicant_email),
             status='approved',
             leave_type=leave_type,
+            start_date__year=year or timezone.localdate().year,
         )
-        total = 0
-        for lv in leaves:
-            total += (lv.end_date - lv.start_date).days + 1
-        return total
+        return sum(lv.days for lv in leaves)
 
-    def used_for(self, leave_type: str) -> int:
-        return self._approved_days_for(leave_type)
+    def used_for(self, leave_type: str, year=None):
+        return self._approved_days_for(leave_type, year)
 
-    def balance_for(self, leave_type: str) -> int:
-        return max(self.entitlement_for(leave_type) - self.used_for(leave_type), 0)
+    def balance_for(self, leave_type: str, year=None):
+        if leave_type == 'unpaid':
+            return 0
+        return max(self.entitlement_for(leave_type) - self.used_for(leave_type, year), 0)
 
     @property
     def used_days(self):

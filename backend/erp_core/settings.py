@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     'services.education.integrations',
     'services.education.insights',
     'services.education.imports',
+    'services.education.hr',
     'services.analytics',
     'services.ai',
 ]

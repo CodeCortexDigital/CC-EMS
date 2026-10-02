@@ -85,9 +85,9 @@ urlpatterns = [
     
     # ─── Payslips & Salary ───────────────────────────────────────────────────
     path('payslips/', views.PayslipListCreateView.as_view(), name='payslip-list'),
-    path('payslips/<str:id>/', views.PayslipDetailView.as_view(), name='payslip-detail'),
     path('payslips/bulk-generate/', views.PayslipBulkGenerateView.as_view(), name='payslip-bulk-generate'),
     path('payslips/bulk-pay/', views.PayslipBulkPayView.as_view(), name='payslip-bulk-pay'),
+    path('payslips/<str:id>/', views.PayslipDetailView.as_view(), name='payslip-detail'),
     
     # ─── Employee Credits ─────────────────────────────────────────────────────
     path('employee-credits/', views.EmployeeCreditListCreateView.as_view(), name='employee-credit-list'),

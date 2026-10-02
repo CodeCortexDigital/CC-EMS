@@ -70,7 +70,7 @@ export const defaultEmployeePermissions: Record<EmployeePortalRole, EmployeePort
     portalAccess: {
       canAccess: true,
       defaultView: 'dashboard',
-      allowedViews: ['dashboard', 'tasks', 'timesheet', 'payroll', 'documents', 'profile', 'announcements', 'reports'],
+      allowedViews: ['dashboard', 'tasks', 'timesheet', 'payroll', 'documents', 'hr', 'profile', 'announcements', 'reports'],
     },
     modules: {
       tasks: { view: true, create: true, edit: true, delete: true, assign: true, complete: true },
@@ -88,7 +88,7 @@ export const defaultEmployeePermissions: Record<EmployeePortalRole, EmployeePort
     portalAccess: {
       canAccess: true,
       defaultView: 'tasks',
-      allowedViews: ['dashboard', 'tasks', 'timesheet', 'leave', 'documents', 'profile', 'announcements', 'reports'],
+      allowedViews: ['dashboard', 'tasks', 'timesheet', 'leave', 'documents', 'hr', 'profile', 'announcements', 'reports'],
     },
     modules: {
       tasks: { view: true, create: true, edit: true, delete: false, assign: true, complete: true },
@@ -106,7 +106,7 @@ export const defaultEmployeePermissions: Record<EmployeePortalRole, EmployeePort
     portalAccess: {
       canAccess: true,
       defaultView: 'dashboard',
-      allowedViews: ['dashboard', 'tasks', 'timesheet', 'leave', 'documents', 'profile', 'announcements', 'reports'],
+      allowedViews: ['dashboard', 'tasks', 'timesheet', 'leave', 'documents', 'hr', 'profile', 'announcements', 'reports'],
     },
     modules: {
       tasks: { view: true, create: true, edit: true, delete: false, assign: true, complete: true },
@@ -124,7 +124,7 @@ export const defaultEmployeePermissions: Record<EmployeePortalRole, EmployeePort
     portalAccess: {
       canAccess: true,
       defaultView: 'tasks',
-      allowedViews: ['dashboard', 'tasks', 'timesheet', 'leave', 'documents', 'profile', 'announcements'],
+      allowedViews: ['dashboard', 'tasks', 'timesheet', 'leave', 'documents', 'hr', 'profile', 'announcements'],
     },
     modules: {
       tasks: { view: true, create: false, edit: false, delete: false, assign: false, complete: true },

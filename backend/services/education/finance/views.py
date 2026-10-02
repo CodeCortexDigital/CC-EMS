@@ -1993,14 +1993,20 @@ class PayslipBulkGenerateView(APIView):
         from services.education.academics.models import Teacher
         teachers = Teacher.objects.filter(is_active=True)
         
+        # Pay grade, tax withholding and benefits set up under Staff & HR > Pay setup feed each payslip.
+        from services.education.hr.payroll import compute_pay
         created = 0
         for teacher in teachers:
+            pay = compute_pay(teacher)
             payslip, was_created = Payslip.objects.get_or_create(
                 employee=teacher,
                 month=month,
                 defaults={
-                    'basic_salary': teacher.monthly_salary or 0,
-                    'net_salary': teacher.monthly_salary or 0,
+                    'basic_salary': pay['basic'],
+                    'allowances': pay['allowances'],
+                    'deductions': pay['deductions'],
+                    'net_salary': pay['net'],
+                    'notes': f"Tax withheld: {pay['tax']}" if pay['tax'] else '',
                 }
             )
             if was_created:

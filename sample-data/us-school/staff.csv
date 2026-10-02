@@ -1,0 +1,25 @@
+﻿Name *,Email *,Phone,Employee number,Role,Department,Subjects,Joining date,Gender,Date of birth,Monthly salary,Qualifications,National ID,Address,Staff type (regular or relief),Manager (employee number)
+Dr. Natalie Scott,natalie.scott@maplegrove.example,555-307-5823,E-001,Principal,Administration,,2019-04-02,female,1977-01-25,7200,,,19 Maple Ave,regular,
+Mason Moore,mason.moore@maplegrove.example,555-253-8507,E-002,Assistant Principal,Administration,,2019-10-08,male,1988-06-16,7200,,,959 Lakeview Blvd,regular,E-001
+Dylan Flores,dylan.flores@maplegrove.example,555-468-4274,E-003,Office Manager,Administration,,2020-05-13,male,1976-09-01,4600,,,719 Lakeview Blvd,regular,E-001
+Miles Evans,miles.evans@maplegrove.example,555-577-9376,E-004,School Nurse,Health,,2021-01-01,male,1987-04-21,4600,,,837 Willow Way,regular,E-001
+Evan Young,evan.young@maplegrove.example,555-671-1550,E-005,School Counselor,Student Support,,2023-10-26,male,1978-01-05,4600,,,334 Lakeview Blvd,regular,E-001
+Ava Davis,ava.davis@maplegrove.example,555-931-2611,E-006,Librarian,Library,,2023-04-15,female,1984-09-01,4600,,,715 Hillcrest Rd,regular,E-001
+Carter Smith,carter.smith@maplegrove.example,555-365-8420,E-007,Bookkeeper,Finance,,2018-10-28,male,1973-03-19,4600,,,445 Lakeview Blvd,regular,E-001
+Grace Thomas,grace.thomas@maplegrove.example,555-165-5365,E-008,Teacher,Math,Mathematics,2022-01-19,female,1987-05-12,5000,MEd,,209 Willow Way,regular,E-002
+Penelope Sanchez,penelope.sanchez@maplegrove.example,555-249-8362,E-009,Teacher,Math,Mathematics,2022-04-15,female,1965-08-18,4300,MEd,,472 Sunset Ave,regular,E-002
+Ethan Hill,ethan.hill@maplegrove.example,555-659-2360,E-010,Teacher,Math,Mathematics,2020-06-22,male,1992-05-15,3800,BA,,263 Oak Street,regular,E-002
+Hannah Martinez,hannah.martinez@maplegrove.example,555-735-1731,E-011,Teacher,English,English Language Arts,2019-04-11,female,1989-07-07,5000,BA,,694 Birch Court,regular,E-002
+Ruby Clark,ruby.clark@maplegrove.example,555-258-1084,E-012,Teacher,English,English Language Arts,2022-06-06,female,1979-01-23,4300,BA,,598 Lakeview Blvd,regular,E-002
+Lily Green,lily.green@maplegrove.example,555-806-3209,E-013,Teacher,English,English Language Arts,2020-04-15,female,1989-06-26,4300,MEd,,612 Pine Road,regular,E-002
+Sophia Walker,sophia.walker@maplegrove.example,555-712-9269,E-014,Teacher,Science,Science,2020-10-29,female,1978-01-15,5000,MEd,,694 Pine Road,regular,E-002
+Natalie Martin,natalie.martin@maplegrove.example,555-238-6013,E-015,Teacher,Science,Science,2021-10-18,female,1987-10-11,4300,BA,,837 Pine Road,regular,E-002
+Isaac Scott,isaac.scott@maplegrove.example,555-632-4222,E-016,Teacher,Social Studies,Social Studies,2020-09-12,male,1981-11-13,5000,MEd,,118 Willow Way,regular,E-002
+Miles Rodriguez,miles.rodriguez@maplegrove.example,555-175-1841,E-017,Teacher,Social Studies,Social Studies,2025-12-16,male,1980-07-26,3800,BA,,966 Maple Ave,regular,E-002
+Hunter Rivera,hunter.rivera@maplegrove.example,555-126-9362,E-018,Teacher,Arts,Art,2025-05-10,male,1986-05-10,5000,MEd,,320 Lakeview Blvd,regular,E-002
+Dylan King,dylan.king@maplegrove.example,555-433-2988,E-019,Teacher,Arts,Music,2024-11-28,male,1987-04-28,5000,BA,,595 Sunset Ave,regular,E-002
+Amelia Davis,amelia.davis@maplegrove.example,555-924-3797,E-020,Teacher,Physical Education,Physical Education,2019-06-25,female,1971-11-27,5000,BA,,221 Willow Way,regular,E-002
+Sebastian King,sebastian.king@maplegrove.example,555-738-6511,E-021,Teacher,World Languages,Spanish,2018-06-30,male,1985-08-01,5000,BA,,704 Oak Street,regular,E-002
+Connor Martin,connor.martin@maplegrove.example,555-660-7539,E-022,Teacher,Technology,Computer Science,2020-03-25,male,1966-07-14,5000,MEd,,953 Pine Road,regular,E-002
+Ella Hill,ella.hill@maplegrove.example,555-146-9925,E-023,Substitute teacher,Math and English,"Mathematics, English Language Arts",2019-04-03,female,1967-03-01,3800,,,472 Cedar Lane,relief,E-002
+Isaac Lewis,isaac.lewis@maplegrove.example,555-595-1335,E-024,Substitute teacher,Science and Social Studies,"Science, Social Studies",2021-08-26,male,1970-10-17,3800,,,671 Hillcrest Rd,relief,E-002

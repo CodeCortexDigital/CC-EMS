@@ -8,6 +8,7 @@ import {
   ThumbsUp,
   PieChart,
   Settings2,
+  Briefcase, Network, Handshake, UserPlus, LayoutDashboard, IdCard,
 } from 'lucide-react';
 import type { ModuleTab } from './ModuleTabsLayout';
 
@@ -69,6 +70,25 @@ export const timetableTabs: ModuleTab[] = [
   { id: 'my-leave', path: '/education/timetable/my-leave', label: 'My Leave', icon: Plane, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87' },
   { id: 'leave', path: '/education/timetable/leave', label: 'Staff Leave', icon: CalendarClock, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87' },
   { id: 'leave-limits', path: '/education/timetable/leave-limits', label: 'Leave Limits', icon: SlidersHorizontal, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87', roles: ['admin'] },
+  { id: 'teaching-rules', path: '/education/timetable/rules', label: 'Teaching Rules', icon: UserCog, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87', roles: ['admin'] },
+];
+
+// ============================ STAFF & HR ============================
+// `roles` limits a tab to those roles; tabs without it are for every signed-in staff member.
+const HR_ALL = ['admin', 'hr', 'manager'];
+const HR_PAY = ['admin', 'hr'];
+const hrTab = (id: string, path: string, label: string, icon: ModuleTab['icon'], roles?: string[]): ModuleTab =>
+  ({ id, path, label, icon, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87', roles });
+export const hrTabs: ModuleTab[] = [
+  hrTab('overview', '/education/hr', 'Overview', LayoutDashboard, HR_ALL),
+  hrTab('cover', '/education/hr/cover', 'Cover Requests', Handshake),
+  hrTab('leave-calendar', '/education/hr/leave-calendar', 'Who Is Out', CalendarDays),
+  hrTab('directory', '/education/hr/directory', 'Directory & Org Chart', Network),
+  hrTab('recruitment', '/education/hr/recruitment', 'Recruitment', UserPlus, HR_ALL),
+  hrTab('records', '/education/hr/records', 'Contracts & Credentials', IdCard),
+  hrTab('performance', '/education/hr/performance', 'Performance', Star),
+  hrTab('pay', '/education/hr/pay', 'Pay Setup', DollarSign, HR_PAY),
+  hrTab('my-hr', '/education/hr/me', 'My HR', Briefcase),
 ];
 
 // ============================ BEHAVIOUR & SKILLS ============================

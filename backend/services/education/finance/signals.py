@@ -51,7 +51,7 @@ def log_invoice_audit(sender, instance, created, **kwargs):
     try:
         from services.core.user_notifications.utils import create_user_notification
 
-        if created:
+        if created and not getattr(instance, '_silent', False):
             title = f"New Invoice Issued: {instance.invoice_number}"
             message = (
                 f"A new fee invoice of ${instance.total_amount:.2f} has been issued for "

@@ -189,6 +189,15 @@ export default function GenerateFeesInvoicePage() {
     );
   }, [activeTab, selectedStudent, selectedClass, selectedFamily, classes, feeStructures, students]);
 
+  // The class's monthly fees are ticked for you, so a bill is never made for nothing.
+  useEffect(() => {
+    if (activeStructures.length === 0) return;
+    setCheckedStructureIds((prev) =>
+      prev.some((id) => activeStructures.some((fs: any) => fs.id === id))
+        ? prev
+        : activeStructures.filter((fs: any) => String(fs.frequency).toLowerCase() === 'monthly').map((fs: any) => fs.id));
+  }, [activeStructures]);
+
   const getInvoiceType = (checkedIds: string[]) => {
     const checked = activeStructures.filter(fs => checkedIds.includes(fs.id));
     if (checked.length === 0) return 'tuition';
@@ -526,9 +535,9 @@ export default function GenerateFeesInvoicePage() {
           }
         } catch (e) {}
       } else {
-        const defaultBanks = [{ id: 'b-1', name: 'HBL' }, { id: 'b-2', name: 'Meezan Bank' }];
+        const defaultBanks = [{ id: 'b-1', name: 'First Community Bank' }];
         setBanks(defaultBanks);
-        setSelectedBank('HBL');
+        setSelectedBank('First Community Bank');
       }
     } catch (err) {
       console.error(err);
@@ -579,6 +588,10 @@ export default function GenerateFeesInvoicePage() {
     const parsedFee = parseFloat(feeAmount || '0');
     const hasCheckedStructures = checkedStructureIds.length > 0;
     
+    if (activeStructures.length > 0 && !hasCheckedStructures) {
+      toast.error('Tick at least one fee to bill, for example Monthly Tuition Fee. Nothing was generated.');
+      return;
+    }
     if ((isNaN(parsedFee) || parsedFee <= 0) && !hasCheckedStructures) {
       toast.error('Please enter a manual fee amount or select at least one fee structure');
       return;
@@ -980,7 +993,7 @@ export default function GenerateFeesInvoicePage() {
 
   if (generatedInvoices) {
     const bankObj = banks.find(b => b.name === selectedBank) || {
-      name: selectedBank || 'HBL',
+      name: selectedBank || 'First Community Bank',
       accountNumber: '343546535356565',
       branchAddress: 'efref45y5hghtg'
     };

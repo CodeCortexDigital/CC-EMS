@@ -6,11 +6,16 @@ import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { toast } from 'sonner';
 import teacherService from '@/services/teacher.service';
+import hrService, { LeavePolicy } from '@/services/hr.service';
 
 const LEAVE_TYPES = [
   { key: 'sick', label: 'Sick' },
   { key: 'casual', label: 'Casual' },
   { key: 'annual', label: 'Annual' },
+  { key: 'personal', label: 'Personal' },
+  { key: 'bereavement', label: 'Bereavement' },
+  { key: 'jury', label: 'Jury duty' },
+  { key: 'professional', label: 'Prof. dev.' },
   { key: 'maternity', label: 'Maternity' },
   { key: 'emergency', label: 'Emergency' },
   { key: 'other', label: 'Other' },
@@ -35,6 +40,76 @@ interface StaffRow {
 
 const emptyEntitlements = (): Record<LeaveTypeKey, number> =>
   LEAVE_TYPES.reduce((acc, t) => ({ ...acc, [t.key]: 0 }), {} as Record<LeaveTypeKey, number>);
+
+function PolicyCard() {
+  const [policy, setPolicy] = useState<LeavePolicy | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [carrying, setCarrying] = useState(false);
+  useEffect(() => {
+    hrService.leave.policy().then(setPolicy).catch(() => toast.error('Could not load the leave policy'));
+  }, []);
+  if (!policy) return null;
+
+  const save = async (patch: Partial<LeavePolicy>) => {
+    const next = { ...policy, ...patch };
+    setPolicy(next);
+    setSaving(true);
+    try {
+      await hrService.leave.savePolicy(patch);
+      toast.success('Leave policy saved');
+    } catch {
+      toast.error('Could not save the leave policy');
+      setPolicy(policy);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const carryOver = async () => {
+    const lastYear = new Date().getFullYear() - 1;
+    if (!window.confirm(`Move each person's unused ${lastYear} annual leave (up to ${policy.carry_over_max_days} days) into this year? You can run it again safely.`)) return;
+    setCarrying(true);
+    try {
+      const r = await hrService.leave.carryOver(lastYear);
+      toast.success(r.carried.length ? `Carried over leave for ${r.carried.length} people.` : 'Nobody had annual leave left to carry over.');
+    } catch {
+      toast.error('Carry-over failed');
+    } finally {
+      setCarrying(false);
+    }
+  };
+
+  const toggle = (key: 'skip_weekends' | 'skip_holidays' | 'two_step_approval', label: string, hint: string) => (
+    <label className="flex items-start gap-2 text-xs">
+      <input type="checkbox" className="mt-0.5" checked={policy[key]} disabled={saving} onChange={(e) => save({ [key]: e.target.checked })} />
+      <span><b className="text-slate-700">{label}</b><span className="block text-slate-400 font-semibold">{hint}</span></span>
+    </label>
+  );
+
+  return (
+    <Card className="border border-slate-150">
+      <CardHeader className="p-4 bg-slate-50/50 border-b border-slate-100">
+        <CardTitle className="text-sm font-bold text-slate-800">Leave policy</CardTitle>
+      </CardHeader>
+      <CardContent className="p-4 grid gap-4 md:grid-cols-4">
+        {toggle('skip_weekends', 'Skip weekends', 'Non-working days do not use up leave')}
+        {toggle('skip_holidays', 'Skip school holidays', 'Holidays and closures from the calendar do not count')}
+        {toggle('two_step_approval', 'Two-step approval', 'Managers and HR recommend; an administrator gives final approval')}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-700 block">Annual leave carried over (max days)</label>
+          <div className="flex gap-2">
+            <Input type="number" min={0} className="h-9 w-24 text-center" value={policy.carry_over_max_days}
+              onChange={(e) => setPolicy({ ...policy, carry_over_max_days: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+              onBlur={(e) => save({ carry_over_max_days: Math.max(0, parseInt(e.target.value, 10) || 0) })} />
+            <Button size="sm" variant="outline" onClick={carryOver} disabled={carrying || policy.carry_over_max_days === 0}>
+              {carrying ? 'Working...' : 'Run year-end carry-over'}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function LeaveLimitsPage() {
   const [staff, setStaff] = useState<StaffRow[]>([]);
@@ -179,6 +254,7 @@ export default function LeaveLimitsPage() {
 
   return (
     <div className="space-y-4">
+      <PolicyCard />
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -246,7 +322,7 @@ export default function LeaveLimitsPage() {
               </div>
             </CardHeader>
             <CardContent className="p-4">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {LEAVE_TYPES.map((t) => (
                   <div key={t.key} className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-600 block">{t.label}</label>

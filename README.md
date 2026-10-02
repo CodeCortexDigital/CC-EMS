@@ -5,8 +5,10 @@ A full-stack, multi-tenant school/ERP management platform with a **React + TypeS
 ## Features
 
 - **Role-based portals** — Admin, Teacher/Employee, Student, and Parent dashboards with RBAC-scoped navigation and route guards.
-- **Academics** — classes, sections, subjects, curriculum (syllabus → topic → sub-topic), timetable & period scheduling, homework, class tests.
+- **Academics** — classes, sections, subjects, curriculum (syllabus → topic → sub-topic), homework, class tests. **Timetable** with a generator that follows teaching rules (only qualified teachers, no clashes, workload limits) with preview and undo. See [Timetable and teaching rules](#timetable-and-teaching-rules).
 - **Students & Teachers** — full lifecycle management: admission, profiles, history timelines, promotions, ID cards, letters, login management.
+- **Admissions & student health** — public application form, review pipeline with history, one-click enrolment, re-enrolment campaigns; per-student health record (allergies, medications, physician, insurance) and immunisation log.
+- **Staff & HR** — cover (substitute) requests, leave with US leave types, half days, two-step approval and a "who is out" calendar, recruitment and onboarding, contracts and credential expiry alerts, performance reviews and goals, pay grades with tax and benefits, directory and org chart. See [Staff & HR](#staff--hr).
 - **Exams & Results** — exam hub, marks entry, result cards, mark-sheets, grade scales, report cards, admit cards.
 - **Attendance** — student & staff attendance with bulk entry, reports, and facial-recognition embeddings.
 - **Finance & Payroll** — fee structure, invoices, installments, discounts, late fees, payment gateways (JazzCash/Easypaisa), salary generation and slips.
@@ -14,6 +16,8 @@ A full-stack, multi-tenant school/ERP management platform with a **React + TypeS
 - **Analytics & AI** — executive dashboard with real-time KPIs, an AI assistant that answers questions from live school data (streaming, chat history, English/Urdu voice), AI lesson plans and quizzes, and ML risk scoring / anomaly detection. See [AI Features](#ai-features).
 - **Real-time** — WebSocket KPI/attendance/notification broadcasts.
 - **Multi-tenancy** — tenant resolution via header/subdomain/session with per-tenant data scoping.
+
+- **Data in and out** — one set of CSV files (a *data pack*) loads, updates, exports and restores a whole school: students, staff, classes, admissions, fees, salary, attendance, exams, timetable and more. See [Data pack](#data-pack-import-export-and-restore).
 
 See [docs/README.md](docs/README.md) for the full feature breakdown.
 
@@ -54,6 +58,8 @@ On Windows, double-click **`demo.bat`** in the project root (or run it from a te
 2. Sets up a local SQLite database and fills it with a demo school, **CodeCortex Model School** (first run only, 10–15 minutes, so do it before the meeting; later runs start in seconds): 6 classes, 6 teachers, 120 students, 3 months of fees with payments, 30 school days of attendance, exams with results, homework, behaviour records and payroll.
 3. Starts the backend on **http://localhost:8009** and the frontend on **http://localhost:5179** in two windows, then opens the login page.
 
+**A US school instead:** `python manage.py seed_demo --pack us-school` loads *Maple Grove Academy* (K-8, 214 students, 24 staff, timetable, fees, attendance, exams, HR) from `sample-data/us-school/` through the same importer a school would use. The four demo logins below are wired to it (`teacher@code.com` is a maths teacher, `student@code.com` a Grade 8 student, `parent@code.com` a mother of two). It takes about a minute. `demo.bat` now loads it on a first run; if you already have a demo database with the old 120-student school, run **`load-us-school.bat`** (it migrates, loads Maple Grove and makes the demo logins open it), then `restart-demo.bat`. The files are in [sample-data/us-school/](sample-data/us-school/); upload `us-school-pack.zip` in the app to load them into any school.
+
 To stop, run **`stop-demo.bat`** (or close the two server windows); **`restart-demo.bat`** stops and starts again. Both only touch the demo ports 8009 and 5179. On this machine there are desktop shortcuts: *ERP Demo - Start / Stop / Restart*. To rebuild the demo data from scratch: `cd backend` then `.venv\Scripts\python manage.py seed_demo --reset`.
 
 **Demo logins**
@@ -90,6 +96,46 @@ Admins see the logins under **Students → Portal Logins** and **Employees → P
 > Ports 8009 and 5179 are used so the demo doesn't clash with other local dev servers on 8000/5173.
 
 **Theming (for developers).** One accent colour drives the header, active navigation, primary buttons, page titles and focus rings. `frontend/src/utils/theme.ts` reads Settings → Theme and sets the `--app-accent-*` CSS variables; use the `bg-brand`, `bg-brand-soft` and `text-brand` classes for new UI rather than a fixed colour. Dark mode sets `html.dark`, and `src/styles/dark-theme.css` remaps the common light utilities (`bg-white`, `text-slate-800`, `bg-emerald-50`, and so on), so existing pages work in dark mode without `dark:` variants. That file is generated: edit `frontend/scripts/gen-dark-theme.cjs` and run `node scripts/gen-dark-theme.cjs`.
+
+## Timetable and teaching rules
+
+**Who may teach what.** Each teacher has a list of subjects they are qualified for (Staff > edit > *Subjects they teach*). **Timetable > Teaching Rules** shows what is missing (teachers with no subjects, subjects nobody can teach, subjects with only one teacher) and sets the limits: periods per day, per week and in a row. With the rule on (default), assigning a teacher to a subject they are not qualified for, or putting them in a timetable slot for it, is refused; an administrator can override an assignment with a reason (recorded).
+
+**Timetable generator** (`backend/services/education/academics/scheduler.py`, used by Timetable > Create Timetable > *Run AI Timetable Optimizer*). It builds a week for every section: a lesson is only placed when the class, a *qualified* teacher and a suitable room (labs, gym) are free, the teacher is available and within their limits, and the school's own weekdays and half days are used. Lessons that cannot be placed are listed with the reason ("nobody qualified", "every qualified teacher is at the weekly limit"), never forced. The preview shows workloads; applying it keeps the old timetable so **Restore this** undoes it (30 days). The same seed gives the same week, so what you previewed is what is saved.
+
+**Cover when a teacher is away.** When leave is approved, each lesson the teacher has on each working day of the leave becomes a dated cover request. It is given to a free colleague qualified for the subject: relief teachers first, then whoever has covered least lately, never someone over their limits. If nobody qualified is free, the period stays an open cover request and the administrators are told; HR can assign someone not qualified only with a reason. `python manage.py refresh_cover --days 14` (run daily) fills open periods as people become free. Cancelling or moving leave removes future cover only.
+
+## Data pack: import, export and restore
+
+**Settings > Import data** (`/education/import`). A *data pack* is a zip of CSV files, one per kind of record (36 kinds: school years, classes, subjects, rooms, periods, staff, teacher assignments, students, guardians, health, immunisations, admissions, fee structure, invoices, payments, opening balances, pay grades, payroll, payslips, leave, attendance, exams and results, timetable, calendar, contracts, credentials, reviews, goals, job openings and candidates).
+
+* **Load:** upload a zip (or one CSV and say what it holds). Every row is checked first and nothing is saved until you press Import. Modes: *Add only*, *Add and update* (empty cells never erase data) and *Restore* (empty school). Big packs run in the background with progress.
+* **Export:** Download > *Download data pack* gives the school's data in exactly the layout the importer reads, so an exported pack can be edited and loaded again, or used to restore the school (a test exports, wipes, restores and exports again and compares every file). For a complete technical copy (audit logs, uploaded files) use Settings > Security > Data.
+* **Templates:** a blank pack with headings and an example row per file, plus a README with the order to fill them in.
+* **Format:** [docs/DATA_PACK_SPEC.md](docs/DATA_PACK_SPEC.md) lists every file and column (generated from the code). Records refer to each other by class name, subject code, student number, employee number, invoice number: never ids.
+* **Command line:** `python manage.py load_pack <folder or zip> --school "Name" [--mode update|add|restore]`; `python manage.py build_sample_pack` rebuilds the sample school; `python manage.py pack_spec_doc` rewrites the spec.
+* **Loading does not notify families:** invoices, attendance and exam results loaded this way send no emails or alerts.
+* **Code:** `backend/services/education/imports/` (`engine.py`, `pack.py` builder, `kinds_*.py` one file per area, `pack_api.py`).
+
+## Staff & HR
+
+Open **Staff & HR** in the sidebar (teachers see **Cover & My HR**). Administrators, HR and managers see everything; every staff member sees cover requests, who is out, the directory and their own HR page.
+
+| Area | What it does | Who |
+|------|--------------|-----|
+| **Cover requests** | A teacher (or the office) asks for a period, or a whole day, to be covered. Free colleagues are notified, best subject match first. A colleague accepts, or HR assigns from a list of people who are free. Covers can be given back or cancelled. | Everyone; assigning is HR |
+| **Leave** | Timetable > My Leave / Staff Leave. Sick, casual, annual, personal, bereavement, jury duty, professional development, maternity, emergency, unpaid. Half days. Weekends and school holidays are not counted. Approved leave auto-arranges relief cover. | Everyone applies; managers decide |
+| **Leave policy** | Timetable > Leave Limits: skip weekends/holidays, two-step approval (manager or HR recommends, an administrator approves), year-end carry-over of annual leave. | Administrators |
+| **Who is out** | Month calendar of approved leave (pending requests are shown to reviewers only). | Everyone |
+| **Recruitment** | Job openings, candidate pipeline (applied, screening, interview, offer, hired) with history. *Hire* creates the staff record and login and a 9-step onboarding checklist. | HR |
+| **Contracts & credentials** | Contracts, probation dates, licences and certificates. Anything ending within 60 days is flagged; `python manage.py send_hr_alerts --days 30` notifies administrators (schedule it daily). | HR; staff see their own |
+| **Performance** | Reviews and classroom observations stay private until shared; staff acknowledge them and update their own goals. | HR; staff see their own |
+| **Pay setup** | Pay grades, flat tax withholding and benefits per person. Salary > Generate starts each payslip from these. | Administrators and HR only |
+| **Directory & org chart** | Who works here and who reports to whom (reporting loops are refused). | Everyone sees; HR edits |
+
+API: `/api/v1/auth/hr/` (cover, openings, candidates, onboarding, contracts, credentials, reviews, goals, payroll, directory, org-chart, overview, alerts, me) and `/api/v1/auth/academics/` (leave-policy, leave-calendar, leave-days, leave-balances/carry-over). Code: `backend/services/education/hr/`, `frontend/src/pages/education/hr/`. Tests: `backend/tests/test_hr.py`, `frontend/src/pages/education/hr/hr.test.tsx`.
+
+**Not built yet:** a public careers page (HR enters candidates), tax filing (withholding is a flat percentage), and a school-nurse visit log. Periods that automatic leave cover cannot fill become open cover requests. The timetable, teaching-rule, cover and data-pack work is described in [docs/PLAN_SCHEDULING_AND_DATA_IMPORT.md](docs/PLAN_SCHEDULING_AND_DATA_IMPORT.md).
 
 ## Multiple schools
 
@@ -308,19 +354,23 @@ Two items sometimes proposed for this list are **already built**, not planned: d
 
 #### Known issues (not caused by the AI work)
 
-- [ ] `tests/test_leave_approval.py::test_manager_can_approve_leave` fails on `main`.
 - [ ] `tests/test_finance.py` hangs after `test_retrieve_invoice`.
 - [ ] Report card view ([AnalyticsPage.tsx](frontend/src/pages/education/AnalyticsPage.tsx)): if a student's own record isn't found, the first student in the list is shown. That could show someone else's report card.
 - [ ] `npm run lint` doesn't run: ESLint 9 needs an `eslint.config.js`.
-
+- [ ] `frontend/src/i18n/locales.test.ts` fails for most languages: the locale files are out of sync with `en.json`.
+- [x] Timetable and cover rules, teacher-to-subject validation, and one import/export format are done (see the two sections above).
+- [ ] The data pack does not yet cover gradebook scores, library, transport, cafeteria, inventory, behaviour or certificates; use the technical export in Settings > Security > Data for those.
+- [ ] Gradebook, library and similar modules are not in the pack; very large packs (over about 5,000 new students) take several minutes because creating a student sets up their family records.
 #### Multiple schools: limits to know
 
 - [ ] Student IDs, employee IDs and user emails must be unique across all schools, because they are login usernames. A second school that types an ID another school already uses gets "already exists". Each school should use its own prefix (the school code, e.g. `GVS-001`).
 - [ ] Parent accounts are matched by phone number (`parent.<phone>@school.edu`). A parent with children in two different schools shares one account and sees their first school's children.
 - [ ] Billing and plans for schools are not built yet (the platform page only lists, suspends and re-activates schools).
-- [ ] The one-off scripts in the repository root (`sync_existing_portal_users.py`, `generate_complete_system_data.py`) reset everyone to shared default passwords. Don't run them on a live school.
+- [x] The 24 one-off generator scripts that used to sit in `backend/` (some reset everyone to shared default passwords) are removed. Demo and sample data now come from `seed_demo` and the sample data pack in `sample-data/`.
 
 ## Deployment
+
+**Client demo (Render + Vercel):** [deploy/DEMO_DEPLOY.md](deploy/DEMO_DEPLOY.md) puts the sample US school and the four demo accounts online with `deploy/render-demo.yaml` (`python manage.py setup_demo` loads it; `DEMO_RESET=1` wipes an old site first). Set `VITE_DEMO_LOGINS=true` on Vercel to show the demo accounts on the sign-in page.
 
 The backend (Django + PostgreSQL + Redis + Celery + WebSockets) cannot run on static-only hosts. Use one of the prepared options:
 
@@ -355,9 +405,13 @@ The SPA can be deployed to [Vercel](https://vercel.com) using the included `fron
 ## Testing
 
 ```bash
-# Backend (pytest + coverage)
+# Backend (pytest + coverage). Same setup as CI: SQLite, no Postgres needed.
 cd backend
+pip install -r requirements.txt -r requirements-dev.txt
+# Windows PowerShell: $env:USE_SQLITE='1'; $env:DEBUG='1'     macOS/Linux: export USE_SQLITE=1 DEBUG=1
 pytest tests/ --cov=services --cov=auth_api
+pytest tests/ -q -n 4 --no-cov        # faster: parallel, no coverage (the first run builds the test database)
+pytest tests/test_hr.py               # Staff & HR only
 
 # AI features only (no API key needed — the AI provider is faked in tests)
 pytest tests/test_ai_security.py tests/test_ai_platform.py tests/test_ai_generation.py
@@ -365,7 +419,11 @@ pytest tests/test_ai_security.py tests/test_ai_platform.py tests/test_ai_generat
 # Frontend (Vitest)
 cd frontend
 npm run test
+npx tsc --noEmit -p tsconfig.app.json   # type check
 npm run lint
+
+# Migrations: new model changes need a migration. If the dev Postgres history is inconsistent, generate on a scratch SQLite file:
+# USE_SQLITE=1 SQLITE_PATH=/tmp/x.sqlite3 python manage.py makemigrations <app>
 ```
 
 ## CI/CD

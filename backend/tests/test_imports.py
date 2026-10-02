@@ -56,13 +56,15 @@ def imp(db):
 def test_classes_subjects_and_the_template(imp):
     office = imp['office']
     kinds = office.get(f'{URL}/').json()['kinds']
-    assert [k['kind'] for k in kinds] == ['classes', 'subjects', 'staff', 'students', 'balances']
+    names = [k['kind'] for k in kinds]
+    assert {'classes', 'subjects', 'staff', 'students', 'balances'} <= set(names)
+    assert names.index('classes') < names.index('students') < names.index('balances')   # the order a school loads them in
     t = office.get(f'{URL}/students/template/')
     assert t['Content-Type'].startswith('text/csv') and 'Name *' in t.content.decode('utf-8-sig').splitlines()[0]
     # Classes: the other school's "Grade 1" doesn't count as a duplicate here.
     body = 'Class,Sections,Grade level,Capacity,Tuition fee\nGrade 1,"A, B",1,30,"2,500"\nGrade 2,A,2,x,2600\nGrade 1,C,1,,\n'
     p = office.post(f'{URL}/classes/preview/', {'file': csv_file(body)}, format='multipart').json()
-    assert p['summary'] == {'ready': 1, 'duplicate': 0, 'error': 2}
+    assert p['summary'] == {'update': 0, 'ready': 1, 'duplicate': 0, 'error': 2}
     assert any('Capacity' in m for m in p['rows'][1]['messages']) and 'twice' in p['rows'][2]['messages'][0]
     assert SchoolClass.objects.filter(tenant=imp['s']).count() == 0  # a preview saves nothing
     r = office.post(f'{URL}/classes/import/', {'file': csv_file(body)}, format='multipart').json()

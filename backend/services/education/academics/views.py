@@ -1,4 +1,5 @@
-from services.core.accounts.decorators import is_admin
+from datetime import timedelta
+from services.core.accounts.decorators import get_user_role, is_admin
 from django.utils.decorators import method_decorator
 from django.db.models import Q
 from django.views.decorators.cache import cache_page
@@ -381,7 +382,7 @@ class TeacherLeaveListCreateView(generics.ListCreateAPIView):
         # Default-scope to the current employee unless an admin/staff is
         # explicitly requesting all leaves. Prevents leaking everyone's leave.
         user = self.request.user
-        if not is_admin(user):
+        if not _can_review_leave(user):
             teacher = _resolve_current_teacher(user)
             if teacher is not None:
                 queryset = queryset.filter(
@@ -450,27 +451,24 @@ class TeacherLeaveDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class TimetableSubstitutionListView(generics.ListAPIView):
+    """Cover arranged for leave, by date. Filter with leave_id, or teacher_id (the absent teacher or the cover)."""
     permission_classes = [IsAuthenticated]
     serializer_class = TimetableSubstitutionSerializer
 
     def get_queryset(self):
-        queryset = TimetableSubstitution.objects.all().select_related(
-            'original_entry__teacher',
-            'original_entry__class_subject__subject',
-            'original_entry__period',
-            'relief_teacher',
-            'leave',
-        )
+        from services.education.hr.models import SubstituteRequest
+        qs = SubstituteRequest.objects.filter(leave__isnull=False).exclude(status='cancelled').select_related(
+            'requester', 'substitute', 'period', 'entry__class_subject__subject', 'leave')
         teacher_id = self.request.query_params.get('teacher_id')
         if teacher_id:
-            queryset = queryset.filter(
-                Q(original_entry__teacher_id=teacher_id)
-                | Q(relief_teacher_id=teacher_id)
-            )
+            qs = qs.filter(Q(requester_id=teacher_id) | Q(substitute_id=teacher_id))
         leave_id = self.request.query_params.get('leave_id')
         if leave_id:
-            queryset = queryset.filter(leave_id=leave_id)
-        return queryset
+            qs = qs.filter(leave_id=leave_id)
+        if not _can_review_leave(self.request.user):
+            me = _resolve_current_teacher(self.request.user)
+            qs = qs.filter(Q(requester=me) | Q(substitute=me)) if me else qs.none()
+        return qs.order_by('date', 'period__period_number')
 
 
 class LeaveBalanceListView(generics.ListCreateAPIView):
@@ -524,6 +522,10 @@ def leave_balance_set_defaults(request):
         'maternity_entitlement': int(request.data.get('maternity', 0)),
         'emergency_entitlement': int(request.data.get('emergency', 0)),
         'other_entitlement': int(request.data.get('other', 0)),
+        'personal_entitlement': int(request.data.get('personal', 0)),
+        'bereavement_entitlement': int(request.data.get('bereavement', 0)),
+        'jury_entitlement': int(request.data.get('jury', 0)),
+        'professional_entitlement': int(request.data.get('professional', 0)),
     }
     created, updated = 0, 0
     for teacher in Teacher.objects.all():
@@ -542,6 +544,101 @@ def leave_balance_set_defaults(request):
         'created': created,
         'updated': updated,
         'defaults': defaults,
+    })
+
+
+def _can_review_leave(user):
+    return is_admin(user) or getattr(user, 'role', None) in ('manager', 'hr') or get_user_role(user) in ('manager', 'hr')
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def leave_policy(request):
+    """How this school counts and approves leave. Anyone signed in may read it; only administrators change it."""
+    from .leave_days import get_policy
+    from .models import LeavePolicy
+    tenant = getattr(request, 'tenant', None)
+    policy = get_policy(tenant)
+    fields = ('skip_weekends', 'skip_holidays', 'two_step_approval', 'carry_over_max_days')
+    if request.method == 'PATCH':
+        if not is_admin(request.user):
+            return Response({'error': 'Only school administrators can change the leave policy.'}, status=403)
+        policy = LeavePolicy.objects.filter(tenant=tenant).first() or LeavePolicy(tenant=tenant)
+        for f in fields:
+            if f in request.data:
+                setattr(policy, f, request.data[f])
+        if int(policy.carry_over_max_days) < 0:
+            return Response({'error': 'Carry-over cannot be negative.'}, status=400)
+        policy.save()
+    return Response({f: getattr(policy, f) for f in fields})
+
+
+@api_view(['POST'])
+@permission_classes([IsSchoolAdmin])
+def leave_balance_carry_over(request):
+    """Year-end: move each person's unused annual leave (up to the policy limit) into the new year.
+
+    `year` is the year that just ended (default: last year). Running it twice gives the same result."""
+    from django.utils import timezone
+    from .leave_days import get_policy
+    year = int(request.data.get('year') or timezone.localdate().year - 1)
+    limit = get_policy(getattr(request, 'tenant', None)).carry_over_max_days
+    moved = []
+    for bal in LeaveBalance.objects.all().select_related('teacher'):
+        # Leftover = this year's allowance (without any earlier carry-over) minus what was used in the year that ended.
+        left = max(bal.annual_type_entitlement + bal.carried_over_days - bal.used_for('annual', year), 0)
+        carry = min(left, limit)
+        if carry != bal.carried_over_days:
+            bal.carried_over_days = carry
+            bal.save(update_fields=['carried_over_days', 'updated_at'])
+        if carry:
+            moved.append({'name': bal.teacher.full_name if bal.teacher else bal.applicant_email, 'days': carry})
+    return Response({'year': year, 'limit': limit, 'carried': moved})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def leave_day_count(request):
+    """How many working days a leave would use (weekends and school holidays skipped, half day = 0.5)."""
+    from datetime import date
+    from .leave_days import count_days
+    try:
+        start = date.fromisoformat(request.query_params.get('start', ''))
+        end = date.fromisoformat(request.query_params.get('end', ''))
+    except ValueError:
+        return Response({'error': 'start and end must be dates like 2026-10-01.'}, status=400)
+    if end < start:
+        return Response({'error': 'End date cannot be before start date.'}, status=400)
+    return Response({'days': count_days(start, end, getattr(request, 'tenant', None), request.query_params.get('day_part', 'full'))})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def leave_calendar(request):
+    """Who is out between `start` and `end` (default: this month). Approved leave for everyone; pending and
+    recommended requests are shown to administrators, managers and HR so they can plan cover."""
+    from datetime import date
+    from django.utils import timezone
+    from .leave_days import holiday_dates
+    today = timezone.localdate()
+    try:
+        start = date.fromisoformat(request.query_params.get('start') or today.replace(day=1).isoformat())
+        end = date.fromisoformat(request.query_params.get('end') or (start + timedelta(days=41)).isoformat())
+    except ValueError:
+        return Response({'error': 'start and end must be dates like 2026-10-01.'}, status=400)
+    statuses = ['approved']
+    if _can_review_leave(request.user):
+        statuses += ['pending', 'recommended']
+    leaves = TeacherLeave.objects.filter(
+        start_date__lte=end, end_date__gte=start, status__in=statuses).select_related('teacher').order_by('start_date')
+    return Response({
+        'start': start, 'end': end,
+        'holidays': sorted(holiday_dates(getattr(request, 'tenant', None), start, end)),
+        'leaves': [{
+            'id': str(lv.id), 'name': lv.teacher.full_name if lv.teacher else (lv.applicant_name or lv.applicant_email),
+            'leave_type': lv.leave_type, 'day_part': lv.day_part, 'status': lv.status,
+            'start_date': lv.start_date, 'end_date': lv.end_date, 'days': lv.days,
+        } for lv in leaves],
     })
 
 

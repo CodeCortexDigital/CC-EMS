@@ -109,6 +109,24 @@ class InvoiceSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('invoice_number', 'issue_date')
 
+    def validate(self, attrs):
+        """A new invoice must bill something, and a student is not billed the same month's tuition twice."""
+        attrs = super().validate(attrs)
+        if self.instance is None:
+            from decimal import Decimal
+            total = (attrs.get('amount') or Decimal('0')) + (attrs.get('opening_balance') or Decimal('0'))
+            if total <= 0:
+                raise serializers.ValidationError('An invoice must be for more than zero. Choose the fee to bill.')
+            month, student = attrs.get('invoice_month'), attrs.get('student')
+            if (month and student and attrs.get('invoice_type', 'tuition') == 'tuition' and not attrs.get('is_installment')
+                    and (attrs.get('amount') or 0) > 0):
+                twin = Invoice.objects.filter(student=student, invoice_month=month, invoice_type='tuition', amount__gt=0,
+                                              is_installment=False).exclude(status__in=['cancelled', 'carried_forward']).first()
+                if twin is not None:
+                    raise serializers.ValidationError(
+                        f'{student.full_name} already has a tuition invoice for {month:%B %Y} ({twin.invoice_number}).')
+        return attrs
+
     def get_class_name(self, obj):
         try:
             return obj.student.current_class.name if obj.student.current_class else None

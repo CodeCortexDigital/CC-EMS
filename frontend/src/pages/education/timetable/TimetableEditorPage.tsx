@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { toast } from 'sonner'
 import api from '@/services/api'
 import academicService from '@/services/academic.service'
+import scheduling, { EligibleResult, errorText, GenerateResult, Snapshot } from '@/services/scheduling.service'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface Period {
@@ -93,6 +94,12 @@ export default function TimetableEditorPage() {
   const [editingCell, setEditingCell] = useState<{ day: string; periodId: string } | null>(null)
   const [selectedClassSubject, setSelectedClassSubject] = useState('')
   const [selectedTeacher, setSelectedTeacher] = useState('')
+  // Who is qualified for the chosen subject (the server refuses anyone else).
+  const [eligible, setEligible] = useState<EligibleResult | null>(null)
+  useEffect(() => {
+    if (!selectedClassSubject) { setEligible(null); return }
+    scheduling.eligible(selectedClassSubject).then(setEligible).catch(() => setEligible(null))
+  }, [selectedClassSubject])
   const [selectedClassroom, setSelectedClassroom] = useState('')
   const [savingCell, setSavingCell] = useState(false)
 
@@ -213,12 +220,18 @@ export default function TimetableEditorPage() {
   }
 
   const [optimizing, setOptimizing] = useState(false)
-  const [ttPreview, setTtPreview] = useState<{ score: number; slots: any[]; slotsRequested: number } | null>(null)
+  const [ttPreview, setTtPreview] = useState<GenerateResult | null>(null)
   const [committing, setCommitting] = useState(false)
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([])
 
-  // Runs the real server-side genetic-algorithm optimizer (ai-ml/academics/timetable_optimizer.py).
-  // Always previews first: nothing is saved until the admin reviews the result and applies it,
-  // since applying replaces every existing period for this class's sections and year.
+  const loadSnapshots = async (yearId: string) => {
+    try { setSnapshots(await scheduling.snapshots(yearId)) } catch { setSnapshots([]) }
+  }
+  useEffect(() => { if (activeYearId) loadSnapshots(activeYearId) }, [activeYearId])
+
+  // Builds a week with the server-side generator. It only uses teachers qualified for each subject, never double-books
+  // a teacher, room or class, and lists what it could not place. Always previews first: nothing is saved until the
+  // admin reviews it and applies it (the same seed makes the saved week identical to the preview).
   const handleAiOptimize = async () => {
     if (!activeYearId) {
       toast.error('No active academic year found')
@@ -227,33 +240,47 @@ export default function TimetableEditorPage() {
     setOptimizing(true)
     setTtPreview(null)
     try {
-      const res = await api.post('/ai/generate-timetable/', { academic_year: activeYearId })
-      const body = res.data
+      const body = await scheduling.generate({ academic_year: activeYearId })
       if (!body.slots || body.slots.length === 0) {
-        toast.error('Could not fit any lessons — check that classes have subjects, teachers and rooms set up.')
+        toast.error('Could not fit any lessons. Check that classes have subjects, teachers who are qualified for them, and rooms.')
+        if (body.unscheduled?.length) setTtPreview(body)
       } else {
-        setTtPreview({ score: body.fitness_score, slots: body.slots, slotsRequested: body.slots_requested })
-        toast.success(`AI proposed ${body.slots.length} periods (score ${Math.round(body.fitness_score)}/1000). Review below, then Apply.`)
+        setTtPreview(body)
+        const missing = body.slots_requested - body.slots_scheduled
+        toast.success(missing ? `Proposed ${body.slots.length} periods; ${missing} could not be placed. Review below.` : `Proposed ${body.slots.length} periods, no clashes. Review below, then Apply.`)
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Timetable generation failed.')
+      toast.error(errorText(err, 'Timetable generation failed.'))
     } finally {
       setOptimizing(false)
     }
   }
 
   const applyAiTimetable = async () => {
-    if (!activeYearId) return
+    if (!activeYearId || !ttPreview) return
     setCommitting(true)
     try {
-      const res = await api.post('/ai/generate-timetable/', { academic_year: activeYearId, commit: true })
-      toast.success(`Timetable updated: ${res.data.slots_scheduled} periods scheduled.`)
+      const res = await scheduling.generate({ academic_year: activeYearId, commit: true, seed: ttPreview.seed })
+      toast.success(`Timetable updated: ${res.slots_scheduled} periods scheduled. You can undo this for 30 days.`)
       setTtPreview(null)
       await fetchEditorResources()
+      await loadSnapshots(activeYearId)
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not save the generated timetable.')
+      toast.error(errorText(err, 'Could not save the generated timetable.'))
     } finally {
       setCommitting(false)
+    }
+  }
+
+  const undoSnapshot = async (id: string) => {
+    if (!window.confirm('Put the timetable back as it was before that generation?')) return
+    try {
+      const r = await scheduling.undo(id)
+      toast.success(`Restored ${r.restored} periods.`)
+      await fetchEditorResources()
+      if (activeYearId) await loadSnapshots(activeYearId)
+    } catch (err: any) {
+      toast.error(errorText(err, 'Could not undo.'))
     }
   }
 
@@ -381,7 +408,7 @@ export default function TimetableEditorPage() {
       fetchEditorResources()
     } catch (err: any) {
       console.error('Error saving timetable entry:', err)
-      const msg = err.response?.data?.non_field_errors?.[0] || 'Failed to save timetable entry'
+      const msg = err.response?.data?.non_field_errors?.[0] || err.response?.data?.error || 'Failed to save timetable entry'
       toast.error(msg)
     } finally {
       setSavingCell(false)
@@ -533,19 +560,55 @@ export default function TimetableEditorPage() {
 
       {ttPreview && (
         <Card className="border-purple-300 bg-purple-50">
-          <CardContent className="py-4 flex flex-wrap items-center gap-3">
-            <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
-            <p className="text-sm text-slate-700 flex-1 min-w-[240px]">
-              AI proposed <strong>{ttPreview.slots.length}</strong> of {ttPreview.slotsRequested} requested periods
-              (score {Math.round(ttPreview.score)}/1000). Applying replaces every existing period for these
-              classes this year — there is no undo.
-            </p>
-            <Button size="sm" variant="outline" onClick={() => setTtPreview(null)} disabled={committing}>
-              Discard
-            </Button>
-            <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={applyAiTimetable} disabled={committing}>
-              {committing ? 'Applying...' : 'Apply to timetable'}
-            </Button>
+          <CardContent className="py-4 space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
+              <p className="text-sm text-slate-700 flex-1 min-w-[240px]">
+                Proposed <strong>{ttPreview.slots_scheduled}</strong> of {ttPreview.slots_requested} lessons{ttPreview.conflicts_resolved ? ', with no clashes' : ''}.
+                Applying replaces the existing periods for these classes this year; the old timetable is kept so you can undo it.
+              </p>
+              <Button size="sm" variant="outline" onClick={() => setTtPreview(null)} disabled={committing}>Discard</Button>
+              <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={applyAiTimetable} disabled={committing || !ttPreview.slots?.length}>
+                {committing ? 'Applying...' : 'Apply to timetable'}
+              </Button>
+            </div>
+            {(ttPreview.unscheduled?.length ?? 0) > 0 && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-3">
+                <p className="text-xs font-bold text-amber-900 mb-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />Not placed ({ttPreview.unscheduled!.reduce((n, u) => n + u.missing, 0)} lessons)</p>
+                <ul className="text-xs text-amber-900 space-y-0.5">
+                  {ttPreview.unscheduled!.map((u, i) => (
+                    <li key={i}><b>{u.class_name} {u.section} · {u.subject}</b> ({u.missing} a week): {u.reason}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {(ttPreview.warnings?.length ?? 0) > 0 && (
+              <ul className="text-xs text-slate-600 list-disc pl-5">{ttPreview.warnings!.map((w, i) => <li key={i}>{w}</li>)}</ul>
+            )}
+            {(ttPreview.workloads?.length ?? 0) > 0 && (
+              <details className="text-xs text-slate-700">
+                <summary className="cursor-pointer font-bold">Teacher workloads</summary>
+                <div className="mt-1 grid sm:grid-cols-2 lg:grid-cols-3 gap-x-6">
+                  {ttPreview.workloads!.map((w) => <p key={w.teacher}>{w.teacher}: {w.periods} a week, up to {w.max_day} a day</p>)}
+                </div>
+              </details>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {snapshots.length > 0 && (
+        <Card>
+          <CardContent className="py-3 text-xs text-slate-600 flex flex-wrap items-center gap-3">
+            <span className="font-bold text-slate-700">Earlier timetables (kept 30 days):</span>
+            {snapshots.slice(0, 4).map((sn) => (
+              <span key={sn.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-1">
+                {new Date(sn.created_at).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · {sn.entries} periods
+                {sn.undone ? <span className="text-slate-400">(restored)</span> : (
+                  <button className="font-bold text-purple-700" onClick={() => undoSnapshot(sn.id)}>Restore this</button>
+                )}
+              </span>
+            ))}
           </CardContent>
         </Card>
       )}
@@ -696,10 +759,31 @@ export default function TimetableEditorPage() {
                       className="w-full border rounded-lg px-3 py-2 bg-slate-50 border-gray-200 text-sm focus:border-blue-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500"
                     >
                       <option value="">-- Select Teacher --</option>
-                      {teachers.map(t => (
+                      {eligible && !teacherId ? (
+                        <>
+                          <optgroup label={`Qualified for ${eligible.subject}`}>
+                            {eligible.qualified.map(t => (
+                              <option key={t.id} value={t.id}>{t.name}{t.relief ? ' (relief)' : ''} · {t.periods_per_week} periods/week</option>
+                            ))}
+                          </optgroup>
+                          {eligible.not_qualified.length > 0 && (
+                            <optgroup label="Not qualified (add the subject to their profile first)">
+                              {eligible.not_qualified.map(t => (
+                                <option key={t.id} value={t.id} disabled title={t.reason}>{t.name}</option>
+                              ))}
+                            </optgroup>
+                          )}
+                        </>
+                      ) : teachers.map(t => (
                         <option key={t.id} value={t.id}>{t.full_name}</option>
                       ))}
                     </select>
+                    {eligible && !teacherId && eligible.qualified.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        Nobody is qualified for {eligible.subject} yet. Tick it under Staff &gt; Edit &gt; Subjects they teach.
+                      </p>
+                    )}
                     {teachers.length === 0 && (
                       <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />

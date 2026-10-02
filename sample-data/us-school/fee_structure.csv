@@ -1,0 +1,19 @@
+﻿Class *,Section,Fee *,Amount *,Due date *,School year,Recurring (yes/no),Frequency
+Kindergarten,,Monthly Tuition Fee,1150,2026-09-10,2026-27,yes,monthly
+Kindergarten,,Registration fee,150,2026-08-17,2026-27,no,yearly
+Grade 1,,Monthly Tuition Fee,1200,2026-09-10,2026-27,yes,monthly
+Grade 1,,Registration fee,150,2026-08-17,2026-27,no,yearly
+Grade 2,,Monthly Tuition Fee,1200,2026-09-10,2026-27,yes,monthly
+Grade 2,,Registration fee,150,2026-08-17,2026-27,no,yearly
+Grade 3,,Monthly Tuition Fee,1250,2026-09-10,2026-27,yes,monthly
+Grade 3,,Registration fee,150,2026-08-17,2026-27,no,yearly
+Grade 4,,Monthly Tuition Fee,1300,2026-09-10,2026-27,yes,monthly
+Grade 4,,Registration fee,150,2026-08-17,2026-27,no,yearly
+Grade 5,,Monthly Tuition Fee,1350,2026-09-10,2026-27,yes,monthly
+Grade 5,,Registration fee,150,2026-08-17,2026-27,no,yearly
+Grade 6,,Monthly Tuition Fee,1500,2026-09-10,2026-27,yes,monthly
+Grade 6,,Registration fee,150,2026-08-17,2026-27,no,yearly
+Grade 7,,Monthly Tuition Fee,1550,2026-09-10,2026-27,yes,monthly
+Grade 7,,Registration fee,150,2026-08-17,2026-27,no,yearly
+Grade 8,,Monthly Tuition Fee,1650,2026-09-10,2026-27,yes,monthly
+Grade 8,,Registration fee,150,2026-08-17,2026-27,no,yearly

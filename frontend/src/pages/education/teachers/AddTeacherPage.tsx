@@ -4,10 +4,13 @@ import { toast } from 'sonner';
 import { Settings2, ArrowLeft, RotateCcw, Check, Loader2, Upload, X, User } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import teacherService from '@/services/teacher.service';
+import scheduling from '@/services/scheduling.service';
+import SubjectPicker from '@/components/teacher/SubjectPicker';
 
 export default function AddTeacherPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [subjectIds, setSubjectIds] = useState<string[]>([]);
   const [profilePicturePreview, setProfilePicturePreview] = useState<string>('');
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
 
@@ -177,6 +180,10 @@ export default function AddTeacherPage() {
       // ✅ Call the API
       const response = await teacherService.create(formDataToSend);
       console.log('✅ Teacher created:', response);
+      const newId = (response as any)?.data?.id;
+      if (newId && subjectIds.length > 0) {
+        try { await scheduling.saveTeacherSubjects(newId, subjectIds); } catch { toast.error('Saved, but the subjects they teach could not be saved. Add them from Edit.'); }
+      }
 
       toast.success(`Employee "${formData.fullName}" added successfully!`);
       navigate('/education/teachers');
@@ -270,6 +277,12 @@ export default function AddTeacherPage() {
                 <option value="Store Manager">Store Manager</option>
                 <option value="Other">Other</option>
               </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">SUBJECTS THEY TEACH</label>
+              <SubjectPicker value={subjectIds} onChange={setSubjectIds} />
+              <p className="text-[10px] text-slate-400 mt-1">The timetable and substitute cover only give lessons to teachers qualified for the subject.</p>
             </div>
 
             <div className="flex flex-col items-center justify-center space-y-2 border border-slate-100 rounded-xl p-3 bg-slate-50">

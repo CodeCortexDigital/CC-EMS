@@ -56,6 +56,8 @@ def _run_attendance_automation(instance: AttendanceRecord):
 @receiver(post_save, sender=AttendanceRecord)
 def attendance_automation(sender, instance, created, **kwargs):
     """Trigger automation when attendance is marked"""
+    if getattr(instance, '_silent', False):   # loading history (data pack import): no alerts to families
+        return
     if instance.status in ('absent', 'late'):
         # Family alerts (email / in-app) once the whole change is committed, so an
         # absence recorded as excused in the same request is never reported as unexcused.
