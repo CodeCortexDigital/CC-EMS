@@ -3,6 +3,8 @@
 # Create it once in Render: New > Blueprint > this repository > Blueprint path "deploy/render-demo.yaml". The steps, including
 # how to wipe a Render site that already has data and how to connect the Vercel frontend, are in deploy/DEMO_DEPLOY.md.
 #
+# No Redis: Render allows only one free Key Value store per account, and the demo does not need one (the app falls back to in-memory
+# cache and live updates, and runs background jobs inline).
 # Free plan notes: the web service sleeps when idle (about a minute to wake) and the free Postgres database is time-limited.
 # Runs as APP_ENV=staging so the demo accounts (public passwords) are allowed and no real email is sent.
 
@@ -13,14 +15,6 @@ databases:
     plan: free
 
 services:
-  - type: keyvalue
-    name: erp-demo-redis
-    plan: free
-    maxmemoryPolicy: allkeys-lru
-    ipAllowList:
-      - source: 0.0.0.0/0
-        description: everywhere
-
   - type: web
     name: erp-demo-backend
     runtime: python
@@ -62,31 +56,6 @@ services:
         fromDatabase:
           name: erp-demo-db
           property: password
-      - key: REDIS_URL
-        fromService:
-          name: erp-demo-redis
-          type: keyvalue
-          property: connectionString
-      - key: CACHE_URL
-        fromService:
-          name: erp-demo-redis
-          type: keyvalue
-          property: connectionString
-      - key: CHANNEL_REDIS_URL
-        fromService:
-          name: erp-demo-redis
-          type: keyvalue
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          name: erp-demo-redis
-          type: keyvalue
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          name: erp-demo-redis
-          type: keyvalue
-          property: connectionString
       - key: FIREBASE_PROJECT_ID
         value: school-erp-c53b4
       # Set these two in the Render dashboard once the Vercel address is known (see deploy/DEMO_DEPLOY.md).

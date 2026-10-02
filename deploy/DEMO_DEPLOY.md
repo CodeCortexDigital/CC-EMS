@@ -16,8 +16,7 @@ These passwords are public (they are in the README), so use this only for a demo
 ## 1. Backend on Render
 
 **A. Render has an old site with data you want gone** (the usual case)
-1. Render dashboard > delete the old web service **and** its Postgres database (this is what removes the data). Keep the Redis one
-   or delete it too; the blueprint makes a new one.
+1. Render dashboard > delete the old web service **and** its Postgres database (this is what removes the data). The demo blueprint does not use Redis.
 2. New > **Blueprint** > pick this repository > Blueprint path `deploy/render-demo.yaml` > Apply.
 
 **B. You want to keep the existing service and database**
