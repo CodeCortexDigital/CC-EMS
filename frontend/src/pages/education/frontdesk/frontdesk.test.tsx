@@ -74,7 +74,7 @@ describe('Pickup', () => {
     await openStudent();
     fireEvent.click(screen.getAllByText('Release')[0]);   // Erin Brooks
     await screen.findByLabelText(/I have checked their photo ID/);
-    const confirm = screen.getAllByRole('button', { name: 'Release' }).at(-1) as HTMLButtonElement;   // the dialog's button is last
+    const confirm = screen.getAllByRole('button', { name: 'Release' }).slice(-1)[0] as HTMLButtonElement;   // the dialog's button is last
     expect(confirm.disabled).toBe(true);
     fireEvent.click(screen.getByLabelText(/I have checked their photo ID/));
     fireEvent.change(screen.getByLabelText('Reason'), { target: { value: 'Dentist' } });
@@ -91,7 +91,7 @@ describe('Pickup', () => {
     fireEvent.click(screen.getByText('Override…'));
     expect(await screen.findByRole('alert')).toBeTruthy();
     fireEvent.click(screen.getByLabelText(/I have checked their photo ID/));
-    const send = screen.getAllByRole('button', { name: 'Release' }).at(-1) as HTMLButtonElement;
+    const send = screen.getAllByRole('button', { name: 'Release' }).slice(-1)[0] as HTMLButtonElement;
     expect(send.disabled).toBe(true);
     fireEvent.change(screen.getByLabelText('Override reason'), { target: { value: 'Order lifted, copy on file' } });
     expect(send.disabled).toBe(false);
