@@ -185,6 +185,21 @@ def book(app, slot_id):
     return api().post(f'{BASE}/public/tours/', {**creds(app), 'slot': slot_id}, format='json')
 
 
+class TestFamilyLink:
+    def test_emails_link_to_the_web_app_address(self, world, settings, monkeypatch):
+        monkeypatch.delenv('FRONTEND_URL', raising=False)
+        settings.FRONTEND_ORIGINS = 'https://school.example.test, https://other.example.test'
+        admin = api(world['admin'])
+        cfg = config(admin, capacity=1)
+        app = mk(world['a'], 'Alice')
+        add(admin, cfg, app)                                           # a free seat: the offer email goes out
+        body = next(m.body for m in mail.outbox if 'place has opened' in m.body)
+        assert f'https://school.example.test/apply/manage?no={app.application_no}&token={app.tracking_token}' in body
+        monkeypatch.setenv('FRONTEND_URL', 'https://override.example.test/')
+        from services.education.admissions.waitlist import portal_link
+        assert portal_link(app).startswith('https://override.example.test/apply/manage?')
+
+
 class TestTours:
     def test_booking_respects_capacity_and_frees_the_seat_on_cancel(self, world):
         admin = api(world['admin'])

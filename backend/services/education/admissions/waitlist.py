@@ -7,6 +7,7 @@ deadline. If they decline, or the deadline passes, the next family is offered it
 Line order: families with a sibling at the school first (if the grade is set to), then staff children (if set to),
 then whoever joined the list first.
 """
+import os
 from datetime import timedelta
 
 from django.conf import settings
@@ -75,7 +76,7 @@ def ensure_entry(application):
 
 def portal_link(application):
     """The family's page for answering offers, paying the fee, sending documents and booking visits."""
-    base = (getattr(settings, 'FRONTEND_URL', '') or '').rstrip('/')
+    base = (os.environ.get('FRONTEND_URL', '') or (getattr(settings, 'FRONTEND_ORIGINS', '') or '').split(',')[0]).strip().rstrip('/')
     return f'{base}/apply/manage?no={application.application_no}&token={application.tracking_token}'
 
 
