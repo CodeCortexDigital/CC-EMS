@@ -162,6 +162,8 @@ urlpatterns = [
     path('auth/insights/', include('services.education.insights.urls')),
     path('auth/imports/', include('services.education.imports.urls')),
     path('auth/admissions/', include('services.education.admissions.urls')),
+    path('auth/safety/', include('services.education.safety.urls')),
+    path('auth/forms/', include('services.education.forms.urls')),
     path('auth/analytics/', include('services.analytics.urls')),
     
     # ============================================================
@@ -181,6 +183,7 @@ urlpatterns = [
     path('storage/', include('services.core.storage.urls')),
     path('tenants/', include('services.core.tenants.urls')),
     path('features/', include('services.core.features.urls')),
+    path('tour/', include('services.core.tour.urls')),
     path('education/', include('services.education.urls')),
     path('auth/me/', views.current_user_view, name='current-user'),
 ]

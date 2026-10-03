@@ -220,7 +220,10 @@ def handle_stripe_webhook(raw_body: bytes, signature_header: str):
         transaction = PaymentTransaction.objects.select_related('invoice__student__tenant').filter(
             gateway_reference=reference).first() if reference else None
         if transaction is None:
-            return True, 'Ignored: not one of our payments'
+            from services.education.admissions.fee import apply_stripe_event
+
+            handled = apply_stripe_event(raw_body, signature_header, event)  # an application fee?
+            return handled if handled is not None else (True, 'Ignored: not one of our payments')
         school = transaction.invoice.student.tenant
     with use_tenant(school):
         config = get_active_gateway_config('stripe', tenant=school)

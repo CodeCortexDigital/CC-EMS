@@ -1,0 +1,1 @@
+# Safety app for CC-EMS

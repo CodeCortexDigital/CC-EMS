@@ -4,7 +4,7 @@ import { Toaster } from 'sonner'
 import { useEffect, memo } from 'react'
 import Layout from '@/components/layout/Layout';
 import ModuleTabsLayout from './components/layout/ModuleTabsLayout';
-import { gradebookTabs, accountsTabs, feesTabs, salaryTabs, attendanceTabs, timetableTabs, behaviourTabs, examTabs, subjectsTabs, communicationTabs, certificatesTabs, reportsTabs, academicSetupTabs, hrTabs } from './components/layout/moduleTabs';
+import { gradebookTabs, accountsTabs, feesTabs, salaryTabs, attendanceTabs, timetableTabs, behaviourTabs, examTabs, subjectsTabs, communicationTabs, certificatesTabs, reportsTabs, academicSetupTabs, hrTabs, frontDeskTabs } from './components/layout/moduleTabs';
 import ProtectedRoute from './components/ProtectedRoute'
 import { RoleBasedRoute } from './components/auth/RoleBasedRoute'
 import { CanAccess } from './components/auth/CanAccess'
@@ -119,6 +119,14 @@ import StudentProgressPage from './pages/education/progress/StudentProgressPage'
 import AdmissionsPage from './pages/education/AdmissionsPage'
 import NewApplicationPage from '@/pages/education/admissions/NewApplicationPage'
 import ApplyPage, { ApplicationStatusPage } from '@/pages/public/ApplyPage'
+import ApplicationPortalPage from '@/pages/public/ApplicationPortalPage'
+import PickupPage from '@/pages/education/frontdesk/PickupPage'
+import VisitorsPage from '@/pages/education/frontdesk/VisitorsPage'
+import HealthOfficePage from '@/pages/education/health/HealthOfficePage'
+import SafetyPage from '@/pages/education/safety/SafetyPage'
+import FormsPage from '@/pages/education/forms/FormsPage'
+import ParentFormsPage from '@/pages/portals/parent/ParentFormsPage'
+import ParentHealthPage from '@/pages/portals/parent/ParentHealthPage'
 import FamilyBillingPage from '@/pages/education/finance/FamilyBillingPage'
 import PaymentPlansPage from '@/pages/education/finance/PaymentPlansPage'
 import OnlinePaymentsPage from '@/pages/education/finance/OnlinePaymentsPage'
@@ -329,6 +337,7 @@ function App() {
               <Route path="/legal/:kind" element={<LegalPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/apply/status" element={<ApplicationStatusPage />} />
+              <Route path="/apply/manage" element={<ApplicationPortalPage />} />
               <Route path="/apply/:slug" element={<ApplyPage />} />
               <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route index element={<Navigate to="/dashboard" replace />} />
@@ -632,6 +641,16 @@ function App() {
                   <Route path="pay" element={<RoleBasedRoute allowedRoles={['admin', 'hr']}><PayrollSetupPage /></RoleBasedRoute>} />
                   <Route path="me" element={<MyHrPage />} />
                 </Route>
+                {/* Front desk (pickup and visitors), health office, safety reports and forms */}
+                <Route path="education/front-desk" element={<RoleBasedRoute allowedRoles={['admin', 'front_desk']}><ModuleTabsLayout tabs={frontDeskTabs} scopeClass="front-desk-scope" /></RoleBasedRoute>}>
+                  <Route index element={<PickupPage />} />
+                  <Route path="visitors" element={<VisitorsPage />} />
+                </Route>
+                <Route path="education/health-office" element={<RoleBasedRoute allowedRoles={['admin', 'nurse']}><HealthOfficePage /></RoleBasedRoute>} />
+                <Route path="education/safety" element={<RoleBasedRoute allowedRoles={['admin', 'counsellor', 'teacher', 'staff', 'nurse', 'front_desk', 'manager', 'hr']}><SafetyPage /></RoleBasedRoute>} />
+                <Route path="education/forms" element={<RoleBasedRoute allowedRoles={['admin', 'manager']}><FormsPage /></RoleBasedRoute>} />
+                <Route path="parent/forms" element={<RoleBasedRoute allowedRoles={['parent']}><ParentFormsPage /></RoleBasedRoute>} />
+                <Route path="parent/health" element={<RoleBasedRoute allowedRoles={['parent']}><ParentHealthPage /></RoleBasedRoute>} />
                 <Route path="cafeteria/till" element={<CafeteriaTillPage standalone />} />
                 <Route path="education/live-class/room" element={<LiveRoomPage />} />
                 

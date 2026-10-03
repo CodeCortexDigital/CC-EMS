@@ -137,6 +137,16 @@ API: `/api/v1/auth/hr/` (cover, openings, candidates, onboarding, contracts, cre
 
 **Not built yet:** a public careers page (HR enters candidates), tax filing (withholding is a flat percentage), and a school-nurse visit log. Periods that automatic leave cover cannot fill become open cover requests. The timetable, teaching-rule, cover and data-pack work is described in [docs/PLAN_SCHEDULING_AND_DATA_IMPORT.md](docs/PLAN_SCHEDULING_AND_DATA_IMPORT.md).
 
+## Front desk, health, safety, forms, admissions extras and the installable app
+
+* **Front Desk** (`/education/front-desk`): who may collect each child (guardians plus extra authorised adults), a do-not-release hard stop that only an administrator can override with a recorded reason, a release log that cannot be edited, and a visitor book with an "on site now" list.
+* **Health Office** (`/education/health-office`): nurse visits (parents are told), medication permissions and a dose log that warns when a dose is too soon, and immunisation due-date reminders (`manage.py send_immunization_reminders`). Parents see their own child's records read only at **Health**.
+* **Safety Reports** (`/education/safety`): any staff member files an incident; administrators and the counsellor run follow-up tasks and close with a note.
+* **Forms** (`/education/forms`) and **Forms to Sign** for parents: permission slips with typed-name signatures that are final, a tracker, reminders and CSV export.
+* **Admissions**: a waiting list with ranked, automatic seat offers (`manage.py admissions_daily` expires offers and sends reminders), tour and interview booking, a per-application document checklist, an optional application fee paid by card, and a family page at `/apply/manage` that needs only the application number and tracking code.
+* **Installable app and push**: manifest, safe service worker, and Web Push. Generate keys with `manage.py generate_vapid_keys` and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT` (and `FRONTEND_URL` for email links). A guided tour runs on first sign-in and is replayable from Help.
+* Named roles `front_desk`, `nurse` and `counsellor` give a staff member one of these tools. Where to click for each is in [docs/USER_MANUAL.md](docs/USER_MANUAL.md); open items are in [docs/Future Plan.md](docs/Future%20Plan.md).
+
 ## Multiple schools
 
 One installation serves many schools. Each school's data is kept separate: staff, students and parents only ever see their own school.

@@ -3,7 +3,8 @@ import { persist } from 'zustand/middleware';
 import api from '@/services/api';
 import authService from '@/services/auth.service';
 
-export type UserRole = 'admin' | 'staff' | 'teacher' | 'parent' | 'student' | 'user';
+// 'manager', 'hr', 'front_desk', 'nurse' and 'counsellor' are named office roles a school can give to a staff member.
+export type UserRole = 'admin' | 'staff' | 'teacher' | 'parent' | 'student' | 'user' | 'manager' | 'hr' | 'front_desk' | 'nurse' | 'counsellor';
 
 export interface StudentSummary {
   id: string;

@@ -538,7 +538,7 @@ const EMPTY_HEALTH: Health = {
 function HealthTab({ data, studentId, reload }: { data: StudentProfile; studentId: string; reload: () => void }) {
   const [form, setForm] = useState<Health>({ ...EMPTY_HEALTH, ...(data.health || {}) });
   const [saving, setSaving] = useState(false);
-  const [imm, setImm] = useState<Partial<Immunization>>({ vaccine: '', dose: '', date_given: '' });
+  const [imm, setImm] = useState<Partial<Immunization>>({ vaccine: '', dose: '', date_given: '', next_due_date: '' });
   const readOnly = !data.can_edit;
 
   const setText = (k: keyof Health) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -560,8 +560,8 @@ function HealthTab({ data, studentId, reload }: { data: StudentProfile; studentI
   const addImm = async () => {
     if (!imm.vaccine?.trim()) return toast.error('Enter the vaccine name.');
     try {
-      await householdService.addImmunization(studentId, { ...imm, date_given: imm.date_given || null });
-      setImm({ vaccine: '', dose: '', date_given: '' });
+      await householdService.addImmunization(studentId, { ...imm, date_given: imm.date_given || null, next_due_date: imm.next_due_date || null });
+      setImm({ vaccine: '', dose: '', date_given: '', next_due_date: '' });
       reload();
     } catch {
       toast.error('Could not add the immunization.');
@@ -621,7 +621,7 @@ function HealthTab({ data, studentId, reload }: { data: StudentProfile; studentI
             <li key={r.id} className="py-2 flex items-center justify-between gap-2 text-sm">
               <span>
                 <strong>{r.vaccine}</strong>{r.dose ? ` · dose ${r.dose}` : ''}
-                <span className="block text-xs text-slate-500">{r.exempt ? `Exempt${r.exemption_reason ? `: ${r.exemption_reason}` : ''}` : fmtDate(r.date_given)}</span>
+                <span className="block text-xs text-slate-500">{r.exempt ? `Exempt${r.exemption_reason ? `: ${r.exemption_reason}` : ''}` : `${fmtDate(r.date_given)}${r.next_due_date ? ` · next dose due ${fmtDate(r.next_due_date)}` : ''}`}</span>
               </span>
               {!readOnly && (
                 <button onClick={async () => { await householdService.removeImmunization(studentId, r.id); reload(); }} className="p-1 text-rose-600 hover:bg-rose-50 rounded" aria-label={`Remove ${r.vaccine}`}>
@@ -637,6 +637,9 @@ function HealthTab({ data, studentId, reload }: { data: StudentProfile; studentI
             <div className="grid grid-cols-2 gap-2">
               <input className={input} placeholder="Dose" value={imm.dose || ''} onChange={(e) => setImm((x) => ({ ...x, dose: e.target.value }))} aria-label="Dose" />
               <input className={input} type="date" value={imm.date_given || ''} onChange={(e) => setImm((x) => ({ ...x, date_given: e.target.value }))} aria-label="Date given" />
+              <label className="col-span-2 text-xs font-semibold text-slate-600">Next dose due (parents get a reminder)
+                <input className={`${input} mt-1`} type="date" value={imm.next_due_date || ''} onChange={(e) => setImm((x) => ({ ...x, next_due_date: e.target.value }))} aria-label="Next dose due" />
+              </label>
             </div>
             <button onClick={addImm} className="w-full inline-flex justify-center items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-semibold">
               <Plus className="w-4 h-4" /> Add immunization

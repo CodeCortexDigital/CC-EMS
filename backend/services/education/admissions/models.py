@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from services.core.tenants.mixins import TenantScopedModel
 import secrets
 import uuid
 
@@ -93,6 +94,7 @@ class Application(models.Model):
     signature_ip = models.GenericIPAddressField(null=True, blank=True)
     consents = models.JSONField(default=dict, blank=True)
     decided_at = models.DateTimeField(null=True, blank=True)
+    docs_reminded_at = models.DateTimeField(null=True, blank=True, help_text='When the family was last reminded about missing documents')
     submitted_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -129,6 +131,11 @@ class ApplicationDocument(models.Model):
     original_name = models.CharField(max_length=255, blank=True, default='')
     size = models.PositiveIntegerField(default=0)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    review_status = models.CharField(max_length=10, default='pending',
+                                     choices=[('pending', 'Not checked'), ('received', 'Received'), ('redo', 'Needs sending again')])
+    review_note = models.CharField(max_length=255, blank=True, default='')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
 
     class Meta:
         ordering = ['uploaded_at']
@@ -185,3 +192,101 @@ class ReEnrollmentResponse(models.Model):
     class Meta:
         ordering = ['student__full_name']
         constraints = [models.UniqueConstraint(fields=['campaign', 'student'], name='uniq_reenrollment_student')]
+
+
+# ---- Waitlist, tours and the application fee -------------------------------------------------------------------
+
+class WaitlistConfig(TenantScopedModel):
+    """How many seats a grade has for a year, and how the waiting list is ranked and offered."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    class_name = models.CharField(max_length=50, help_text='Same wording as the class applied for, e.g. "Grade 5"')
+    academic_year = models.CharField(max_length=20)
+    capacity = models.PositiveIntegerField(help_text='Seats for approved and enrolled children, plus offers still open')
+    offer_hours = models.PositiveSmallIntegerField(default=72, help_text='How long a family has to answer an offer')
+    sibling_priority = models.BooleanField(default=True)
+    staff_child_priority = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['academic_year', 'class_name']
+        constraints = [models.UniqueConstraint(fields=['tenant', 'class_name', 'academic_year'], name='uniq_waitlist_grade_year')]
+
+    def __str__(self):
+        return f'{self.class_name} {self.academic_year} ({self.capacity} seats)'
+
+
+class WaitlistEntry(TenantScopedModel):
+    STATUSES = [('active', 'Waiting'), ('offered', 'Offered a seat'), ('accepted', 'Accepted'), ('declined', 'Declined'),
+                ('expired', 'Offer expired'), ('removed', 'Removed')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    application = models.OneToOneField(Application, on_delete=models.CASCADE, related_name='waitlist_entry')
+    staff_child = models.BooleanField(default=False)
+    joined_at = models.DateTimeField(default=timezone.now)
+    status = models.CharField(max_length=10, choices=STATUSES, default='active')
+
+    class Meta:
+        ordering = ['joined_at']
+
+
+class Offer(TenantScopedModel):
+    STATUSES = [('offered', 'Open'), ('accepted', 'Accepted'), ('declined', 'Declined'), ('expired', 'Expired'), ('withdrawn', 'Withdrawn')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    entry = models.ForeignKey(WaitlistEntry, on_delete=models.CASCADE, related_name='offers')
+    offered_at = models.DateTimeField(default=timezone.now)
+    expires_at = models.DateTimeField()
+    status = models.CharField(max_length=10, choices=STATUSES, default='offered')
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-offered_at']
+        constraints = [models.UniqueConstraint(fields=['entry'], condition=models.Q(status='offered'), name='one_open_offer_per_entry')]
+
+
+class TourSlot(TenantScopedModel):
+    """A time the school offers for a visit or an interview."""
+    KINDS = [('tour', 'School tour'), ('interview', 'Interview')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    kind = models.CharField(max_length=10, choices=KINDS, default='tour')
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField()
+    location = models.CharField(max_length=200, blank=True, default='')
+    host = models.CharField(max_length=200, blank=True, default='')
+    capacity = models.PositiveSmallIntegerField(default=1, help_text='How many families can book this time')
+    is_open = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['starts_at']
+
+
+class TourBooking(TenantScopedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    slot = models.ForeignKey(TourSlot, on_delete=models.CASCADE, related_name='bookings')
+    application = models.ForeignKey(Application, on_delete=models.CASCADE, related_name='tour_bookings')
+    status = models.CharField(max_length=10, choices=[('booked', 'Booked'), ('cancelled', 'Cancelled')], default='booked')
+    created_at = models.DateTimeField(auto_now_add=True)
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['slot__starts_at']
+        constraints = [models.UniqueConstraint(fields=['slot', 'application'], condition=models.Q(status='booked'), name='one_booking_per_slot_family')]
+
+
+class ApplicationFee(TenantScopedModel):
+    """The fee for applying. While it is unpaid the application is held and cannot move forward."""
+    STATUSES = [('unpaid', 'Unpaid'), ('paid', 'Paid'), ('waived', 'Waived')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    application = models.OneToOneField(Application, on_delete=models.CASCADE, related_name='fee')
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
+    currency = models.CharField(max_length=3, default='USD')
+    status = models.CharField(max_length=10, choices=STATUSES, default='unpaid')
+    checkout_session_id = models.CharField(max_length=255, blank=True, default='')
+    payment_reference = models.CharField(max_length=255, blank=True, default='')
+    paid_at = models.DateTimeField(null=True, blank=True)
+    note = models.CharField(max_length=255, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(amount__gt=0), name='application_fee_positive')]

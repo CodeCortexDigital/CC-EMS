@@ -4,6 +4,9 @@ import { ArrowLeft, BookOpen, HelpCircle, LifeBuoy, Loader2, PlayCircle, Search,
 import { toast } from 'sonner';
 import support, { Article } from '@/services/support.service';
 import ArticleBody from '@/components/support/ArticleBody';
+import { useAuth } from '@/hooks/useAuth';
+import { tourFor } from '@/config/tourSteps';
+import { startTour } from '@/services/tour.service';
 
 const card = 'bg-white rounded-xl border border-slate-200 shadow-sm';
 const KIND_ICON = { guide: BookOpen, faq: HelpCircle, video: PlayCircle };
@@ -36,6 +39,7 @@ function ContactBox({ canOpen }: { canOpen: boolean }) {
 }
 
 function HelpHome() {
+  const { role } = useAuth();
   const [q, setQ] = useState('');
   const [module, setModule] = useState('');
   const [data, setData] = useState<Awaited<ReturnType<typeof support.help>> | null>(null);
@@ -52,9 +56,12 @@ function HelpHome() {
   const used = new Set((data?.articles || []).map((a) => a.module));
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900"><LifeBuoy /> Help & support</h1>
-        <p className="text-sm text-slate-500">Guides and answers for your part of the school system.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900"><LifeBuoy /> Help & support</h1>
+          <p className="text-sm text-slate-500">Guides and answers for your part of the school system.</p>
+        </div>
+        {tourFor(role) && <button onClick={startTour} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><PlayCircle size={15} /> Take the tour</button>}
       </div>
       <label className="relative block">
         <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

@@ -251,7 +251,7 @@ class ImmunizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Immunization
         exclude = ['tenant', 'student']
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'reminder_sent_on']
 
 
 # ---------------------------------------------------------------------------

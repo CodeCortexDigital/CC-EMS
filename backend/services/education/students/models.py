@@ -2,6 +2,7 @@ from functools import cached_property
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 import uuid
 
 from services.core.db.softdelete import SoftDeleteModel
@@ -280,6 +281,8 @@ class Immunization(TenantScopedModel):
     exempt = models.BooleanField(default=False)
     exemption_reason = models.CharField(max_length=255, blank=True, default='')
     notes = models.CharField(max_length=255, blank=True, default='')
+    next_due_date = models.DateField(null=True, blank=True, help_text='When the next dose is due, for reminders')
+    reminder_sent_on = models.DateField(null=True, blank=True, help_text='Due date a reminder was last sent for')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -361,3 +364,149 @@ class ContactChangeRequest(TenantScopedModel):
 
     class Meta:
         ordering = ['-created_at']
+
+
+# ---- Front desk: safe pickup and visitors ---------------------------------------------------------------------
+
+class AuthorizedAdult(TenantScopedModel):
+    """An adult, besides the guardians on file, who may collect one student. Can also be marked do-not-release."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='authorized_adults')
+    name = models.CharField(max_length=255)
+    relationship = models.CharField(max_length=100, blank=True, default='')
+    phone = models.CharField(max_length=30, blank=True, default='')
+    email = models.EmailField(blank=True, default='')
+    photo_path = models.CharField(max_length=500, blank=True, default='')
+    id_type = models.CharField(max_length=100, blank=True, default='')
+    id_checked = models.BooleanField(default=False, help_text='Photo ID has been seen and recorded')
+    do_not_release = models.BooleanField(default=False)
+    court_order_note = models.TextField(blank=True, default='')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        indexes = [models.Index(fields=['student', 'do_not_release'])]
+
+
+class PickupRelease(TenantScopedModel):
+    """One time a student left with someone. It is the record, so the screens never edit or delete it."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='pickup_releases')
+    authorized_adult = models.ForeignKey(AuthorizedAdult, null=True, blank=True, on_delete=models.PROTECT, related_name='releases')
+    guardian = models.ForeignKey('Guardian', null=True, blank=True, on_delete=models.PROTECT, related_name='pickup_releases')
+    released_to_name = models.CharField(max_length=255, help_text='Name at the time of release')
+    released_at = models.DateTimeField(default=timezone.now)
+    early_dismissal = models.BooleanField(default=False)
+    reason = models.CharField(max_length=500, blank=True, default='')
+    id_confirmed = models.BooleanField(default=False)
+    override_used = models.BooleanField(default=False)
+    override_reason = models.TextField(blank=True, default='')
+    released_by = models.ForeignKey('core_accounts.User', null=True, blank=True, on_delete=models.SET_NULL, related_name='pickup_releases_made')
+
+    class Meta:
+        ordering = ['-released_at']
+        indexes = [models.Index(fields=['student', '-released_at'])]
+        constraints = [
+            models.CheckConstraint(
+                condition=(models.Q(authorized_adult__isnull=False, guardian__isnull=True)
+                       | models.Q(authorized_adult__isnull=True, guardian__isnull=False)),
+                name='pickup_release_one_adult'),
+        ]
+
+
+class VisitorLog(TenantScopedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    organisation = models.CharField(max_length=255, blank=True, default='')
+    visiting = models.CharField(max_length=255, blank=True, default='', help_text='Who or what they came to see')
+    purpose = models.CharField(max_length=255, blank=True, default='')
+    badge_number = models.CharField(max_length=50, blank=True, default='')
+    checked_in_at = models.DateTimeField(default=timezone.now)
+    checked_out_at = models.DateTimeField(null=True, blank=True)
+    checked_in_by = models.ForeignKey('core_accounts.User', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    checked_out_by = models.ForeignKey('core_accounts.User', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+
+    class Meta:
+        ordering = ['-checked_in_at']
+        indexes = [models.Index(fields=['tenant', 'checked_out_at'])]
+
+    @property
+    def on_site(self):
+        return self.checked_out_at is None
+
+
+# ---- Health office --------------------------------------------------------------------------------------------
+
+class HealthVisit(TenantScopedModel):
+    """Each time a student goes to the nurse."""
+    VISIT_TYPES = [('injury', 'Injury'), ('illness', 'Illness'), ('medication', 'Medication'), ('assessment', 'Assessment'),
+                   ('emergency', 'Emergency'), ('follow-up', 'Follow-up'), ('screening', 'Screening'), ('other', 'Other')]
+    ACTIONS = [('treated', 'Treated at school'), ('rested', 'Rested and returned'), ('sent_home', 'Sent home'),
+               ('hospital', 'Sent to hospital'), ('referred', 'Referred'), ('other', 'Other')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='health_visits')
+    time_in = models.DateTimeField(default=timezone.now)
+    time_out = models.DateTimeField(null=True, blank=True)
+    visit_type = models.CharField(max_length=20, choices=VISIT_TYPES, default='illness')
+    complaint = models.TextField(blank=True, default='')
+    action_taken = models.CharField(max_length=20, choices=ACTIONS, blank=True, default='')
+    action_notes = models.TextField(blank=True, default='')
+    sent_home = models.BooleanField(default=False)
+    temperature = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    recorded_by = models.ForeignKey('core_accounts.User', null=True, blank=True, on_delete=models.SET_NULL, related_name='health_visits_recorded')
+    parent_notified_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-time_in']
+        indexes = [models.Index(fields=['student', '-time_in'])]
+
+
+class MedicationAuthorization(TenantScopedModel):
+    """What a parent has allowed the school to give. Doses can only be logged against a current one."""
+    ROUTES = [('oral', 'Oral'), ('topical', 'Topical'), ('inhaled', 'Inhaled'), ('injection', 'Injection'), ('other', 'Other')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='medication_authorizations')
+    medication_name = models.CharField(max_length=200)
+    dose = models.CharField(max_length=100)
+    route = models.CharField(max_length=20, choices=ROUTES, default='oral')
+    times = models.CharField(max_length=200, blank=True, default='', help_text='For example "12:00" or "with lunch"')
+    min_hours_between_doses = models.PositiveSmallIntegerField(null=True, blank=True, help_text='Warn if a dose is logged sooner than this')
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    instructions = models.TextField(blank=True, default='')
+    prescriber = models.CharField(max_length=200, blank=True, default='')
+    parent_consent = models.BooleanField(default=False)
+    parent_consent_on = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-start_date', '-created_at']
+        indexes = [models.Index(fields=['student', 'is_active'])]
+
+    def is_current(self, today=None):
+        today = today or timezone.localdate()
+        return bool(self.is_active and self.parent_consent and self.start_date <= today
+                    and (self.end_date is None or today <= self.end_date))
+
+
+class MedicationLog(TenantScopedModel):
+    STATUSES = [('given', 'Given'), ('refused', 'Refused'), ('missed', 'Missed'), ('held', 'Held'), ('error', 'Error')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    authorization = models.ForeignKey(MedicationAuthorization, on_delete=models.CASCADE, related_name='logs')
+    given_at = models.DateTimeField(default=timezone.now)
+    status = models.CharField(max_length=10, choices=STATUSES, default='given')
+    dose_given = models.CharField(max_length=100, blank=True, default='')
+    notes = models.TextField(blank=True, default='')
+    override_reason = models.TextField(blank=True, default='', help_text='Why a dose was given sooner than allowed')
+    given_by = models.ForeignKey('core_accounts.User', null=True, blank=True, on_delete=models.SET_NULL, related_name='medications_given')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-given_at']
+        indexes = [models.Index(fields=['authorization', '-given_at'])]

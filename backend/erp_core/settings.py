@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'services.core.accounts',
     'services.core.employee',
     'services.core.user_notifications',
+    'services.core.tour',
     'services.rbac_models',
     'services.core.audit',
     'services.core.backup',
@@ -92,6 +93,8 @@ INSTALLED_APPS = [
     'services.education.insights',
     'services.education.imports',
     'services.education.hr',
+    'services.education.safety',
+    'services.education.forms',
     'services.analytics',
     'services.ai',
 ]

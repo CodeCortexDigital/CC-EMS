@@ -8,6 +8,7 @@ answers, which linked parents give from their portal.
 import json
 import logging
 import uuid
+from decimal import Decimal, InvalidOperation
 
 from django.apps import apps
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -91,6 +92,8 @@ def _settings(school):
         'required_documents': raw.get('required_documents') or list(DEFAULT_DOCUMENTS),
         'declaration': raw.get('declaration') or DEFAULT_DECLARATION,
         'notify_email': raw.get('notify_email') or '',
+        'application_fee_amount': str(raw.get('application_fee_amount') or ''),
+        'application_fee_currency': (raw.get('application_fee_currency') or 'USD').upper(),
         # What AI screening (and a human reviewer) checks applications against.
         'criteria': raw.get('criteria') or [],
     }
@@ -130,7 +133,7 @@ def _doc_payload(doc, request=None):
     if request is not None and url and not url.startswith('http'):
         url = request.build_absolute_uri(url)
     return {'id': str(doc.id), 'doc_type': doc.doc_type, 'name': doc.original_name, 'size': doc.size,
-            'url': url, 'uploaded_at': doc.uploaded_at}
+            'url': url, 'uploaded_at': doc.uploaded_at, 'review_status': doc.review_status, 'review_note': doc.review_note}
 
 
 def _save_documents(application, files):
@@ -287,15 +290,23 @@ def public_apply(request, slug):
         )
         _save_documents(application, request.FILES)
         _log(application, 'pending', 'Submitted online', from_status='', by_name=d['signature_name'])
+        from . import fee as fees
+        from .waitlist import portal_link
+
+        application_fee = fees.create_for(application, school)
 
     school_name = (school.settings_json or {}).get('institute_name') or school.name
     _email(contact['email'], f'Application received: {school_name}',
            f"Thank you for applying to {school_name}.\n\nApplication number: {application.application_no}\n"
-           f"Tracking code: {application.tracking_token}\n\nKeep these to check the status of the application online.")
+           f"Tracking code: {application.tracking_token}\n\nKeep these to check the status of the application online."
+           + (f"\n\nAn application fee of {application_fee.amount} {application_fee.currency} is due before the school can review the application." if application_fee else '')
+           + f"\n\nPay the fee, send documents and book a visit here: {portal_link(application)}")
     _email(cfg['notify_email'], f'New online application {application.application_no}',
            f'{applicant.full_name} applied for {applicant.applying_for_class}.')
     return Response({'application_no': application.application_no, 'tracking_token': application.tracking_token,
-                     'school': school_name}, status=201)
+                     'school': school_name,
+                     'fee': {'amount': str(application_fee.amount), 'currency': application_fee.currency} if application_fee else None},
+                    status=201)
 
 
 @api_view(['GET'])
@@ -340,6 +351,19 @@ def admissions_settings(request):
         for key in ('academic_year', 'intro', 'declaration', 'notify_email'):
             if key in data:
                 cfg[key] = str(data[key] or '').strip()
+        if 'application_fee_amount' in data:
+            try:
+                amount = Decimal(str(data['application_fee_amount'] or '0'))
+            except InvalidOperation:
+                return Response({'error': 'The application fee must be a number.'}, status=400)
+            if amount < 0:
+                return Response({'error': 'The application fee cannot be negative.'}, status=400)
+            cfg['application_fee_amount'] = str(amount) if amount > 0 else ''
+        if 'application_fee_currency' in data:
+            currency = str(data['application_fee_currency'] or 'USD').strip().upper()
+            if len(currency) != 3 or not currency.isalpha():
+                return Response({'error': 'Use a three-letter currency code such as USD.'}, status=400)
+            cfg['application_fee_currency'] = currency
         if 'required_documents' in data:
             docs = data['required_documents']
             if isinstance(docs, str):
@@ -445,6 +469,10 @@ def update_application_status(request, id):
     if new_status not in TRANSITIONS.get(application.status, set()):
         return Response({'error': f'An application that is {application.get_status_display().lower()} '
                                   f'cannot be moved to that status.'}, status=400)
+    from . import fee as fees, waitlist
+
+    if new_status in ('reviewing', 'approved', 'waitlisted') and fees.is_held(application):
+        return Response({'error': 'The application fee has not been paid. Record the payment or waive the fee first.'}, status=400)
     previous = application.status
     application.status = new_status
     if note:
@@ -453,6 +481,7 @@ def update_application_status(request, id):
         application.decided_at = timezone.now()
     application.save()
     _log(application, new_status, note, request.user, from_status=previous)
+    waitlist.on_status_change(application, previous, new_status)
     if new_status in ('approved', 'rejected', 'waitlisted') and request.data.get('notify', True):
         _email(application.applicant.email, f'Application {application.application_no}: {application.get_status_display()}',
                f"{STATUS_MESSAGES.get(new_status, '')}\n\n{note}".strip())
@@ -641,6 +670,9 @@ def convert_to_student(request, id):
         application.converted_to_student = student
         application.save()
         _log(application, 'enrolled', f'Enrolled as student {student.student_id}', request.user, from_status=previous)
+        from .enrol_docs import copy_documents
+
+        copy_documents(application, student, request.user)
 
     # No 'success' key: the web client unwraps {'success': true, 'data': ...} envelopes.
     return Response({

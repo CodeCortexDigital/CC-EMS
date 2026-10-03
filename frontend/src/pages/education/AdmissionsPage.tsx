@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  CalendarClock, ClipboardList, Copy, ExternalLink, FileText, Globe, Loader2, Plus, RefreshCw, Repeat, Search,
+  CalendarClock, ClipboardList, Copy, ExternalLink, FileText, Globe, ListOrdered, Loader2, Plus, RefreshCw, Repeat, Search,
   Settings2, Sparkles, Trash2, Upload, UserCheck,
 } from 'lucide-react';
 import admissionService, {
@@ -10,6 +10,9 @@ import admissionService, {
 } from '@/services/admission.service';
 import classSectionService, { type ClassWithSections } from '@/services/classSection.service';
 import { Modal } from '@/components/ui/Modal';
+import WaitlistTab from '@/components/admissions/WaitlistTab';
+import ToursTab from '@/components/admissions/ToursTab';
+import { ChecklistPanel, FeePanel } from '@/components/admissions/ApplicationExtras';
 
 const card = 'bg-white rounded-xl border border-slate-200 shadow-sm';
 const input = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--app-accent)]';
@@ -21,7 +24,7 @@ function StatusPill({ status }: { status: ApplicationStatus }) {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${m.tone}`}>{m.label}</span>;
 }
 
-type Tab = 'applications' | 'reenrollment' | 'settings';
+type Tab = 'applications' | 'waitlist' | 'tours' | 'reenrollment' | 'settings';
 
 /** Admissions: application pipeline, re-enrolment and the online form settings. */
 export default function AdmissionsPage() {
@@ -61,7 +64,7 @@ export default function AdmissionsPage() {
       </div>
 
       <nav className="flex gap-1 border-b border-slate-200" role="tablist">
-        {([['applications', 'Applications', ClipboardList], ['reenrollment', 'Re-enrolment', Repeat], ['settings', 'Online form settings', Settings2]] as const).map(([id, text, Icon]) => (
+        {([['applications', 'Applications', ClipboardList], ['waitlist', 'Waiting list', ListOrdered], ['tours', 'Tours & interviews', CalendarClock], ['reenrollment', 'Re-enrolment', Repeat], ['settings', 'Online form settings', Settings2]] as const).map(([id, text, Icon]) => (
           <button key={id} role="tab" aria-selected={tab === id} onClick={() => setParams(id === 'applications' ? {} : { tab: id })}
             className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-semibold border-b-2 -mb-px ${tab === id ? 'border-[color:var(--app-accent)] text-brand' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
             <Icon className="w-4 h-4" /> {text}
@@ -70,6 +73,8 @@ export default function AdmissionsPage() {
       </nav>
 
       {tab === 'applications' && <ApplicationsTab />}
+      {tab === 'waitlist' && <WaitlistTab defaultYear={settings?.academic_year || ''} />}
+      {tab === 'tours' && <ToursTab />}
       {tab === 'reenrollment' && <ReenrollmentTab />}
       {tab === 'settings' && <SettingsTab settings={settings} onSaved={setSettings} publicUrl={publicUrl} />}
     </div>
@@ -325,6 +330,8 @@ function ApplicationDrawer({ id, onClose, onChanged }: { id: string; onClose: ()
         {/* Documents */}
         <section>
           <p className="font-bold mb-2 inline-flex items-center gap-1.5"><FileText className="w-4 h-4" /> Documents</p>
+          <div className="mb-3"><FeePanel applicationId={app.id} fee={app.fee} onChanged={() => { load(); onChanged(); }} /></div>
+          <div className="mb-3"><ChecklistPanel applicationId={app.id} onChanged={load} /></div>
           {(app.documents || []).length === 0 && <p className="text-slate-500">No documents yet.</p>}
           <ul className="divide-y divide-slate-100">
             {(app.documents || []).map((d) => (
@@ -557,6 +564,10 @@ function SettingsTab({ settings, onSaved, publicUrl }: { settings: AdmissionSett
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div><label className="block text-xs font-semibold text-slate-600 mb-1" htmlFor="as-year">Admissions for school year</label><input id="as-year" className={input} placeholder="2027-2028" value={form.academic_year} onChange={(e) => setForm({ ...form, academic_year: e.target.value })} /></div>
         <div><label className="block text-xs font-semibold text-slate-600 mb-1" htmlFor="as-mail">Email new applications to</label><input id="as-mail" type="email" className={input} placeholder="admissions@school.org" value={form.notify_email} onChange={(e) => setForm({ ...form, notify_email: e.target.value })} /></div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div><label className="block text-xs font-semibold text-slate-600 mb-1" htmlFor="as-fee">Application fee (leave empty for none)</label><input id="as-fee" inputMode="decimal" className={input} placeholder="25.00" value={form.application_fee_amount || ''} onChange={(e) => setForm({ ...form, application_fee_amount: e.target.value })} /><p className="text-xs text-slate-500 mt-1">Applications are held until the fee is paid, recorded or waived.</p></div>
+        <div><label className="block text-xs font-semibold text-slate-600 mb-1" htmlFor="as-cur">Currency</label><input id="as-cur" maxLength={3} className={input} placeholder="USD" value={form.application_fee_currency || ''} onChange={(e) => setForm({ ...form, application_fee_currency: e.target.value.toUpperCase() })} /></div>
       </div>
       <div><label className="block text-xs font-semibold text-slate-600 mb-1" htmlFor="as-intro">Welcome text on the form</label><textarea id="as-intro" rows={3} className={input} value={form.intro} onChange={(e) => setForm({ ...form, intro: e.target.value })} /></div>
       <div><label className="block text-xs font-semibold text-slate-600 mb-1" htmlFor="as-docs">Documents to upload (one per line)</label><textarea id="as-docs" rows={4} className={input} value={form.required_documents.join('\n')} onChange={(e) => setForm({ ...form, required_documents: e.target.value.split('\n') })} /></div>

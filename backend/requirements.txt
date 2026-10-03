@@ -13,6 +13,7 @@ Pillow>=10.0
 redis>=5.0
 django-redis>=5.4
 celery>=5.3
+pywebpush>=2.0  # web push to the installed app (needs VAPID keys: manage.py generate_vapid_keys)
 
 # Storage (required — listed in INSTALLED_APPS as "storages")
 django-storages>=1.14

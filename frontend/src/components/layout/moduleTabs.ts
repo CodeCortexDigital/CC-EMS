@@ -8,7 +8,7 @@ import {
   ThumbsUp,
   PieChart,
   Settings2,
-  Briefcase, Network, Handshake, UserPlus, LayoutDashboard, IdCard,
+  Briefcase, Network, Handshake, UserPlus, LayoutDashboard, IdCard, ScanFace, ClipboardCheck,
 } from 'lucide-react';
 import type { ModuleTab } from './ModuleTabsLayout';
 
@@ -89,6 +89,12 @@ export const hrTabs: ModuleTab[] = [
   hrTab('performance', '/education/hr/performance', 'Performance', Star),
   hrTab('pay', '/education/hr/pay', 'Pay Setup', DollarSign, HR_PAY),
   hrTab('my-hr', '/education/hr/me', 'My HR', Briefcase),
+];
+
+// ============================ FRONT DESK ============================
+export const frontDeskTabs: ModuleTab[] = [
+  { id: 'pickup', path: '/education/front-desk', label: 'Pickup', icon: ScanFace, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87' },
+  { id: 'visitors', path: '/education/front-desk/visitors', label: 'Visitors', icon: ClipboardCheck, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87' },
 ];
 
 // ============================ BEHAVIOUR & SKILLS ============================

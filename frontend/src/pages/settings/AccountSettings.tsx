@@ -8,6 +8,7 @@ import { API_ENDPOINTS } from '@/services/apiEndpoints';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthStore } from '@/store/authStore';
 import MySecurityPanel from '@/components/security/MySecurityPanel';
+import AppAndNotifications from '@/components/settings/AppAndNotifications';
 
 interface AccountData {
   email: string;
@@ -232,6 +233,7 @@ export default function AccountSettings() {
 
       {/* My sign-ins, sign out everywhere, my data (Phase 21) */}
       <div className="mt-6"><MySecurityPanel /></div>
+      <div className="mt-6"><AppAndNotifications /></div>
 
       {/* Edit modal */}
       {editOpen && (

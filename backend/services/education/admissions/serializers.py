@@ -10,11 +10,16 @@ class ApplicantSerializer(serializers.ModelSerializer):
 class ApplicationSerializer(serializers.ModelSerializer):
     applicant = ApplicantSerializer(read_only=True)
     applicant_id = serializers.UUIDField(write_only=True, required=False)
-    
+    fee = serializers.SerializerMethodField()
+
     class Meta:
         model = Application
         fields = '__all__'
-        read_only_fields = ('application_no', 'submitted_at')
+        read_only_fields = ('application_no', 'submitted_at', 'docs_reminded_at')
+
+    def get_fee(self, obj):
+        fee = getattr(obj, 'fee', None) if hasattr(obj, 'fee') else None
+        return {'amount': str(fee.amount), 'currency': fee.currency, 'status': fee.status, 'note': fee.note} if fee else None
     
     def create(self, validated_data):
         applicant_id = validated_data.pop('applicant_id', None)

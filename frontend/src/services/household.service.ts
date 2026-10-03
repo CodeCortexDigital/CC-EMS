@@ -98,6 +98,7 @@ export interface Immunization {
   vaccine: string;
   dose: string;
   date_given: string | null;
+  next_due_date?: string | null;
   exempt: boolean;
   exemption_reason: string;
   notes: string;

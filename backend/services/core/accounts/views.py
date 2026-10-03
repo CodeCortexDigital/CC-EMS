@@ -131,7 +131,7 @@ def build_login_response(request, user, method='password', second_step_done=Fals
             'is_staff': user.is_staff,
             'is_superuser': user.is_superuser,
             'role': role,
-            'portal_path': '/student' if role == 'student' else '/teacher' if role == 'teacher' else '/parent' if role == 'parent' else '/dashboard',
+            'portal_path': portal_path_for(role),
         },
     }
     if student_obj:
@@ -141,6 +141,17 @@ def build_login_response(request, user, method='password', second_step_done=Fals
     if tenant:
         payload['tenant'] = SchoolSerializer(tenant).data
     return Response(payload)
+
+
+# Where each kind of person lands after signing in. Office roles with a single job go straight to their tool.
+PORTAL_PATHS = {
+    'student': '/student', 'teacher': '/teacher', 'parent': '/parent',
+    'front_desk': '/education/front-desk', 'nurse': '/education/health-office', 'counsellor': '/education/safety',
+}
+
+
+def portal_path_for(role):
+    return PORTAL_PATHS.get(role, '/dashboard')
 
 
 @api_view(['POST'])
@@ -307,7 +318,7 @@ def get_current_user(request):
         'is_staff': user.is_staff,
         'is_superuser': user.is_superuser,
         'role': role,
-        'portal_path': '/student' if role == 'student' else '/teacher' if role == 'teacher' else '/parent' if role == 'parent' else '/dashboard',
+        'portal_path': portal_path_for(role),
         'student': _serialize_student(student_obj),
         **({'children': [_serialize_student(s) for s in _get_children_for_user(user)]} if role == 'parent' else {}),
     })

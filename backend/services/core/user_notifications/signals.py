@@ -2,6 +2,7 @@ import json
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -37,3 +38,16 @@ def notify_user_via_websocket(sender, instance, created, **kwargs):
     }
 
     _dispatch_notification_to_socket(instance.recipient_id, payload)
+
+
+@receiver(post_save, sender=Notification)
+def push_to_devices(sender, instance, created, **kwargs):
+    """Also push the notification to the recipient's installed app, after the database has committed it.
+
+    Loading history (importers, seeders) sets ``_silent`` so it never pings anyone's phone.
+    """
+    if not created or getattr(instance, '_silent', False):
+        return
+    from . import push
+
+    transaction.on_commit(lambda: push.queue(instance))

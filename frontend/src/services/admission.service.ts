@@ -71,6 +71,8 @@ export interface AdmissionSettings {
   notify_email: string;
   criteria: string[];
   public_slug: string;
+  application_fee_amount?: string;
+  application_fee_currency?: string;
 }
 
 export interface Applicant {
@@ -107,6 +109,7 @@ export interface Application {
   id: string;
   application_no: string;
   applicant: Applicant;
+  fee?: { amount: string; currency: string; status: 'unpaid' | 'paid' | 'waived'; note?: string } | null;
   status: ApplicationStatus;
   status_notes: string;
   source: 'office' | 'online';

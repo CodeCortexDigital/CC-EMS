@@ -17,7 +17,7 @@ SAFE = ('GET', 'HEAD', 'OPTIONS')
 PERSONAL = (
     'login', 'logout', 'token/refresh', 'firebase/login', 'settings/change-password', 'me/', 'me',
     'security/me/', 'security/verify-email/', 'security/password-reset/', 'security/2fa/', 'privacy/', 'support/', 'notifications/', 'user-notifications/',
-    'ai/', 'search',
+    'ai/', 'search', 'tour/',
 )
 
 # Parents and students: what the family portal lets them do.
@@ -25,6 +25,7 @@ FAMILY = PERSONAL + (
     'portal/', 'family/', 'messaging/', 'messages/', 'communication/conversations', 'communication/messages',
     'communication/inbox', 'communication/threads', 'communication/announcements', 'attendance/absence-reports', 'calendar/', 'meetings/', 'library/', 'cafeteria/',
     'finance/payments/session', 'finance/online', 'admissions/', 'parent/', 'student/', 'homework-submissions/',
+    'forms/my/',
     'academics/homework-submissions', 'academics/homework/submit',
 )
 

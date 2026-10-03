@@ -5,6 +5,9 @@ const HOME_BY_ROLE: Record<string, string> = {
   student: '/student',
   teacher: '/teacher',
   parent: '/parent',
+  front_desk: '/education/front-desk',
+  nurse: '/education/health-office',
+  counsellor: '/education/safety',
 };
 
 export function RoleBasedRoute({ children, allowedRoles }: any) {

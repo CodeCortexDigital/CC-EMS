@@ -12,6 +12,7 @@ import SubscriptionBanner from '@/components/billing/SubscriptionBanner';
 import AcceptanceGate from '@/components/privacy/AcceptanceGate';
 import TwoStepGate from '@/components/security/TwoStepGate';
 import { usePlanStore } from '@/store/planStore';
+import GuidedTour from '@/components/tour/GuidedTour';
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -95,6 +96,7 @@ export function Layout({ children }: LayoutProps) {
       {hasAi && <AiAssistant key={assistantMode} mode={assistantMode} />}
       <AcceptanceGate />
       <TwoStepGate />
+      <GuidedTour />
     </div>
   );
 }

@@ -36,6 +36,10 @@ def get_user_role(user):
             return 'admin'
         if role_name in ('manager', 'hr'):  # named staff roles that may approve leave (role_type defaults to "staff")
             return role_name
+        # Named office roles: the front desk (pickup, visitors), the school nurse (health office) and the counsellor (safety follow-up).
+        office_role = role_name.replace(' ', '_') if role_name else role_name
+        if office_role in ('front_desk', 'nurse', 'counsellor'):
+            return office_role
         return normalize_role_name(role_type or role_obj.name)
 
     if hasattr(user, 'parent_profile'):
