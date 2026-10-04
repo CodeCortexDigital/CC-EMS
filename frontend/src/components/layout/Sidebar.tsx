@@ -173,6 +173,9 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
     navigate('/login');
   };
 
+  // Security & privacy, AI Assistant and Integrations have their own menu entries under /settings, so the plain Settings entry must not also light up on them.
+  const onSettingsSibling = ['/settings/security', '/settings/ai', '/settings/integrations'].some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`));
+
   const isSettingsActive = () => {
     return location.pathname.startsWith('/settings');
   };
@@ -626,7 +629,7 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
                 className={({ isActive }) => `
                   sb-fade-in relative flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold
                   transition-all duration-150
-                  ${isActive && (!item.href?.includes('?') || isLinkActive(item.href))
+                  ${isActive && !(item.id === 'settings' && onSettingsSibling) && (!item.href?.includes('?') || isLinkActive(item.href))
                     ? `${activeStyle.bg} ${activeStyle.text} shadow-sm`
                     : isDarkSidebar ? 'text-slate-300 hover:bg-slate-800 hover:text-white hover:translate-x-0.5' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:translate-x-0.5'
                   }
