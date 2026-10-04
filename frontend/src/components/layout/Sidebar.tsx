@@ -42,7 +42,6 @@ interface MenuItem {
   group?: string;
 }
 
-const CLOSED_KEY = 'sidebar_closed_groups';
 // Menu entries that belong to an optional plan module (P11).
 const PLAN_MODULE: Record<string, string> = {
   library: 'library', transport: 'transport', inventory: 'inventory', cafeteria: 'cafeteria', 'cafeteria-till': 'cafeteria',
@@ -522,15 +521,11 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
     return matchLabel || matchSub;
   });
 
-  // Sections: remembered open/closed per browser; the section with the current page is always open.
-  const [closedGroups, setClosedGroups] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem(CLOSED_KEY) || '[]'); } catch { return []; }
-  });
-  const toggleGroup = (g: string) => setClosedGroups((prev) => {
-    const next = prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g];
-    try { localStorage.setItem(CLOSED_KEY, JSON.stringify(next)); } catch { /* private mode */ }
-    return next;
-  });
+  // Sections work like an accordion: one is open at a time. On arrival (and after going to another page) the section holding
+  // the current page is the open one; opening another section closes the previous one. Nothing is remembered between visits.
+  const [pickedGroup, setPickedGroup] = useState<string | null | undefined>(undefined);
+  useEffect(() => { setPickedGroup(undefined); }, [location.pathname]);
+  const toggleGroup = (g: string, isOpen: boolean) => setPickedGroup(isOpen ? null : g);
   const itemIsCurrent = (item: MenuItem) => {
     const path = (item.href || '').split('?')[0];
     if (item.subItems?.some((sub) => isLinkActive(sub.href))) return true;
@@ -871,7 +866,7 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
       {/* Navigation List */}
       <nav ref={navRef} aria-label={portalLabel} className="sidebar-nav flex-1 overflow-y-auto py-3 px-2 space-y-1 custom-scrollbar">
         {sections.map((sec, secIndex) => {
-          const open = sectionOpen(sec.group, { closed: closedGroups, searching: !!searchQuery, collapsed: isCollapsed, hasCurrentPage: sec.items.some(itemIsCurrent) });
+          const open = sectionOpen(sec.group, { picked: pickedGroup, searching: !!searchQuery, collapsed: isCollapsed, hasCurrentPage: sec.items.some(itemIsCurrent) });
           const groupLabel = sec.group ? t(`nav.group_${sec.group}`, { defaultValue: sec.group }) : '';
           return (
             <div key={sec.group || 'top'} role={sec.group ? 'group' : undefined} aria-label={groupLabel || undefined}>
@@ -879,7 +874,7 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
               {sec.group && !isCollapsed && (
                 <button
                   type="button"
-                  onClick={() => toggleGroup(sec.group)}
+                  onClick={() => toggleGroup(sec.group, open)}
                   aria-expanded={open}
                   aria-controls={`nav-group-${sec.group}`}
                   className={`w-full flex items-center justify-between px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${isDarkSidebar ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'}`}

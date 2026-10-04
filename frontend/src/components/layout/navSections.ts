@@ -11,6 +11,9 @@ export function buildSections<T extends { group?: string }>(items: T[]): { group
     .filter((s) => s.items.length > 0);
 }
 
-export function sectionOpen(group: string, o: { closed: string[]; searching: boolean; collapsed: boolean; hasCurrentPage: boolean }): boolean {
-  return !group || o.searching || o.collapsed || o.hasCurrentPage || !o.closed.includes(group);
+// One heading is open at a time. `picked` is what the person last chose: a heading, null (they closed it), or undefined
+// (nothing chosen yet, so the heading holding the current page is the one that is open).
+export function sectionOpen(group: string, o: { picked: string | null | undefined; searching: boolean; collapsed: boolean; hasCurrentPage: boolean }): boolean {
+  if (!group || o.searching || o.collapsed) return true;
+  return o.picked === undefined ? o.hasCurrentPage : o.picked === group;
 }
