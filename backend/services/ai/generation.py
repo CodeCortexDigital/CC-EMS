@@ -37,15 +37,33 @@ QUIZ_SCHEMA = _obj({
     })},
 })
 
-TEACHER_SYSTEM = (
-    "You are an experienced school teacher and curriculum designer in Pakistan. "
-    "Produce accurate, age-appropriate classroom material. Use plain language suited "
-    "to the grade. Do not invent facts; keep content aligned with standard textbooks."
-)
+# How each school region is described to the model. 'pk' is the wording the app always used; a school that never chose a
+# region keeps it. Other regions get their own place, spelling and standards.
+REGION_VOICE = {
+    'pk': ('in Pakistan', 'keep content aligned with standard textbooks'),
+    'us': ('in the United States', 'align with Common Core or the state standards when the teacher names them, and use '
+                                   'American spelling and U.S. grade levels (K-12)'),
+    'uk': ('in the United Kingdom', 'align with the National Curriculum and use British spelling'),
+    'intl': ('at an international school', 'keep content aligned with widely used international curricula'),
+}
+
+
+def _voice(region: str | None) -> tuple[str, str]:
+    return REGION_VOICE.get((region or 'pk').lower(), REGION_VOICE['pk'])
+
+
+def teacher_system(region: str | None = 'pk') -> str:
+    place, align = _voice(region)
+    return (f"You are an experienced school teacher and curriculum designer {place}. "
+            "Produce accurate, age-appropriate classroom material. Use plain language suited "
+            f"to the grade. Do not invent facts; {align}.")
+
+
+TEACHER_SYSTEM = teacher_system('pk')
 
 
 def generate_lesson_plan(llm: LLMClient, *, subject: str, grade: str, topic: str,
-                         objectives: list[str], duration: int = 40) -> tuple[dict, Usage, str]:
+                         objectives: list[str], duration: int = 40, region: str = 'pk') -> tuple[dict, Usage, str]:
     goals = "; ".join(o for o in objectives if o) or "decide suitable objectives"
     prompt = (
         f"Write a lesson plan.\n"
@@ -55,7 +73,7 @@ def generate_lesson_plan(llm: LLMClient, *, subject: str, grade: str, topic: str
         "the times plus the introduction must fit the period. differentiation: how to support "
         "weaker students and stretch stronger ones. assessment: 3-5 short questions to check understanding."
     )
-    plan, usage, model = llm.structured(system=TEACHER_SYSTEM, prompt=prompt, schema=LESSON_PLAN_SCHEMA)
+    plan, usage, model = llm.structured(system=teacher_system(region), prompt=prompt, schema=LESSON_PLAN_SCHEMA)
     plan["duration_minutes"] = max(10, min(int(plan.get("duration_minutes") or duration), 180))
     return plan, usage, model
 
@@ -88,7 +106,7 @@ def template_lesson_plan(*, subject: str, grade: str, topic: str, objectives: li
 
 
 def generate_quiz(llm: LLMClient, *, subject: str, topic: str, difficulty: str, count: int,
-                  grade: str = "") -> tuple[dict, Usage, str]:
+                  grade: str = "", region: str = 'pk') -> tuple[dict, Usage, str]:
     prompt = (
         f"Write a {difficulty} quiz of exactly {count} questions.\n"
         f"Subject: {subject}\nTopic: {topic}\n" + (f"Class/grade: {grade}\n" if grade else "") +
@@ -97,7 +115,7 @@ def generate_quiz(llm: LLMClient, *, subject: str, topic: str, difficulty: str, 
         "short_answer has options [] and a concise model answer. Each explanation says why the "
         "answer is right in one or two sentences."
     )
-    quiz, usage, model = llm.structured(system=TEACHER_SYSTEM, prompt=prompt, schema=QUIZ_SCHEMA)
+    quiz, usage, model = llm.structured(system=teacher_system(region), prompt=prompt, schema=QUIZ_SCHEMA)
     questions = [q for q in (_clean_question(q) for q in quiz.get("questions", [])) if q]
     if not questions:
         raise LLMError("The model did not return any valid questions.")
@@ -106,17 +124,20 @@ def generate_quiz(llm: LLMClient, *, subject: str, topic: str, difficulty: str, 
 
 REPORT_COMMENT_SCHEMA = _obj({"comment": _STR})
 
-REPORT_WRITER_SYSTEM = (
-    "You are an experienced class teacher in Pakistan writing report card comments for families. "
-    "Base every claim only on the data given in the prompt — never invent grades, incidents or details "
-    "not mentioned. Write 2-4 sentences, professional and warm, suitable for a printed report card. "
-    "Refer to the student by name, not 'the student'."
-)
+def report_writer_system(region: str | None = 'pk') -> str:
+    place, _ = _voice(region)
+    return (f"You are an experienced class teacher {place} writing report card comments for families. "
+            "Base every claim only on the data given in the prompt — never invent grades, incidents or details "
+            "not mentioned. Write 2-4 sentences, professional and warm, suitable for a printed report card. "
+            "Refer to the student by name, not 'the student'.")
+
+
+REPORT_WRITER_SYSTEM = report_writer_system('pk')
 
 
 def generate_report_comment(llm: LLMClient, *, student_name: str, subject_name: str | None, grade_summary: str,
                             attendance_summary: str, behaviour_summary: str, tone: str = "supportive",
-                            language: str = "English") -> tuple[dict, Usage, str]:
+                            language: str = "English", region: str = 'pk') -> tuple[dict, Usage, str]:
     scope = f"the subject {subject_name}" if subject_name else "an overall (homeroom) report"
     prompt = (
         f"Write a report card comment about {scope} for {student_name}.\n"
@@ -128,7 +149,7 @@ def generate_report_comment(llm: LLMClient, *, student_name: str, subject_name: 
         "If either shows a concern, name it plainly and constructively and suggest one concrete next step. "
         "Do not repeat the raw numbers verbatim; describe them in words."
     )
-    result, usage, model = llm.structured(system=REPORT_WRITER_SYSTEM, prompt=prompt, schema=REPORT_COMMENT_SCHEMA)
+    result, usage, model = llm.structured(system=report_writer_system(region), prompt=prompt, schema=REPORT_COMMENT_SCHEMA)
     comment = (result.get("comment") or "").strip()[:1000]
     if not comment:
         raise LLMError("The model did not return a comment.")
@@ -157,17 +178,20 @@ ADMISSION_SCREENING_SCHEMA = _obj({
     "concerns": _STR_LIST,
 })
 
-ADMISSIONS_SYSTEM = (
-    "You are an admissions officer at a school in Pakistan, screening applications against the "
-    "school's own stated criteria. Base every judgement only on the facts given — never invent "
-    "grades, documents or family details not mentioned. Be fair and consistent: two similar "
-    "applications should get similar scores. A missing required document or an unmet criterion "
-    "is a concern, not automatic rejection — the final decision is always a human's."
-)
+def admissions_system(region: str | None = 'pk') -> str:
+    place, _ = _voice(region)
+    return (f"You are an admissions officer at a school {place}, screening applications against the "
+            "school's own stated criteria. Base every judgement only on the facts given — never invent "
+            "grades, documents or family details not mentioned. Be fair and consistent: two similar "
+            "applications should get similar scores. A missing required document or an unmet criterion "
+            "is a concern, not automatic rejection — the final decision is always a human's.")
+
+
+ADMISSIONS_SYSTEM = admissions_system('pk')
 
 
 def generate_admission_screening(llm: LLMClient, *, applicant_summary: str, documents_summary: str,
-                                 criteria: list[str]) -> tuple[dict, Usage, str]:
+                                 criteria: list[str], region: str = 'pk') -> tuple[dict, Usage, str]:
     criteria_text = "\n".join(f"- {c}" for c in criteria) if criteria else "(the school has not listed specific criteria yet)"
     prompt = (
         f"Applicant:\n{applicant_summary}\n\n"
@@ -179,7 +203,7 @@ def generate_admission_screening(llm: LLMClient, *, applicant_summary: str, docu
         "concerns: short list of specific things a human reviewer should check or follow up on "
         "(missing documents, unclear eligibility, etc.); empty list if there are none."
     )
-    result, usage, model = llm.structured(system=ADMISSIONS_SYSTEM, prompt=prompt, schema=ADMISSION_SCREENING_SCHEMA)
+    result, usage, model = llm.structured(system=admissions_system(region), prompt=prompt, schema=ADMISSION_SCREENING_SCHEMA)
     score = max(0, min(int(result.get("score") or 0), 100))
     summary = (result.get("summary") or "").strip()[:1000]
     if not summary:
@@ -245,6 +269,7 @@ def template_homework_hint(*, title: str, subject: str = "", instructions: str =
 
 
 MESSAGE_SUMMARY_SCHEMA = _obj({"summary": _STR, "key_points": _STR_LIST})
+MESSAGE_SUMMARY_REPLY_SCHEMA = _obj({"summary": _STR, "key_points": _STR_LIST, "suggested_reply": _STR})
 
 MESSAGE_SUMMARY_SYSTEM = (
     "You summarise school communications for a busy parent. Base the summary only on the text "
@@ -253,19 +278,30 @@ MESSAGE_SUMMARY_SYSTEM = (
 )
 
 
-def generate_message_summary(llm: LLMClient, *, title: str, body: str) -> tuple[dict, Usage, str]:
+def generate_message_summary(llm: LLMClient, *, title: str, body: str, want_reply: bool = False) -> tuple[dict, Usage, str]:
+    """want_reply adds a draft answer for a staff member to edit and send; it is never sent for them."""
     prompt = (
         f"Title: {title}\n\nMessage:\n{body}\n\n"
         "summary: 1-2 sentences capturing what this is about and any action needed. "
         "key_points: short bullet list of specific facts a parent should not miss (dates, amounts, "
         "deadlines, what to do next); empty list if the message has no distinct sub-points beyond the summary."
     )
-    result, usage, model = llm.structured(system=MESSAGE_SUMMARY_SYSTEM, prompt=prompt, schema=MESSAGE_SUMMARY_SCHEMA)
+    if want_reply:
+        prompt += (
+            " suggested_reply: a short, polite draft answer to the most recent message from the family, written for a staff "
+            "member to edit before sending. Do not promise outcomes, refunds, grades or exceptions, and do not state facts "
+            "that are not in the conversation; where a decision is needed, say the school will come back to them."
+        )
+    result, usage, model = llm.structured(system=MESSAGE_SUMMARY_SYSTEM, prompt=prompt,
+                                          schema=MESSAGE_SUMMARY_REPLY_SCHEMA if want_reply else MESSAGE_SUMMARY_SCHEMA)
     summary = (result.get("summary") or "").strip()[:500]
     if not summary:
         raise LLMError("The model did not return a summary.")
     key_points = [str(p).strip()[:200] for p in (result.get("key_points") or []) if str(p).strip()][:8]
-    return {"summary": summary, "key_points": key_points}, usage, model
+    out = {"summary": summary, "key_points": key_points}
+    if want_reply:
+        out["suggested_reply"] = (result.get("suggested_reply") or "").strip()[:1500]
+    return out, usage, model
 
 
 def template_message_summary(*, title: str, body: str) -> dict:
@@ -390,3 +426,167 @@ def _clean_question(q: dict) -> dict | None:
         "explanation": (q.get("explanation") or "").strip(),
         "bloom_level": q.get("bloom_level") or "",
     }
+
+
+# ---------------------------------------------------------------------------
+# Teacher assistant additions: standards in lesson plans, parent message drafts, rubrics
+# ---------------------------------------------------------------------------
+LESSON_PLAN_STANDARDS_SCHEMA = _obj({**LESSON_PLAN_SCHEMA["properties"], "standards_alignment": _STR_LIST})
+
+
+def generate_lesson_plan_with_standards(llm: LLMClient, *, subject: str, grade: str, topic: str, objectives: list[str],
+                                        standards: list[str], duration: int = 40, region: str = 'pk') -> tuple[dict, Usage, str]:
+    goals = "; ".join(o for o in objectives if o) or "decide suitable objectives"
+    listed = "\n".join(f"- {s}" for s in standards)
+    prompt = (
+        f"Write a lesson plan.\n"
+        f"Subject: {subject}\nClass/grade: {grade}\nTopic: {topic}\n"
+        f"Learning objectives: {goals}\nPeriod length: {duration} minutes\n"
+        f"Standards the teacher wants addressed:\n{listed}\n\n"
+        "main_activities: 3-5 steps, each starting with its time in minutes (e.g. '10 min - ...'); "
+        "the times plus the introduction must fit the period. differentiation: how to support "
+        "weaker students and stretch stronger ones. assessment: 3-5 short questions to check understanding. "
+        "standards_alignment: one entry per listed standard, in the form 'CODE - which part of the lesson addresses it'. "
+        "Use only the standards listed; never add or invent others."
+    )
+    plan, usage, model = llm.structured(system=teacher_system(region), prompt=prompt, schema=LESSON_PLAN_STANDARDS_SCHEMA)
+    plan["duration_minutes"] = max(10, min(int(plan.get("duration_minutes") or duration), 180))
+    plan["standards_alignment"] = [str(s).strip()[:300] for s in (plan.get("standards_alignment") or []) if str(s).strip()][:12]
+    return plan, usage, model
+
+
+def standards_alignment_template(standards: list[str]) -> list[str]:
+    return [f"{s} - addressed in the main activities and checked in the assessment questions" for s in standards]
+
+
+# Things that belong with the office, the nurse or a counsellor, not in a teacher's AI draft.
+SENSITIVE_WORDS = (
+    'medication', 'medicine', 'diagnos', 'adhd', 'autism', 'asthma', 'allerg', 'anxiety', 'depress', 'therapy', 'iep',
+    '504', 'suspend', 'suspension', 'expel', 'detention', 'custody', 'divorce', 'abuse', 'police',
+)
+MESSAGE_KINDS = {
+    'behavior_concern': 'a behaviour concern the teacher wants to raise calmly and constructively',
+    'positive_note': 'a positive note celebrating something the student did well',
+    'missed_assignments': 'missing or late assignments, with a clear way to catch up',
+    'attendance_concern': 'a concern about absences or lateness, asking how the school can help',
+    'custom': 'the message the teacher describes',
+}
+TONES = {'warm': 'warm and friendly', 'formal': 'formal and professional', 'brief': 'short and to the point'}
+
+PARENT_MESSAGE_SCHEMA = _obj({"subject": _STR, "body": _STR})
+
+
+def parent_message_warnings(details: str) -> list[str]:
+    text = (details or '').lower()
+    if not any(w in text for w in SENSITIVE_WORDS):
+        return []
+    return ['Your notes mention health, support-plan, discipline or family matters. Keep these for the office, the nurse or a '
+            'counsellor, and check the wording before you send.']
+
+
+def generate_parent_message(llm: LLMClient, *, kind: str, student_first_name: str, teacher_name: str, details: str, tone: str,
+                            region: str = 'pk') -> tuple[dict, Usage, str]:
+    system = (f"You help a teacher {_voice(region)[0]} write a message to a student's family. Use only the facts the "
+              "teacher gives; never invent incidents, dates, grades or promises. Do not mention health, medical, "
+              "special-education, disciplinary or family-circumstance details, and never compare the student with others. "
+              "Be respectful and specific, and invite a reply. This is a draft the teacher will read and edit before sending.")
+    prompt = (f"Write {MESSAGE_KINDS.get(kind, MESSAGE_KINDS['custom'])}.\nStudent first name: {student_first_name}\n"
+              f"From: {teacher_name}\nTone: {TONES.get(tone, TONES['warm'])}\nTeacher's notes: {details}\n\n"
+              "subject: a short, neutral subject line. body: the message, greeting and sign-off included, under 180 words.")
+    out, usage, model = llm.structured(system=system, prompt=prompt, schema=PARENT_MESSAGE_SCHEMA)
+    subject, body = (out.get("subject") or "").strip()[:200], (out.get("body") or "").strip()[:4000]
+    if not body:
+        raise LLMError("The model did not return a message.")
+    return {"subject": subject or "A note about " + student_first_name, "body": body}, usage, model
+
+
+def template_parent_message(*, kind: str, student_first_name: str, teacher_name: str, details: str) -> dict:
+    opener = {
+        'behavior_concern': f"I wanted to let you know about something I have noticed with {student_first_name} in class, so we can work on it together.",
+        'positive_note': f"I wanted to share some good news about {student_first_name}.",
+        'missed_assignments': f"I am writing about some assignments {student_first_name} has not yet handed in.",
+        'attendance_concern': f"I am writing because {student_first_name} has been absent or late recently, and I would like to help.",
+    }.get(kind, f"I am writing about {student_first_name}.")
+    body = (f"Dear family,\n\n{opener}\n\n{details.strip()}\n\nPlease reply if you would like to talk about it. "
+            f"Thank you for your support.\n\nKind regards,\n{teacher_name}")
+    subject = f"Good news about {student_first_name}" if kind == 'positive_note' else f"A note about {student_first_name}"
+    return {"source": "template", "subject": subject, "body": body}
+
+
+RUBRIC_SCHEMA = _obj({"criteria": {"type": "array", "items": _obj({
+    "name": _STR,
+    "levels": {"type": "array", "items": _obj({"label": _STR, "description": _STR})},
+})}})
+DEFAULT_LEVELS = ['Exceeds', 'Meets', 'Approaching', 'Beginning']
+
+
+def clean_rubric(raw, max_criteria: int = 8) -> list[dict]:
+    """A rubric as a list of criteria, each with ordered levels. Drops anything malformed rather than guessing."""
+    out = []
+    for c in (raw if isinstance(raw, list) else [])[:max_criteria]:
+        if not isinstance(c, dict) or not str(c.get('name') or '').strip():
+            continue
+        levels = [{'label': str(lv.get('label') or '').strip()[:40], 'description': str(lv.get('description') or '').strip()[:400]}
+                  for lv in (c.get('levels') if isinstance(c.get('levels'), list) else []) if isinstance(lv, dict)]
+        levels = [lv for lv in levels if lv['label']][:5]
+        if len(levels) >= 2:
+            out.append({'name': str(c['name']).strip()[:80], 'levels': levels})
+    return out
+
+
+def generate_rubric(llm: LLMClient, *, title: str, instructions: str, subject: str, grade: str, standards: list[str],
+                    levels: list[str], region: str = 'pk') -> tuple[dict, Usage, str]:
+    prompt = (f"Write a scoring rubric for this assignment.\nTitle: {title}\nSubject: {subject}\nClass/grade: {grade}\n"
+              f"Instructions given to students: {instructions or '(none)'}\n"
+              + (f"Standards: {'; '.join(standards)}\n" if standards else "")
+              + f"Performance levels, best first: {', '.join(levels)}\n\n"
+              "criteria: 3-5 criteria that matter for this assignment. For each criterion give every level a label (exactly as "
+              "listed) and a one-sentence description of what that level looks like, in plain language a student understands.")
+    out, usage, model = llm.structured(system=teacher_system(region), prompt=prompt, schema=RUBRIC_SCHEMA)
+    criteria = clean_rubric(out.get("criteria"))
+    if not criteria:
+        raise LLMError("The model did not return a usable rubric.")
+    return {"criteria": criteria}, usage, model
+
+
+def template_rubric(*, title: str, levels: list[str]) -> dict:
+    names = ['Understanding of the task', 'Quality of the work', 'Clarity and presentation']
+    return {"source": "template", "criteria": [
+        {"name": n, "levels": [{"label": lv, "description": f"Describe what {lv.lower()} looks like for this criterion."} for lv in levels]}
+        for n in names]}
+
+
+# ---------------------------------------------------------------------------
+# Administrator analytics: a plain-language read of numbers the school already has
+# ---------------------------------------------------------------------------
+NARRATIVE_SCHEMA = _obj({"summary": _STR})
+
+
+def narrative_system(region: str | None = 'pk') -> str:
+    place, _ = _voice(region)
+    return (f"You write short briefings for the head of a school {place}. You are given figures already calculated by the school's "
+            "system. Describe only what the figures show: say what rose, fell or stands out. Never explain why something happened, "
+            "never predict, never name or identify any person, and never add a figure that is not in the list. "
+            "Plain sentences, no headings, no bullet points.")
+
+
+def generate_narrative(llm: LLMClient, *, title: str, period: str, facts: list[dict], region: str = 'pk') -> tuple[dict, Usage, str]:
+    lines = "\n".join(f"- {f['label']}: {f['value']}" + (f" ({f['change']})" if f.get('change') else "") for f in facts)
+    prompt = (f"Report: {title}\nPeriod: {period}\nFigures:\n{lines}\n\n"
+              "summary: 3 to 5 sentences for the head of school: the main picture first, then the one or two things most worth a look.")
+    out, usage, model = llm.structured(system=narrative_system(region), prompt=prompt, schema=NARRATIVE_SCHEMA)
+    text = (out.get("summary") or "").strip()[:1200]
+    if not text:
+        raise LLMError("The model did not return a summary.")
+    return {"summary": text}, usage, model
+
+
+def template_narrative(*, title: str, facts: list[dict]) -> dict:
+    """The same figures as plain sentences, used when no AI provider is set up."""
+    parts = []
+    for f in facts:
+        s = f"{f['label']}: {f['value']}"
+        if f.get('change'):
+            s += f" ({f['change']})"
+        parts.append(s)
+    return {"source": "template", "summary": f"{title}. " + ". ".join(parts) + "."}

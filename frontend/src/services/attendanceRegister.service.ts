@@ -6,6 +6,8 @@ const base = '/auth/attendance';
 export type DailyStatus = 'present' | 'absent' | 'late' | 'excused' | 'holiday' | 'early_dismissal';
 export type LessonStatus = 'present' | 'absent' | 'late' | 'excused';
 
+export interface EscalationStep { count: number; days: number; staff: boolean; intervention: boolean }
+
 export interface AttendanceSettings {
   mode: 'daily' | 'period';
   alert_absent: boolean;
@@ -13,6 +15,8 @@ export interface AttendanceSettings {
   alert_email: boolean;
   alert_in_app: boolean;
   chronic_threshold: number;
+  escalation: EscalationStep[] | null;
+  escalation_effective: EscalationStep[];
   reasons: Array<{ value: string; label: string }>;
 }
 

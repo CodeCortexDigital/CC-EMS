@@ -13,6 +13,8 @@ export interface GAssignment {
   id: string; title: string; description: string; category: string | null; category_name: string; term: string | null;
   section: string | null; due_date: string | null; points_possible: number; counts_toward_grade: boolean; is_published: boolean;
   exam: string | null; standards: string[];
+  /** Scoring guide shown while grading. Never changes a score. */
+  rubric?: Array<{ name: string; levels: Array<{ label: string; description: string }> }>;
 }
 export interface GradeSummary {
   percent: number | null; letter: string; gpa_points: number | null; passing: boolean | null; missing: number;

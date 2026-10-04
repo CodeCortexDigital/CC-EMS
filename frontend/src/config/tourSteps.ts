@@ -17,13 +17,14 @@ const HELP: TourStep = {
 
 const TOURS: Record<string, Tour> = {
   admin: {
-    key: 'admin', version: 1, steps: [
+    key: 'admin', version: 2, steps: [
       { title: 'Welcome to your school', body: 'This is a short tour of where things are. The menu on the left is grouped by job: People, Academics, Billing, Communication and more. Click a heading to open it.' },
       { title: 'Students and families', body: 'Find students, add new ones, see households, print ID cards, and give students and parents their passwords under Portal Logins.', href: '/education/students', linkLabel: 'Open Students' },
       { title: 'Admissions', body: 'Online applications, the waiting list with automatic seat offers, school tours and interviews, and each family\'s document checklist.', href: '/education/admissions', linkLabel: 'Open Admissions' },
       { title: 'Staff & HR', body: 'Cover requests, who is out, recruitment, contracts and licences, performance and pay set-up. Approved leave finds substitute cover automatically.', href: '/education/hr', linkLabel: 'Open Staff & HR' },
       { title: 'Timetable', body: 'Build the week for every class using only qualified teachers. Teaching Rules says who can teach which subject.', href: '/education/timetable', linkLabel: 'Open Timetable' },
       { title: 'Fees', body: 'Generate invoices for a class, take payments, and see who has not paid. Families can pay by card online.', href: '/education/fees/invoices', linkLabel: 'Open Fees' },
+      { title: 'Interventions', body: 'A to-do list for helping individual students. Interventions open on their own when absences add up (you set the steps under Attendance) or the early-warning model flags a student. Give each one an owner and a due date.', href: '/education/interventions', linkLabel: 'Open Interventions' },
       { title: 'Safety, health and front desk', body: 'Report and follow up incidents, record nurse visits and medication, and control who may collect each child.', href: '/education/safety', linkLabel: 'Open Safety reports' },
       { title: 'Forms and permission slips', body: 'Send a form to a class or the whole school, collect signatures online, and remind the families who have not signed.', href: '/education/forms', linkLabel: 'Open Forms' },
       { title: 'Import and export', body: 'Load a whole school from spreadsheets, download everything as a backup, or restore it. Nothing is saved until you check the preview and press Import.', href: '/education/import', linkLabel: 'Open Import data' },
@@ -74,8 +75,9 @@ const TOURS: Record<string, Tour> = {
     ],
   },
   counsellor: {
-    key: 'counsellor', version: 1, steps: [
+    key: 'counsellor', version: 2, steps: [
       { title: 'Welcome', body: 'You see every safety report and run the follow-up.' },
+      { title: 'Interventions', body: 'Students who need support appear here: after repeated absences, or when the early-warning model flags them. Assign an owner, keep notes, and mark each done when something has been done.', href: '/education/interventions', linkLabel: 'Open Interventions' },
       { title: 'Safety reports', body: 'Open a report, add follow-up tasks with an owner and a due date, and close it with a note when it is resolved. Overdue tasks are flagged at the top.', href: '/education/safety', linkLabel: 'Open Safety reports' },
       INSTALL, HELP,
     ],

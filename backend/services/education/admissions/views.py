@@ -549,7 +549,8 @@ def ai_screen_application(request, id):
         except AIQuotaExceeded as exc:
             return Response({'error': str(exc)}, status=429)
         try:
-            result, usage, model = generate_admission_screening(llm, **kwargs)
+            from services.core.tenants.localization import school_locale
+            result, usage, model = generate_admission_screening(llm, region=school_locale(ctx.tenant)['region'], **kwargs)
         except LLMError:
             logger.exception('Admission screening failed')
             return Response({'error': 'Screening failed. Please try again.'}, status=502)

@@ -173,7 +173,7 @@ def _assignment_payload(a: Assignment) -> dict:
             'section': str(a.section_id) if a.section_id else None, 'due_date': a.due_date.isoformat() if a.due_date else None,
             'points_possible': float(a.points_possible), 'counts_toward_grade': a.counts_toward_grade,
             'is_published': a.is_published, 'exam': str(a.exam_id) if a.exam_id else None,
-            'standards': [str(s.id) for s in a.standards.all()]}
+            'standards': [str(s.id) for s in a.standards.all()], 'rubric': a.rubric or []}
 
 
 @api_view(['GET'])
@@ -284,6 +284,10 @@ def _apply_assignment(a: Assignment, data):
     for key in ('counts_toward_grade', 'is_published'):
         if key in data:
             setattr(a, key, bool(data[key]))
+    if 'rubric' in data:
+        from services.ai.generation import clean_rubric
+
+        a.rubric = clean_rubric(data['rubric'])
     if not a.title:
         raise ValueError('Give the assignment a title.')
 
@@ -606,7 +610,8 @@ def ai_comment_draft(request):
     except AIQuotaExceeded as exc:
         return Response({'error': str(exc)}, status=429)
     try:
-        result, usage, model = generate_report_comment(llm, **kwargs)
+        from services.core.tenants.localization import school_locale
+        result, usage, model = generate_report_comment(llm, region=school_locale(ctx.tenant)['region'], **kwargs)
     except LLMError:
         logger.exception("Report comment generation failed")
         return Response({'error': 'Comment generation failed. Please try again.'}, status=502)

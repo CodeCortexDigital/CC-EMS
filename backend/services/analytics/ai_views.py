@@ -19,10 +19,14 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 from services.ai.context import AIContext
-from services.ai.generation import generate_lesson_plan, generate_quiz as llm_generate_quiz, template_lesson_plan
+from services.ai.generation import (
+    generate_lesson_plan, generate_lesson_plan_with_standards, generate_quiz as llm_generate_quiz,
+    standards_alignment_template, template_lesson_plan,
+)
 from services.ai.llm import LLMError, get_llm_client
 from services.ai.permissions import HasAIRole, IsAIAdmin, IsAIEducator
 from services.ai.quota import AIQuotaExceeded, check_rate_limit, check_token_budget, feature_enabled, record_usage
+from services.core.tenants.localization import school_locale
 
 logger = logging.getLogger("erp.ai")
 
@@ -105,18 +109,30 @@ def ai_lesson_plan(request):
         duration = int(request.data.get('duration_minutes', 40))
     except (TypeError, ValueError):
         duration = 40
+    standards = request.data.get('standards', [])
+    if isinstance(standards, str):
+        standards = standards.split('\n')
+    standards = [str(s).strip()[:300] for s in (standards if isinstance(standards, list) else []) if str(s).strip()][:10]
 
     if get_llm_client() is None:
         # No AI provider yet: hand back a standard lesson structure, labelled as such.
-        return Response(template_lesson_plan(subject=subject, grade=grade, topic=topic,
-                                             objectives=objectives, duration=duration))
+        plan = template_lesson_plan(subject=subject, grade=grade, topic=topic, objectives=objectives, duration=duration)
+        if standards:
+            plan['standards_alignment'] = standards_alignment_template(standards)
+        return Response(plan)
     ready, error = _llm_for(request, 'ai_lesson_plans')
     if error:
         return error
     ctx, llm = ready
     try:
-        plan, usage, model = generate_lesson_plan(
-            llm, subject=subject, grade=grade, topic=topic, objectives=objectives, duration=duration)
+        if standards:
+            plan, usage, model = generate_lesson_plan_with_standards(
+                llm, subject=subject, grade=grade, topic=topic, objectives=objectives, standards=standards,
+                duration=duration, region=school_locale(ctx.tenant)['region'])
+        else:
+            plan, usage, model = generate_lesson_plan(
+                llm, subject=subject, grade=grade, topic=topic, objectives=objectives, duration=duration,
+                region=school_locale(ctx.tenant)['region'])
     except LLMError:
         logger.exception("Lesson plan generation failed")
         return Response({'error': 'Lesson plan generation failed. Please try again.'},
@@ -188,6 +204,14 @@ def _run_risk_scan(tenant_id=None) -> dict:
             risk_obj.risk_level = 'low'
 
         risk_obj.save()
+
+        # A high or critical dropout risk becomes a task for a counselor (one per student, not one per scan).
+        try:
+            from services.education.interventions.engine import from_risk
+
+            from_risk(student, risk_obj)
+        except Exception:
+            logger.exception('Could not open an intervention for student %s', student.pk)
 
     return {
         'model_training': f"{train_msg} | {train_fd_msg}",
@@ -288,6 +312,15 @@ def notify_dropout_risk(request):
     for user in recipients.values():
         if create_user_notification(user, 'Dropout risk alert', message, 'academic'):
             notified += 1
+
+    try:  # the same reason as the nightly scan's, so it lands in the counselor queue once
+        from services.education.interventions.engine import open_intervention
+
+        open_intervention(student=student, source='risk', title=f'Dropout risk {dropout_risk:.0f}%', description=message,
+                          actions=['Meet with the student', 'Contact the family', 'Review attendance and recent grades'],
+                          due_days=7, dedupe_key=f'risk:{student.pk}', created_by=request.user, notify=False)
+    except Exception:
+        logger.exception('Could not open an intervention for student %s', student.pk)
 
     risk.recommendations = (risk.recommendations or []) + [
         {'action': 'counsel_notified', 'at': timezone.now().isoformat(), 'by': request.user.email, 'notified': notified}]
@@ -579,7 +612,8 @@ def generate_quiz(request):
     ctx, llm = ready
     try:
         quiz_data, usage, model = llm_generate_quiz(
-            llm, subject=subject.name, topic=topic, difficulty=difficulty, count=count, grade=grade)
+            llm, subject=subject.name, topic=topic, difficulty=difficulty, count=count, grade=grade,
+            region=school_locale(ctx.tenant)['region'])
     except LLMError:
         logger.exception("Quiz generation failed")
         return Response({'error': 'Quiz generation failed. Please try again.'}, status=status.HTTP_502_BAD_GATEWAY)

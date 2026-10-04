@@ -139,11 +139,12 @@ function Enrolment({ d }: { d: any }) {
 function Attendance({ d }: { d: any }) {
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <StatTile label="Attendance" value={d.summary.rate} change={d.change} upIsGood format={pct} changeFormat={(v) => `${num(v)} pts`} />
         <StatTile label="Days absent" value={d.summary.absent + d.summary.excused} note={`${d.summary.excused} excused`} />
         <StatTile label="Late arrivals" value={d.summary.late} />
         <StatTile label="Students often absent" value={d.often_absent_count} note="below 90% with 10+ days recorded" />
+        {d.chronic && <StatTile label="Chronic absenteeism" value={d.chronic.rate} format={pct} note={`${d.chronic.students} of ${d.chronic.measured} students miss ${d.chronic.threshold_percent}%+ of days`} />}
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <LineChart title="Attendance rate" subtitle="Last 6 months" format={pct} min={0} max={100} points={d.months.map((m: any) => ({ label: m.label.split(' ')[0], value: m.rate }))} />

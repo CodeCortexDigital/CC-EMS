@@ -127,6 +127,8 @@ import SafetyPage from '@/pages/education/safety/SafetyPage'
 import FormsPage from '@/pages/education/forms/FormsPage'
 import ParentFormsPage from '@/pages/portals/parent/ParentFormsPage'
 import ParentHealthPage from '@/pages/portals/parent/ParentHealthPage'
+import AiSettingsPage from '@/pages/settings/AiSettingsPage'
+import InterventionsPage from '@/pages/education/interventions/InterventionsPage'
 import FamilyBillingPage from '@/pages/education/finance/FamilyBillingPage'
 import PaymentPlansPage from '@/pages/education/finance/PaymentPlansPage'
 import OnlinePaymentsPage from '@/pages/education/finance/OnlinePaymentsPage'
@@ -138,6 +140,7 @@ import PrivacyConsentPage from '@/pages/PrivacyConsentPage'
 import HelpCentrePage from '@/pages/help/HelpCentrePage'
 import TicketsPage from '@/pages/help/TicketsPage'
 import SchoolReportsPage from '@/pages/education/insights/SchoolReportsPage'
+import PlanningPage from '@/pages/education/insights/PlanningPage'
 import SearchPage from '@/pages/SearchPage'
 import LessonAttendancePage from '@/pages/education/attendance/LessonAttendancePage'
 import AbsenceReportsPage from '@/pages/education/attendance/AbsenceReportsPage'
@@ -583,6 +586,7 @@ function App() {
                   <Route path="insights/attendance" element={<RoleBasedRoute allowedRoles={['admin']}><SchoolReportsPage view="attendance" /></RoleBasedRoute>} />
                   <Route path="insights/finance" element={<RoleBasedRoute allowedRoles={['admin']}><SchoolReportsPage view="finance" /></RoleBasedRoute>} />
                   <Route path="insights/academics" element={<RoleBasedRoute allowedRoles={['admin']}><SchoolReportsPage view="academics" /></RoleBasedRoute>} />
+                  <Route path="insights/planning" element={<RoleBasedRoute allowedRoles={['admin']}><PlanningPage /></RoleBasedRoute>} />
                   <Route path="insights/teachers" element={<RoleBasedRoute allowedRoles={['admin']}><SchoolReportsPage view="teachers" /></RoleBasedRoute>} />
                   <Route path="attendance-student" element={<AnalyticsPage />} />
                   <Route path="attendance-staff" element={<AnalyticsPage />} />
@@ -648,6 +652,7 @@ function App() {
                 </Route>
                 <Route path="education/health-office" element={<RoleBasedRoute allowedRoles={['admin', 'nurse']}><HealthOfficePage /></RoleBasedRoute>} />
                 <Route path="education/safety" element={<RoleBasedRoute allowedRoles={['admin', 'counsellor', 'teacher', 'staff', 'nurse', 'front_desk', 'manager', 'hr']}><SafetyPage /></RoleBasedRoute>} />
+                <Route path="education/interventions" element={<RoleBasedRoute allowedRoles={['admin', 'counsellor', 'teacher', 'staff', 'manager', 'hr']}><InterventionsPage /></RoleBasedRoute>} />
                 <Route path="education/forms" element={<RoleBasedRoute allowedRoles={['admin', 'manager']}><FormsPage /></RoleBasedRoute>} />
                 <Route path="parent/forms" element={<RoleBasedRoute allowedRoles={['parent']}><ParentFormsPage /></RoleBasedRoute>} />
                 <Route path="parent/health" element={<RoleBasedRoute allowedRoles={['parent']}><ParentHealthPage /></RoleBasedRoute>} />
@@ -657,6 +662,7 @@ function App() {
                 {/* ============================================================
                     SETTINGS ROUTES
                     ============================================================ */}
+                <Route path="settings/ai" element={<RoleBasedRoute allowedRoles={['admin']}><AiSettingsPage /></RoleBasedRoute>} />
                 <Route path="settings/integrations" element={<RoleBasedRoute allowedRoles={['admin']}><IntegrationsPage /></RoleBasedRoute>} />
                 <Route path="education/import" element={<RoleBasedRoute allowedRoles={['admin']}><ImportPage /></RoleBasedRoute>} />
                 <Route path="settings/*" element={<SettingsPage />} />

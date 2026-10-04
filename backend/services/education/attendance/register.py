@@ -39,6 +39,7 @@ DEFAULTS = {
     'alert_email': True,
     'alert_in_app': True,
     'chronic_threshold': 3,     # warn after this many unexcused absences in 30 days (0 = off)
+    'escalation': None,         # the absence ladder: [{count, days, staff, intervention}, ...]; None = built from chronic_threshold
 }
 ATTENDED = ('present', 'late', 'early_dismissal')
 
@@ -56,6 +57,9 @@ def clean_settings(raw: dict) -> dict:
         out['chronic_threshold'] = max(0, int(out['chronic_threshold']))
     except (TypeError, ValueError):
         out['chronic_threshold'] = DEFAULTS['chronic_threshold']
+    from .escalation import clean_steps
+
+    out['escalation'] = clean_steps(out['escalation'])
     return out
 
 
@@ -151,16 +155,10 @@ def alert_for_record(record: AttendanceRecord):
     elif record.status == 'late' and not excused and cfg['alert_tardy']:
         mins = f' ({record.minutes_late} minutes late)' if record.minutes_late else ''
         send_notice(student, record.date, 'late', f'{student.full_name} arrived late on {when}{mins}.', {'minutes': mins})
-    if record.status == 'absent' and not excused and cfg['chronic_threshold']:
-        since = record.date - timedelta(days=30)
-        count = AttendanceRecord.objects.filter(student=student, date__gt=since, date__lte=record.date,
-                                                status='absent', is_excused=False).count()
-        if count >= cfg['chronic_threshold']:
-            recent = AttendanceNotice.objects.filter(student=student, kind='chronic', date__gt=since).exists()
-            if not recent:
-                send_notice(student, record.date, 'chronic',
-                            f'{student.full_name} has missed {count} school days without an excuse in the last 30 days. '
-                            f'Regular attendance matters. Please contact the school so we can help.', {'count': count})
+    if record.status == 'absent' and not excused:
+        from .escalation import run as run_escalation
+
+        run_escalation(student, record.date, cfg)  # the school's absence ladder (see escalation.py)
 
 
 # ---------------------------------------------------------------------------
@@ -265,7 +263,10 @@ def attendance_settings(request):
             fresh.settings_json = {**(fresh.settings_json or {}), 'attendance': clean_settings(cfg)}
             fresh.save(update_fields=['settings_json'])
         school = fresh
-    return Response({**settings_for(school), 'reasons': [{'value': v, 'label': l} for v, l in REASONS]})
+    from .escalation import steps_for
+
+    cfg = settings_for(school)
+    return Response({**cfg, 'escalation_effective': steps_for(cfg), 'reasons': [{'value': v, 'label': l} for v, l in REASONS]})
 
 
 @api_view(['GET'])

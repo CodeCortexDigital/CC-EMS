@@ -90,6 +90,8 @@ class Assignment(TenantScopedModel):
     counts_toward_grade = models.BooleanField(default=True)
     is_published = models.BooleanField(default=True, help_text='Students and parents can see it and its scores')
     standards = models.ManyToManyField(Standard, blank=True, related_name='assignments')
+    # Scoring guide shown to the teacher while grading: [{name, levels: [{label, description}]}]. Never changes a score.
+    rubric = models.JSONField(default=list, blank=True)
     exam = models.OneToOneField('education_exams.Exam', on_delete=models.SET_NULL, null=True, blank=True,
                                 related_name='gradebook_assignment')
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,

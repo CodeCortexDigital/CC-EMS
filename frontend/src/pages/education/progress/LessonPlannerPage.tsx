@@ -45,6 +45,7 @@ export default function LessonPlannerPage() {
 
   // AI Assistant States
   const [aiTopic, setAiTopic] = useState('')
+  const [aiStandards, setAiStandards] = useState('')
   const [generatingLesson, setGeneratingLesson] = useState(false)
 
   const handleAiGenerateLesson = async () => {
@@ -59,7 +60,8 @@ export default function LessonPlannerPage() {
         subject: subjectName,
         grade: className,
         topic: aiTopic,
-        objectives: objectives ? objectives.split(',') : []
+        objectives: objectives ? objectives.split(',') : [],
+        standards: aiStandards.split('\n').map(s => s.trim()).filter(Boolean)
       }
       
       const res = await api.post('/ai/lesson-plan/', payload)
@@ -85,6 +87,7 @@ export default function LessonPlannerPage() {
       const noteParts = [
         data.assessment ? `Assessment Questions: ${Array.isArray(data.assessment) ? data.assessment.join(' | ') : data.assessment}` : '',
         data.differentiation ? `Differentiation: ${data.differentiation}` : '',
+        Array.isArray(data.standards_alignment) && data.standards_alignment.length ? `Standards: ${data.standards_alignment.join(' | ')}` : '',
       ].filter(Boolean)
       if (noteParts.length) {
         setNotes(noteParts.join('\n'))
@@ -381,6 +384,14 @@ export default function LessonPlannerPage() {
                     {generatingLesson ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Generate'}
                   </Button>
                 </div>
+                <textarea
+                  aria-label="Standards to address (optional)"
+                  rows={2}
+                  placeholder={'Standards to address (optional), one per line, e.g.\nCCSS.MATH.4.NF.1'}
+                  value={aiStandards}
+                  onChange={(e) => setAiStandards(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-1.5 bg-white text-xs focus:outline-none"
+                />
               </div>
 
               <div>

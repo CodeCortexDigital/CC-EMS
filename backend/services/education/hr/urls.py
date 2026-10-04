@@ -1,10 +1,12 @@
 from django.urls import path
 
 from . import directory, payroll, records, substitutes
+from services.education.insights.planning import staffing as staffing_signals
 
 urlpatterns = [
     path('overview/', records.overview, name='hr-overview'),
     path('alerts/', records.alerts_view, name='hr-alerts'),
+    path('signals/', staffing_signals, name='hr-signals'),
     path('me/', records.my_hr, name='hr-me'),
     # Cover requests
     path('cover/', substitutes.requests_, name='hr-cover'),

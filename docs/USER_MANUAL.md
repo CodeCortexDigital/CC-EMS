@@ -153,6 +153,21 @@ These tools are for administrators and for staff given a named role: **front des
 
 **Forms** (administrators). **New form**: the text families agree to, optional questions (yes/no, short answer, choose one), who it goes to (every family or chosen classes) and a sign-by date. Save as a draft, then **Publish**: each child's family gets a form to sign and a notification. **Who has signed** shows signed, declined and waiting, lets you **remind** only those who have not signed, and downloads a CSV. A signed form's wording cannot change; use **New version** instead.
 
+### 3.7b Interventions, absence steps, AI help and planning
+
+**Interventions** (administrators and the counsellor; a teacher or staff member sees **My Interventions**, the ones given to them). A list of students who need support. They open on their own when a student's unexcused absences reach a step of your absence ladder, or when the early-warning scan flags a student. You can also add one by hand with **New intervention**. Open one to see why it opened and suggested next steps, give it an **owner** and a due date, add notes, and press **Mark done** (you must say what was done) or **Dismiss** (you must say why). The tiles at the top show open, overdue and unassigned ones. A closed one can be reopened. An owner can add notes and finish their own interventions but not reassign them.
+
+**Absence steps** (Attendance, then Absence Reports). Set what happens as unexcused absences add up. The usual ladder is 3, 5 and 10 absences. Each step warns the family, and a step can also tell staff and open an intervention. Excused absences never count. **Back to the usual steps** restores 3, 5 and 10. **School Reports, Attendance** also shows **Chronic absenteeism**: students who miss 10% or more of the days recorded (students with fewer than 10 days recorded are left out).
+
+**AI Assistant** (Settings, administrators). Switch each AI feature on or off for your school, see this month's use, and accept the **AI use notice**. Features that send a student's name to the AI provider (such as drafting a message to a family) will not work until the notice is accepted. Everything the AI writes is a **draft**: it is never sent, and it never decides a grade, an admission or discipline.
+
+**Planning** (Reports, then **Planning**; administrators). Four parts:
+
+* **A short written read of the figures.** Choose a report and press **Write the summary**. It describes the numbers (the figures are shown beside it) and does not explain causes or predict. Without an AI provider you get the same figures in plain words.
+* **Next year's enrolment.** For each grade: this year, expected next year with a low to high range, approved offers, applications waiting, seats left and sections needed. The retention and application-conversion figures used are shown, and marked "assumed" when your school does not have enough history yet. Set seats per grade under Admissions, Waitlist.
+* **Scores term over term**, by subject or by class, with a **declining** flag for a drop of 5 points or more. Groups under 10 students are never shown.
+* **Staff signals.** Contracts and probation ending, credentials expiring, a lot of time away, a heavy cover load, a full timetable. These are for starting a conversation and are not a rating of anyone.
+
 ### 3.8 Other areas
 
 * **Communication:** SMS, WhatsApp and messaging to parents, with templates.
@@ -193,6 +208,9 @@ The teacher menu:
 * **My Classes / Class Reports:** your classes, students and reports.
 * **Cover & My HR:** lessons you are asked to cover (press **I can cover** if you are free and qualified), and your own HR page.
 * **Safety Reports:** file an incident (injury, bullying, damage). You see the reports you filed.
+* **My Interventions:** students the counselor has asked you to support. Add notes and press **Mark done** when something has been done.
+* **Messages, Draft with AI:** in **New message**, pick a student, a type and a tone, add a few notes, and the AI drafts a message for you to edit. Nothing is sent until you press Send. Keep health and discipline matters for the office. In a conversation, **Summarise** also suggests a reply, and **Translate** shows a message in your language (with **Show original**).
+* **Gradebook, Rubric:** on an assignment you can write a rubric or **Draft with AI**; it shows from the column heading while you grade and never changes a score. The **Lesson planner** assistant accepts standards to address.
 * **Quick actions** (Attendance, Marks, Homework and so on, depending on what your school allowed you).
 * **Timetable, then My Leave:** request leave.
 * **Library, Messages, Announcements, Calendar, Meetings.**

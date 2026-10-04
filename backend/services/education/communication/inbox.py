@@ -9,6 +9,7 @@ Students read conversations they are added to but don't start new ones.
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
 
@@ -28,7 +29,9 @@ from services.core.accounts.decorators import _get_teacher_class_ids, get_user_r
 
 from .models import (
     Announcement, AnnouncementReceipt, ChatMessage, Conversation, ConversationParticipant, Message, SmsConfig,
+    TranslationCache,
 )
+from .urgency import classify, worst
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -157,7 +160,10 @@ def _conv_payload(conv: Conversation, me) -> dict:
     last = conv.messages.order_by('-created_at').first()
     unread = conv.messages.exclude(sender=me).filter(created_at__gt=mine.last_read_at).count() if mine and mine.last_read_at \
         else conv.messages.exclude(sender=me).count()
-    return {'id': str(conv.id), 'subject': conv.subject,
+    incoming = conv.messages.exclude(sender=me)
+    if mine and mine.last_read_at:
+        incoming = incoming.filter(created_at__gt=mine.last_read_at)
+    return {'id': str(conv.id), 'subject': conv.subject, 'urgency': worst(incoming.values_list('urgency', flat=True)) if get_user_role(me) in ('admin', 'teacher') else 'normal',
             'student': {'id': str(conv.student_id), 'full_name': conv.student.full_name} if conv.student_id else None,
             'participants': [{'id': str(p.user_id), 'name': p.user.full_name or p.user.email, 'role': p.role} for p in parts],
             'last_message': {'body': last.body[:160], 'at': last.created_at, 'sender': last.sender.full_name if last.sender else ''} if last else None,
@@ -171,6 +177,7 @@ def _msg_payload(m: ChatMessage, request=None) -> dict:
         if request is not None and not url.startswith('http'):
             url = request.build_absolute_uri(url)
     return {'id': str(m.id), 'body': m.body, 'at': m.created_at,
+            'urgency': m.urgency if request is not None and get_user_role(request.user) in ('admin', 'teacher') else 'normal',
             'sender': {'id': str(m.sender_id), 'name': (m.sender.full_name or m.sender.email) if m.sender else 'Deleted user'},
             'attachment': {'name': m.attachment_name, 'url': url} if m.attachment else None}
 
@@ -221,7 +228,7 @@ def conversations(request):
                                                last_read_at=timezone.now())
         for uid in wanted:
             ConversationParticipant.objects.create(conversation=conv, user_id=uid, role=allowed[uid]['role'])
-        msg = ChatMessage.objects.create(conversation=conv, sender=request.user, body=body[:10000])
+        msg = ChatMessage.objects.create(conversation=conv, sender=request.user, body=body[:10000], urgency=classify(subject, body))
     _notify_new_message(conv, msg, request.user)
     return Response(_conv_payload(conv, request.user), status=201)
 
@@ -236,7 +243,7 @@ def conversation_detail(request, conv_id):
     return Response(data)
 
 
-def _ai_summarize(request, title, body):
+def _ai_summarize(request, title, body, want_reply=False):
     """{title, body} -> {summary, key_points, source}, or an error Response
     (docs table "AI Parent Message Summarizer")."""
     from services.ai.context import AIContext
@@ -247,7 +254,7 @@ def _ai_summarize(request, title, body):
     if not body.strip():
         return None, Response({'error': 'There is nothing to summarise yet.'}, status=400)
     if get_llm_client() is None:
-        return Response(template_message_summary(title=title, body=body)), None
+        return Response({**template_message_summary(title=title, body=body), **({'suggested_reply': ''} if want_reply else {})}), None
 
     ctx = AIContext.from_request(request)
     if not feature_enabled('ai_message_summary', ctx):
@@ -259,7 +266,7 @@ def _ai_summarize(request, title, body):
     except AIQuotaExceeded as exc:
         return None, Response({'error': str(exc)}, status=429)
     try:
-        result, usage, model = generate_message_summary(llm, title=title, body=body)
+        result, usage, model = generate_message_summary(llm, title=title, body=body, want_reply=want_reply)
     except LLMError:
         logger.exception('Message summarisation failed')
         return None, Response({'error': 'Could not summarise this right now. Please try again.'}, status=502)
@@ -273,7 +280,10 @@ def summarize_conversation(request, conv_id):
     conv = _my_conversation(request, conv_id)
     messages = list(conv.messages.select_related('sender').order_by('-created_at')[:50])[::-1]
     body = "\n\n".join(f"{(m.sender.full_name or m.sender.email) if m.sender else 'Someone'}: {m.body}" for m in messages)[-12000:]
-    ok, error = _ai_summarize(request, conv.subject or 'Conversation', body)
+    # Only staff get a draft reply, and only when the last word came from someone else.
+    last = messages[-1] if messages else None
+    want_reply = get_user_role(request.user) in ('admin', 'teacher') and bool(last) and last.sender_id != request.user.pk
+    ok, error = _ai_summarize(request, conv.subject or 'Conversation', body, want_reply=want_reply)
     return error if error else ok
 
 
@@ -306,6 +316,10 @@ def _ai_translate(request, title, body, lang_code):
         return None, Response({'error': 'There is nothing to translate yet.'}, status=400)
     if get_llm_client() is None:
         return Response({**template_translation(title=title, body=body, target_language=lang_name), 'language': lang_code}), None
+    key = hashlib.sha256(f'{title}\n{body}'.encode('utf8')).hexdigest()
+    hit = TranslationCache.objects.filter(text_hash=key, language=lang_code).first()
+    if hit:  # translated before: same text, same language, no new AI call
+        return Response({'translated_text': hit.translated_text, 'source': 'ai', 'language': lang_code, 'cached': True}), None
 
     ctx = AIContext.from_request(request)
     if not feature_enabled('ai_translation', ctx):
@@ -322,7 +336,8 @@ def _ai_translate(request, title, body, lang_code):
         logger.exception('Translation failed')
         return None, Response({'error': 'Could not translate this right now. Please try again.'}, status=502)
     record_usage(ctx, 'ai_translation', llm.provider, model, usage)
-    return Response({**result, 'source': 'ai', 'language': lang_code}), None
+    TranslationCache.objects.get_or_create(text_hash=key, language=lang_code, defaults={'translated_text': result['translated_text']})
+    return Response({**result, 'source': 'ai', 'language': lang_code, 'cached': False}), None
 
 
 @api_view(['POST'])
@@ -354,7 +369,8 @@ def post_message(request, conv_id):
         except ValidationError as exc:
             return Response({'error': ' '.join(exc.messages)}, status=400)
     msg = ChatMessage.objects.create(conversation=conv, sender=request.user, body=body[:10000] or '(attachment)',
-                                     attachment=upload, attachment_name=info.name if upload else '')
+                                     attachment=upload, attachment_name=info.name if upload else '',
+                                     urgency=classify(conv.subject, body))
     Conversation.objects.filter(pk=conv.pk).update(last_message_at=msg.created_at)
     ConversationParticipant.objects.filter(conversation=conv, user=request.user).update(last_read_at=timezone.now())
     _notify_new_message(conv, msg, request.user)

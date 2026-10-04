@@ -3,7 +3,7 @@ from django.db import models
 import uuid
 
 from services.core.db.softdelete import SoftDeleteModel
-from services.core.tenants.mixins import SchoolAliasMixin
+from services.core.tenants.mixins import SchoolAliasMixin, TenantScopedModel
 
 
 class AttendanceRecord(SchoolAliasMixin, SoftDeleteModel):
@@ -175,3 +175,18 @@ class AttendanceNotice(models.Model):
     class Meta:
         ordering = ['-created_at']
         constraints = [models.UniqueConstraint(fields=['student', 'date', 'kind'], name='uniq_attendance_notice')]
+
+
+class AbsenceEscalation(TenantScopedModel):
+    """A step of the school's absence ladder fired for a student. Kept so the step does not fire again too soon."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey('education_students.Student', on_delete=models.CASCADE, related_name='absence_escalations')
+    step = models.PositiveSmallIntegerField(help_text='The number of unexcused absences that defines the step')
+    absences = models.PositiveSmallIntegerField(help_text='How many unexcused absences there were when it fired')
+    window_days = models.PositiveSmallIntegerField()
+    triggered_on = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-triggered_on']
+        indexes = [models.Index(fields=['student', 'step', '-triggered_on'])]

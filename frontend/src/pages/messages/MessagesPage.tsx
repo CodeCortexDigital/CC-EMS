@@ -5,6 +5,7 @@ import { ArrowLeft, Languages, Loader2, MessageSquarePlus, Paperclip, Search, Se
 import messaging, { type AiSummary, type AiTranslation, type ChatMessage, type Contact, type ConversationSummary } from '@/services/messaging.service';
 import { useAuth } from '@/contexts/AuthContext';
 import { Modal } from '@/components/ui/Modal';
+import DraftWithAi from '@/components/messages/DraftWithAi';
 
 const when = (d: string) => {
   const date = new Date(d);
@@ -29,6 +30,7 @@ export default function MessagesPage() {
   const [summarizingThread, setSummarizingThread] = useState(false);
   const [msgTranslations, setMsgTranslations] = useState<Record<string, AiTranslation>>({});
   const [translatingMsg, setTranslatingMsg] = useState<string | null>(null);
+  const [showOriginal, setShowOriginal] = useState<Record<string, boolean>>({});
   const bottom = useRef<HTMLDivElement>(null);
 
   const loadList = useCallback(() => messaging.conversations().then(setList).catch(() => setList([])), []);
@@ -40,6 +42,7 @@ export default function MessagesPage() {
   useEffect(() => {
     setThreadSummary(null);
     setMsgTranslations({});
+    setShowOriginal({});
     if (!openId) { setThread(null); return; }
     loadThread(openId);
     const t = window.setInterval(() => loadThread(openId), 15000);
@@ -81,7 +84,8 @@ export default function MessagesPage() {
     } catch (e: any) { toast.error(e?.response?.data?.error || 'Could not send the message.'); }
   };
 
-  const shown = (list || []).filter((c) => !search || `${c.subject} ${c.participants.map((p) => p.name).join(' ')} ${c.student?.full_name || ''}`.toLowerCase().includes(search.toLowerCase()));
+  const rank = (c: ConversationSummary) => ({ urgent: 2, frustrated: 1 }[c.urgency || 'normal'] ?? 0);
+  const shown = (list || []).filter((c) => !search || `${c.subject} ${c.participants.map((p) => p.name).join(' ')} ${c.student?.full_name || ''}`.toLowerCase().includes(search.toLowerCase())).sort((a, b) => rank(b) - rank(a));   // stable: urgent first, then newest
   const others = (c: ConversationSummary) => c.participants.filter((p) => p.id !== String(user?.id)).map((p) => p.name).join(', ');
 
   return (
@@ -102,6 +106,9 @@ export default function MessagesPage() {
                 <li key={c.id}>
                   <button onClick={() => setParams({ c: c.id })} className={`w-full text-left px-3 py-2.5 ${openId === c.id ? 'bg-brand-soft' : 'hover:bg-slate-50'}`}>
                     <div className="flex justify-between gap-2"><span className={`text-sm truncate ${c.unread ? 'font-bold' : 'font-semibold'}`}>{others(c) || 'Just you'}</span><span className="text-xs text-slate-500 shrink-0">{when(c.last_message_at)}</span></div>
+                    {c.urgency && c.urgency !== 'normal' && (
+                      <span className={`inline-block mb-0.5 px-1.5 rounded text-[10px] font-bold ${c.urgency === 'urgent' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'}`}>{c.urgency === 'urgent' ? 'Urgent' : 'Upset'}</span>
+                    )}
                     <p className="text-sm truncate">{c.subject}{c.student ? <span className="text-slate-500"> · {c.student.full_name}</span> : null}</p>
                     <div className="flex justify-between gap-2"><p className="text-xs text-slate-500 truncate">{c.last_message?.body}</p>{c.unread > 0 && <span className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-brand text-white text-[11px] font-bold flex items-center justify-center">{c.unread}</span>}</div>
                   </button>
@@ -120,7 +127,7 @@ export default function MessagesPage() {
                   <p className="font-bold truncate">{thread.subject}</p>
                   <p className="text-xs text-slate-500 truncate">{thread.participants.map((p) => `${p.name}${p.role ? ` (${p.role})` : ''}`).join(', ')}{thread.student ? ` · about ${thread.student.full_name}` : ''}</p>
                 </div>
-                {thread.messages.length > 4 && (
+                {(thread.messages.length > 4 || role === 'admin' || role === 'teacher') && (
                   <button onClick={summarizeThread} disabled={summarizingThread}
                     className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline disabled:opacity-50">
                     {summarizingThread ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} Summarise
@@ -133,6 +140,13 @@ export default function MessagesPage() {
                   {threadSummary.key_points.length > 0 && (
                     <ul className="list-disc pl-4 mt-1 space-y-0.5">{threadSummary.key_points.map((k, i) => <li key={i}>{k}</li>)}</ul>
                   )}
+                  {threadSummary.suggested_reply && (
+                    <div className="mt-2 border-t border-indigo-100 pt-2">
+                      <p className="font-semibold">Suggested reply <span className="font-normal text-slate-500">(a draft: read and edit it before you send)</span></p>
+                      <p className="mt-0.5 whitespace-pre-wrap">{threadSummary.suggested_reply}</p>
+                      <button onClick={() => setReply(threadSummary.suggested_reply || '')} className="mt-1 font-semibold text-brand hover:underline">Put in my reply box</button>
+                    </div>
+                  )}
                 </div>
               )}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[60vh]">
@@ -142,17 +156,23 @@ export default function MessagesPage() {
                     <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${mine ? 'bg-brand text-white rounded-br-sm' : 'bg-slate-100 rounded-bl-sm'}`}>
                         {!mine && <p className="text-xs font-semibold mb-0.5">{m.sender.name}</p>}
-                        <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                        <p className="whitespace-pre-wrap break-words">{msgTranslations[m.id] && msgTranslations[m.id].source === 'ai' && !showOriginal[m.id] ? msgTranslations[m.id].translated_text : m.body}</p>
                         {m.attachment && <a href={m.attachment.url} target="_blank" rel="noreferrer" className={`mt-1 inline-flex items-center gap-1 text-xs underline ${mine ? 'text-white' : 'text-brand'}`}><Paperclip className="w-3 h-3" />{m.attachment.name}</a>}
-                        {msgTranslations[m.id] && (
+                        {msgTranslations[m.id]?.source === 'template' && (
                           <p className={`mt-1 text-xs italic whitespace-pre-wrap ${mine ? 'text-white/90' : 'text-slate-600'}`}>{msgTranslations[m.id].translated_text}</p>
+                        )}
+                        {msgTranslations[m.id]?.source === 'ai' && (
+                          <p className={`mt-1 text-[10px] ${mine ? 'text-white/80' : 'text-slate-500'}`}>
+                            {showOriginal[m.id] ? 'Original' : 'Machine translated'}{' · '}
+                            <button className="underline font-semibold" onClick={() => setShowOriginal((o) => ({ ...o, [m.id]: !o[m.id] }))}>{showOriginal[m.id] ? 'Show translation' : 'Show original'}</button>
+                          </p>
                         )}
                         <div className="flex items-center gap-2 mt-1">
                           <p className={`text-[10px] ${mine ? 'text-white/70' : 'text-slate-500'}`}>{new Date(m.at).toLocaleString()}</p>
-                          <button onClick={() => translateMessage(m.id)} disabled={translatingMsg === m.id}
+                          {!msgTranslations[m.id] && <button onClick={() => translateMessage(m.id)} disabled={translatingMsg === m.id}
                             className={`inline-flex items-center gap-0.5 text-[10px] font-semibold hover:underline disabled:opacity-50 ${mine ? 'text-white/80' : 'text-brand'}`}>
                             {translatingMsg === m.id ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Languages className="w-2.5 h-2.5" />} Translate
-                          </button>
+                          </button>}
                         </div>
                       </div>
                     </div>
@@ -180,6 +200,7 @@ export default function MessagesPage() {
 }
 
 function Compose({ onClose, onStarted }: { onClose: () => void; onStarted: (id: string) => void }) {
+  const { role } = useAuth();
   const [contacts, setContacts] = useState<Contact[] | null>(null);
   const [to, setTo] = useState<string[]>([]);
   const [find, setFind] = useState('');
@@ -208,6 +229,7 @@ function Compose({ onClose, onStarted }: { onClose: () => void; onStarted: (id: 
             {contacts && matches.length === 0 && <li className="px-3 py-2 text-slate-500">No one matches.</li>}
           </ul>
         </div>
+        {(role === 'teacher' || role === 'admin') && <DraftWithAi onDraft={(d) => { setSubject(d.subject); setBody(d.body); }} />}
         <div><label className="block text-xs font-semibold text-slate-600 mb-1" htmlFor="cm-sub">Subject</label><input id="cm-sub" className="w-full rounded-lg border border-slate-300 px-3 py-2" value={subject} onChange={(e) => setSubject(e.target.value)} /></div>
         <div><label className="block text-xs font-semibold text-slate-600 mb-1" htmlFor="cm-body">Message</label><textarea id="cm-body" rows={5} className="w-full rounded-lg border border-slate-300 px-3 py-2" value={body} onChange={(e) => setBody(e.target.value)} /></div>
       </div>

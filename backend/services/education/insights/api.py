@@ -264,12 +264,36 @@ def attendance(request):
         if total >= 10 and rate is not None and rate < 90:
             often.append({'id': str(sid), 'name': names[sid][0], 'class_name': names[sid][1], 'rate': rate, 'absent': v['absent'], 'late': v['late'], 'days': total})
     often.sort(key=lambda r: r['rate'])
+
+    # Chronic absenteeism, the usual U.S. measure: a student who misses 10% or more of the days recorded, counting every
+    # absence (excused or not). Students with fewer than 10 days recorded are left out, so a new arrival is not counted.
+    try:
+        chronic_percent = min(50.0, max(1.0, float(request.query_params.get('chronic_percent') or 10)))
+    except ValueError:
+        chronic_percent = 10.0
+    chronic_by_class = defaultdict(lambda: [0, 0])
+    chronic_students = measured = 0
+    for sid, v in per_student.items():
+        days = sum(v.values())
+        if days < 10:
+            continue
+        measured += 1
+        cname = names[sid][1] or 'No class'
+        chronic_by_class[cname][1] += 1
+        if (v['absent'] + v['excused']) * 100 / days >= chronic_percent:
+            chronic_students += 1
+            chronic_by_class[cname][0] += 1
+    chronic = {
+        'threshold_percent': chronic_percent, 'students': chronic_students, 'measured': measured, 'rate': _pct(chronic_students, measured),
+        'by_class': sorted(({'name': k, 'students': a, 'measured': m, 'rate': _pct(a, m)} for k, (a, m) in chronic_by_class.items() if a),
+                           key=lambda r: -(r['rate'] or 0)),
+    }
     if request.query_params.get('export') == 'csv':
         return _csv('attendance-often-absent', ['Student', 'Class', 'Attendance %', 'Absent', 'Late', 'Days recorded'],
                     [[r['name'], r['class_name'], r['rate'], r['absent'], r['late'], r['days']] for r in often])
     return Response({**_meta(start, end, pstart, pend), 'summary': now, 'previous': before, 'change': _change(now['rate'], before['rate']),
                      'months': months, 'by_class': by_class, 'by_weekday': by_weekday, 'often_absent': often[:50],
-                     'often_absent_count': len(often)})
+                     'often_absent_count': len(often), 'chronic': chronic})
 
 
 @api_view(['GET'])

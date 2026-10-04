@@ -156,6 +156,8 @@ class ChatMessage(models.Model):
     body = models.TextField()
     attachment = models.FileField(upload_to='messages/%Y/%m/', null=True, blank=True)
     attachment_name = models.CharField(max_length=255, blank=True, default='')
+    # How pressing the message reads: only this label is kept, never an AI's reasoning (see urgency.py).
+    urgency = models.CharField(max_length=10, default='normal')
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
@@ -227,3 +229,16 @@ class AutoTextRule(TenantScopedModel):
 
     class Meta:
         unique_together = ('tenant', 'event')
+
+
+class TranslationCache(TenantScopedModel):
+    """A machine translation, kept so the same text is only translated once per language.
+    Keyed by a hash of the exact text, so an edited message is never shown a stale translation."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    text_hash = models.CharField(max_length=64)
+    language = models.CharField(max_length=10)
+    translated_text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['tenant', 'text_hash', 'language'], name='uniq_translation_per_text')]

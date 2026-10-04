@@ -4,6 +4,7 @@ import { Download, EyeOff, Loader2, Plus, Settings2, Trash2 } from 'lucide-react
 import gradebook, { type ClassSubjectRef, type GAssignment, type Grid, type ScoreStatus } from '@/services/gradebook.service';
 import api from '@/services/api';
 import { Modal } from '@/components/ui/Modal';
+import RubricEditor, { RubricTable } from '@/components/gradebook/RubricEditor';
 
 const input = 'rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--app-accent)]';
 const lbl = 'block text-xs font-semibold text-slate-600 mb-1';
@@ -40,6 +41,7 @@ export default function GradebookPage() {
   const [loading, setLoading] = useState(false);
   const [edit, setEdit] = useState<Partial<GAssignment> | null>(null);
   const [cats, setCats] = useState(false);
+  const [rubricOf, setRubricOf] = useState<GAssignment | null>(null);
   const [exams, setExams] = useState<Array<{ id: string; title: string }> | null>(null);
 
   useEffect(() => {
@@ -132,6 +134,7 @@ export default function GradebookPage() {
                       <span className="block text-[11px] text-slate-500">/{a.points_possible}{a.due_date ? ` · ${new Date(`${a.due_date}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}</span>
                       {!a.is_published && <EyeOff className="w-3 h-3 inline text-slate-400" aria-label="Hidden from families" />}
                     </button>
+                    {!!a.rubric?.length && <button onClick={() => setRubricOf(a)} className="mt-0.5 text-[11px] font-semibold text-brand hover:underline" aria-label={`Show the rubric for ${a.title}`}>Rubric</button>}
                   </th>
                 ))}
               </tr>
@@ -165,6 +168,12 @@ export default function GradebookPage() {
       {edit && grid && (
         <AssignmentModal a={edit} grid={grid} terms={terms} classSubject={cs} sections={current?.sections || []}
           onClose={() => setEdit(null)} onSaved={() => { setEdit(null); load(); }} />
+      )}
+      {rubricOf && (
+        <Modal open onClose={() => setRubricOf(null)} title={`Rubric: ${rubricOf.title}`} size="lg">
+          <p className="text-xs text-slate-500 mb-2">A guide for scoring. Type the score in the grid as usual.</p>
+          <RubricTable rubric={rubricOf.rubric || []} />
+        </Modal>
       )}
       {cats && grid && <CategoriesModal grid={grid} classSubject={cs} onClose={() => { setCats(false); load(); }} />}
       {exams && (
@@ -216,6 +225,8 @@ function AssignmentModal({ a, grid, terms, classSubject, sections, onClose, onSa
         <div><label className={lbl} htmlFor="as-term">Term</label><select id="as-term" className={`${input} w-full`} value={f.term || ''} onChange={(e) => setF({ ...f, term: e.target.value })}>{terms.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
         <div><label className={lbl} htmlFor="as-sec">For</label><select id="as-sec" className={`${input} w-full`} value={f.section || ''} onChange={(e) => setF({ ...f, section: e.target.value || null })}><option value="">Every section</option>{sections.map((s) => <option key={s.id} value={s.id}>Section {s.name}</option>)}</select></div>
         <div className="sm:col-span-2"><label className={lbl} htmlFor="as-desc">Instructions (optional)</label><textarea id="as-desc" rows={2} className={`${input} w-full`} value={f.description || ''} onChange={(e) => setF({ ...f, description: e.target.value })} /></div>
+        <div className="sm:col-span-2"><RubricEditor value={f.rubric || []} onChange={(rubric) => setF({ ...f, rubric })}
+          context={{ title: f.title || '', instructions: f.description || '', subject: grid.class_subject?.subject || '', grade: grid.class_subject?.class_name || '' }} /></div>
         <label className="flex items-center gap-2"><input type="checkbox" className="w-4 h-4" checked={f.counts_toward_grade !== false} onChange={(e) => setF({ ...f, counts_toward_grade: e.target.checked })} /> Counts toward the grade</label>
         <label className="flex items-center gap-2"><input type="checkbox" className="w-4 h-4" checked={f.is_published !== false} onChange={(e) => setF({ ...f, is_published: e.target.checked })} /> Students and parents can see it</label>
       </div>

@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     'services.education.imports',
     'services.education.hr',
     'services.education.safety',
+    'services.education.interventions',
     'services.education.forms',
     'services.analytics',
     'services.ai',
@@ -553,6 +554,23 @@ try:
         'ai-risk-scan-nightly': {
             'task': 'services.analytics.tasks.nightly_risk_scan',
             'schedule': crontab(hour=1, minute=30),
+        },
+        # School jobs: each runs the management command of the same name (each app's tasks.py).
+        'admissions-daily': {
+            'task': 'services.education.admissions.tasks.admissions_daily',
+            'schedule': crontab(hour=6, minute=0),
+        },
+        'immunization-reminders-daily': {
+            'task': 'services.education.students.tasks.immunization_reminders',
+            'schedule': crontab(hour=6, minute=10),
+        },
+        'hr-alerts-daily': {
+            'task': 'services.education.hr.tasks.hr_alerts',
+            'schedule': crontab(hour=6, minute=20),
+        },
+        'refresh-cover-daily': {
+            'task': 'services.education.hr.tasks.refresh_cover',
+            'schedule': crontab(hour=6, minute=30),
         },
     }
 except ImportError:

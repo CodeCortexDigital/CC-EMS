@@ -178,6 +178,7 @@ export const reportsTabs: ModuleTab[] = [
   { id: 'finance', path: '/education/analytics/insights/finance', label: 'Finance', icon: DollarSign, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87' },
   { id: 'academics', path: '/education/analytics/insights/academics', label: 'Academics', icon: BarChart2, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87' },
   { id: 'teachers', path: '/education/analytics/insights/teachers', label: 'Teachers', icon: Users2, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87' },
+  { id: 'planning', path: '/education/analytics/insights/planning', label: 'Planning', icon: BarChart2, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87' },
   { id: 'student-card', path: '/education/analytics?report=card', label: 'Student Card', icon: Users, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87' },
   { id: 'student-info', path: '/education/analytics?report=students-info', label: 'Student Info', icon: Users2, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87' },
   { id: 'parent-info', path: '/education/analytics?report=parents-info', label: 'Parent Info', icon: Users2, dark: 'bg-emerald-700', light: 'bg-emerald-100', rgb: '4 120 87' },

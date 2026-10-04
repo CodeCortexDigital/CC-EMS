@@ -4,14 +4,17 @@ import api from './api';
 const base = '/auth/communication';
 
 export interface Contact { id: string; name: string; email: string; role: string; about: string[] }
+export type Urgency = 'normal' | 'frustrated' | 'urgent';
 export interface ConversationSummary {
   id: string; subject: string; student: { id: string; full_name: string } | null;
   participants: Array<{ id: string; name: string; role: string }>;
   last_message: { body: string; at: string; sender: string } | null; last_message_at: string; unread: number;
+  /** How pressing the unread messages read. Only staff are told; everyone else always gets 'normal'. */
+  urgency?: Urgency;
 }
-export interface ChatMessage { id: string; body: string; at: string; sender: { id: string; name: string }; attachment: { name: string; url: string } | null }
-export interface AiSummary { summary: string; key_points: string[]; source: 'ai' | 'template' }
-export interface AiTranslation { translated_text: string; language: string; source: 'ai' | 'template' }
+export interface ChatMessage { id: string; body: string; at: string; urgency?: Urgency; sender: { id: string; name: string }; attachment: { name: string; url: string } | null }
+export interface AiSummary { summary: string; key_points: string[]; source: 'ai' | 'template'; suggested_reply?: string }
+export interface AiTranslation { translated_text: string; language: string; source: 'ai' | 'template'; cached?: boolean }
 export interface Announcement {
   id: string; title: string; body: string; audience: string; audience_label: string; class_ids: string[]; grade_levels: number[];
   is_pinned: boolean; scheduled_for: string | null; sent_at: string | null; created_at: string; author: string; read?: boolean;

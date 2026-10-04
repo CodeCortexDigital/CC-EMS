@@ -66,7 +66,7 @@ describe('GuidedTour', () => {
     const total = ALL_TOURS.admin.steps.length;
     for (let i = 1; i < total; i++) fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
-    await waitFor(() => expect(post).toHaveBeenCalledWith('/tour/progress/', { tour: 'admin', version: 1, status: 'completed' }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/tour/progress/', { tour: 'admin', version: ALL_TOURS.admin.version, status: 'completed' }));
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
@@ -74,11 +74,11 @@ describe('GuidedTour', () => {
     get.mockResolvedValue({ data: { tours: {} } });
     renderTour();
     fireEvent.click(await screen.findByRole('button', { name: 'Skip the tour' }));
-    await waitFor(() => expect(post).toHaveBeenCalledWith('/tour/progress/', { tour: 'admin', version: 1, status: 'skipped' }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/tour/progress/', { tour: 'admin', version: ALL_TOURS.admin.version, status: 'skipped' }));
   });
 
   it('stays closed for someone who has already seen it, until they ask to replay it', async () => {
-    get.mockResolvedValue({ data: { tours: { admin: { version: 1, status: 'completed' } } } });
+    get.mockResolvedValue({ data: { tours: { admin: { version: ALL_TOURS.admin.version, status: 'completed' } } } });
     renderTour();
     await waitFor(() => expect(get).toHaveBeenCalled());
     expect(screen.queryByRole('dialog')).toBeNull();

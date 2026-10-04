@@ -6,7 +6,7 @@ import {
   Eye, MessageSquare, Video, FileQuestion,
   Edit, Award, Lock, Unlock, Search, X, ChevronRight, ChevronLeft, LogOut,
   DollarSign, User, Star, Building2, ClipboardList, Mail, Megaphone, CalendarDays, Handshake, TrendingUp, Library, Bus, Boxes, UtensilsCrossed, Plug, FileSpreadsheet, ShieldCheck,
-  LifeBuoy, Briefcase, ScanFace, Stethoscope, AlertOctagon, FileSignature, HeartPulse,
+  LifeBuoy, Briefcase, ScanFace, Stethoscope, AlertOctagon, FileSignature, HeartPulse, Sparkles, ClipboardCheck,
 } from 'lucide-react';
 import cafeteriaService from '@/services/cafeteria.service';
 import transportService from '@/services/transport.service';
@@ -46,7 +46,7 @@ const CLOSED_KEY = 'sidebar_closed_groups';
 // Menu entries that belong to an optional plan module (P11).
 const PLAN_MODULE: Record<string, string> = {
   library: 'library', transport: 'transport', inventory: 'inventory', cafeteria: 'cafeteria', 'cafeteria-till': 'cafeteria',
-  'bus-duty': 'transport', integrations: 'integrations', reports: 'reports',
+  'bus-duty': 'transport', integrations: 'integrations', reports: 'reports', 'ai-settings': 'ai',
 };
 
 const COMMS: MenuItem[] = [
@@ -220,6 +220,7 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
     { id: 'staff-hr', label: 'Staff & HR', icon: <Briefcase className="w-4 h-4" />, href: '/education/hr', always: true, group: 'people' },
     ...(['admin', 'front_desk'].includes(role || '') ? [{ id: 'front-desk', label: 'Front Desk', icon: <ScanFace className="w-4 h-4" />, href: '/education/front-desk', always: true, group: 'people' }] : []),
     ...(['admin', 'nurse'].includes(role || '') ? [{ id: 'health-office', label: 'Health Office', icon: <Stethoscope className="w-4 h-4" />, href: '/education/health-office', always: true, group: 'people' }] : []),
+    ...(['admin', 'counsellor'].includes(role || '') ? [{ id: 'interventions', label: 'Interventions', icon: <ClipboardCheck className="w-4 h-4" />, href: '/education/interventions', always: true, group: 'people' }] : []),
     ...(['admin', 'counsellor', 'nurse', 'front_desk', 'manager', 'hr', 'staff'].includes(role || '') ? [{ id: 'safety', label: 'Safety Reports', icon: <AlertOctagon className="w-4 h-4" />, href: '/education/safety', always: true, group: 'people' }] : []),
     ...(['admin', 'manager'].includes(role || '') ? [{ id: 'forms', label: 'Forms', icon: <FileSignature className="w-4 h-4" />, href: '/education/forms', always: true, group: 'communication' }] : []),
     { id: 'academic-setup', label: 'Academic Setup', icon: <GraduationCap className="w-4 h-4" />, href: '/education/academic-setup', group: 'academics' },
@@ -242,6 +243,7 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
     { id: 'security', label: 'Security & privacy', icon: <Lock className="w-4 h-4" />, href: '/settings/security', group: 'admin' },
     { id: 'help', label: 'Help & support', icon: <LifeBuoy className="w-4 h-4" />, href: '/help', always: true, group: 'admin' },
     { id: 'import-data', label: 'Import data', icon: <FileSpreadsheet className="w-4 h-4" />, href: '/education/import', group: 'admin' },
+    { id: 'ai-settings', label: 'AI Assistant', icon: <Sparkles className="w-4 h-4" />, href: '/settings/ai', group: 'admin' },
     { id: 'integrations', label: 'Integrations', icon: <Plug className="w-4 h-4" />, href: '/settings/integrations', group: 'admin' },
     { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" />, href: '/settings', group: 'admin' },
     // Platform owner only: every school on this installation.
@@ -265,6 +267,7 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
     { id: 'class-reports', label: 'Class Reports', icon: <ClipboardList className="w-4 h-4" />, href: '/teacher/reports', always: true, group: 'teaching' },
     { id: 'staff-hr', label: 'Cover & My HR', icon: <Briefcase className="w-4 h-4" />, href: '/education/hr/cover', always: true, group: 'teaching' },
     { id: 'safety', label: 'Safety Reports', icon: <AlertOctagon className="w-4 h-4" />, href: '/education/safety', always: true, group: 'teaching' },
+    { id: 'interventions', label: 'My Interventions', icon: <ClipboardCheck className="w-4 h-4" />, href: '/education/interventions', always: true, group: 'teaching' },
     { id: 'library', label: 'Library', icon: <Library className="w-4 h-4" />, href: '/library', always: true, group: 'services' },
     ...teacherQuickActions
       .filter((q) => canView(q.module))

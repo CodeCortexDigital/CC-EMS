@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Bell, Check, Loader2, X } from 'lucide-react';
 import attendanceRegister, { type AbsenceReport, type AttendanceSettings } from '@/services/attendanceRegister.service';
+import EscalationLadder from '@/components/attendance/EscalationLadder';
 
 const card = 'bg-white rounded-xl border border-slate-200 shadow-sm';
 const fmt = (d: string) => new Date(d).toLocaleDateString();
@@ -97,12 +98,10 @@ export default function AbsenceReportsPage() {
                 ['alert_email', 'By email'], ['alert_in_app', 'In the parent portal']] as const).map(([k, l]) => (
                 <label key={k} className="flex items-center gap-2"><input type="checkbox" className="w-4 h-4" checked={Boolean(cfg[k])} onChange={(e) => saveCfg({ [k]: e.target.checked })} /> {l}</label>
               ))}
-              <label className="flex items-center gap-2">Warn after
-                <input type="number" min={0} max={30} className="w-16 rounded border border-slate-300 px-2 py-1" value={cfg.chronic_threshold}
-                  onChange={(e) => setCfg({ ...cfg, chronic_threshold: Number(e.target.value) })} onBlur={() => saveCfg({ chronic_threshold: cfg.chronic_threshold })} aria-label="Absence warning threshold" />
-                unexcused absences in 30 days (0 = off)</label>
             </fieldset>
           </div>
+          <EscalationLadder steps={cfg.escalation_effective} isCustom={cfg.escalation !== null}
+            onSave={(steps) => saveCfg({ escalation: steps })} onReset={() => saveCfg({ escalation: null })} />
           <p className="text-xs text-slate-500">Alerts go to guardians marked "Receives school messages" and to linked parent accounts. Each alert is sent once.</p>
         </section>
       )}
