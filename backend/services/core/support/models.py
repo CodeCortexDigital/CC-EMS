@@ -17,7 +17,8 @@ class HelpArticle(models.Model):
         ('getting-started', 'Getting started'), ('students', 'Students and admissions'), ('attendance', 'Attendance'),
         ('fees', 'Fees and payments'), ('exams', 'Exams and grades'), ('timetable', 'Timetable'),
         ('communication', 'Messages and announcements'), ('staff', 'Staff and payroll'), ('portal', 'Parent and student portal'),
-        ('account', 'Your account and security'), ('settings', 'School settings and billing'), ('other', 'Other'),
+        ('account', 'Your account and security'), ('settings', 'School settings and billing'),
+        ('reports', 'Reports and daily briefs'), ('support', 'Student support, safety and front office'), ('ai', 'AI features'), ('other', 'Other'),
     ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     slug = models.SlugField(max_length=120, unique=True)

@@ -11,9 +11,11 @@ A full-stack, multi-tenant school/ERP management platform with a **React + TypeS
 - **Staff & HR** — cover (substitute) requests, leave with US leave types, half days, two-step approval and a "who is out" calendar, recruitment and onboarding, contracts and credential expiry alerts, performance reviews and goals, pay grades with tax and benefits, directory and org chart. See [Staff & HR](#staff--hr).
 - **Exams & Results** — exam hub, marks entry, result cards, mark-sheets, grade scales, report cards, admit cards.
 - **Attendance** — student & staff attendance with bulk entry, reports, and facial-recognition embeddings.
-- **Finance & Payroll** — fee structure, invoices, installments, discounts, late fees, payment gateways (JazzCash/Easypaisa), salary generation and slips.
-- **Communication** — in-app chat, SMS/WhatsApp broadcast (Meta Graph API), notifications, announcements.
-- **Analytics & AI** — executive dashboard with real-time KPIs, an AI assistant that answers questions from live school data (streaming, chat history, English/Urdu voice), AI lesson plans and quizzes, and ML risk scoring / anomaly detection. See [AI Features](#ai-features).
+- **Finance & Payroll** — fee structure, invoices, installments, discounts, late fees, online card payments (Stripe; the JazzCash and Easypaisa wallets are offered only to schools set to the Pakistan region), salary generation and slips. Fee receipts and invoice PDFs belong to one family; the school-wide finance PDFs are for finance staff.
+- **Communication** — in-app chat, SMS/WhatsApp broadcast (Meta Graph API), notifications, announcements; translate a message on demand (kept so each text is translated once per language), summaries with a suggested reply for staff, and an urgency label on incoming messages (staff only).
+- **Student support** — a configurable absence ladder (default 3, 5 and 10 unexcused absences) that warns families and can open **interventions**: a counsellor's to-do list with owners, notes and due dates. Chronic-absenteeism reporting. See [Daily briefs, student support and planning](#daily-briefs-student-support-and-planning).
+- **Daily briefs** — an administrator's morning brief and evening summary: counts only, drafted then approved, kept for about three months, with weekly, fortnightly and monthly roll-ups.
+- **Analytics & AI** — executive dashboard with real-time KPIs, an AI assistant that answers questions from live school data (streaming, chat history, English/Urdu voice), AI drafts for teachers (lesson plans with standards, family messages, rubrics, quizzes, report comments), planning reports (enrolment forecast, score trends, staff signals) and ML risk scoring / anomaly detection. Everything the AI writes is a draft. See [AI Features](#ai-features).
 - **Real-time** — WebSocket KPI/attendance/notification broadcasts.
 - **Multi-tenancy** — tenant resolution via header/subdomain/session with per-tenant data scoping.
 
@@ -55,10 +57,10 @@ See [docs/README.md](docs/README.md) for the full feature breakdown.
 On Windows, double-click **`demo.bat`** in the project root (or run it from a terminal). It:
 
 1. Creates the Python environment and installs packages (first run only).
-2. Sets up a local SQLite database and fills it with a demo school, **CodeCortex Model School** (first run only, 10–15 minutes, so do it before the meeting; later runs start in seconds): 6 classes, 6 teachers, 120 students, 3 months of fees with payments, 30 school days of attendance, exams with results, homework, behaviour records and payroll.
+2. Sets up a local SQLite database and fills it with the sample US school, **Maple Grove Academy** (first run only, about a minute plus setup; later runs start in seconds): K-8, 214 students, 24 staff, timetable, fees, attendance, exams, HR and one saved lesson plan. It is loaded through the same importer a school would use.
 3. Starts the backend on **http://localhost:8009** and the frontend on **http://localhost:5179** in two windows, then opens the login page.
 
-**A US school instead:** `python manage.py seed_demo --pack us-school` loads *Maple Grove Academy* (K-8, 214 students, 24 staff, timetable, fees, attendance, exams, HR) from `sample-data/us-school/` through the same importer a school would use. The four demo logins below are wired to it (`teacher@code.com` is a maths teacher, `student@code.com` a Grade 8 student, `parent@code.com` a mother of two). It takes about a minute. `demo.bat` now loads it on a first run; if you already have a demo database with the old 120-student school, run **`load-us-school.bat`** (it migrates, loads Maple Grove and makes the demo logins open it), then `restart-demo.bat`. The files are in [sample-data/us-school/](sample-data/us-school/); upload `us-school-pack.zip` in the app to load them into any school.
+**The demo school.** `python manage.py seed_demo` loads *Maple Grove Academy* from `sample-data/us-school/` (it is the only demo school; the old built-in Pakistani-style school is gone). The four demo logins below are wired to it (`teacher@code.com` is a maths teacher, `student@code.com` a Grade 8 student, `parent@code.com` a parent of two). `demo.bat` loads it on a first run; if you have an older demo database, run **`load-us-school.bat`** (it migrates, loads Maple Grove and makes the demo logins open it), then `restart-demo.bat`. The files are in [sample-data/us-school/](sample-data/us-school/); upload `us-school-pack.zip` in the app to load them into any school.
 
 To stop, run **`stop-demo.bat`** (or close the two server windows); **`restart-demo.bat`** stops and starts again. Both only touch the demo ports 8009 and 5179. On this machine there are desktop shortcuts: *ERP Demo - Start / Stop / Restart*. To rebuild the demo data from scratch: `cd backend` then `.venv\Scripts\python manage.py seed_demo --reset`.
 
@@ -67,19 +69,21 @@ To stop, run **`stop-demo.bat`** (or close the two server windows); **`restart-d
 | Role | Email | Password | What they see |
 |------|-------|----------|---------------|
 | Admin | `admin@code.com` | `Admin@123` | Whole school: dashboard, fees, attendance, analytics |
-| Teacher | `teacher@code.com` | `Teacher@123` | Ayesha Khan, Grade 8 class teacher, teaches Mathematics |
-| Parent | `parent@code.com` | `Parent@123` | Kashif Raza, parent of Ali (Grade 8) and Fatima (Grade 6) |
-| Student | `student@code.com` | `Student@123` | Ali Raza, Grade 8 |
+| Teacher | `teacher@code.com` | `Teacher@123` | A maths teacher (Grade 6): classes, timetable, cover, drafts with AI |
+| Parent | `parent@code.com` | `Parent@123` | A parent of two children: their attendance, fees, forms, health records |
+| Student | `student@code.com` | `Student@123` | A Grade 8 student: own timetable, homework, results |
 
 **Suggested walkthrough (about 10 minutes)**
 
 1. **Admin → Dashboard:** live totals (students, staff, fee collection, today's attendance).
 2. **Admin → AI assistant** (purple button, bottom right): ask *"Fee defaulters & finance summary"*, then *"How many students are absent today?"*.
 3. **Admin → Reports (Analytics):** click **Run AI Risk Scan**. The ML models score every student for dropout and fee-default risk; the at-risk list and charts update.
-4. **Teacher → Lesson Planner:** pick a class and subject, enter a topic, generate a lesson plan draft.
+4. **Teacher → Lesson Planner:** a saved sample plan is already there. Add one: pick a class and subject, enter a topic (and, optionally, standards to address), generate a draft. **Messages → New message → Draft with AI** writes a message to a family for you to edit.
 5. **Parent → Dashboard:** the child's attendance and fee history; ask the assistant *"My fees & dues"*. It only ever shows this family's data.
 6. **Student → assistant:** *"My attendance"*. Then ask *"finance summary"*: students can't see school-wide data.
-7. **Any role → moon icon (top right):** switch to dark mode. **Settings → Theme** changes the accent colour, header and sidebar style, fonts and corner roundness for the whole app.
+7. **Admin → Daily Briefs:** press **Prepare it now** on the morning brief, read the draft, edit if you like and **Approve**; try **Headlines** and **Mark as read**. **Reports → Planning** shows next year's enrolment forecast and score trends.
+8. **Admin → Interventions:** students who need support, opened by the absence ladder or by staff.
+9. **Any role → moon icon (top right):** switch to dark mode. **Settings → Theme** changes the accent colour, header and sidebar style, fonts and corner roundness for the whole app.
 
 **Portal logins for students, parents and staff.** Adding a student or employee creates their portal account on the server with its own random password (for example `kqmz-4827`). Usernames are the IDs people already have:
 
@@ -91,7 +95,7 @@ To stop, run **`stop-demo.bat`** (or close the two server windows); **`restart-d
 
 Admins see the logins under **Students → Portal Logins** and **Employees → Portal Logins**, where they can issue a new password (the old one stops working) or open the letter to print. Once someone changes their own password, the letter shows "Changed by user" instead. Accounts created before this existed show a **Generate missing logins** button.
 
-**Without API keys** the assistant runs in *quick-answer mode* (keyword matching over the same live data and role rules), and lesson plans use a standard template. Add `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` to the backend environment to switch both to full AI. No other change is needed. Face-recognition attendance needs DeepFace/OpenCV and is not part of the demo.
+**Without API keys** the assistant runs in *quick-answer mode* (keyword matching over the same live data and role rules), and the drafting features (lesson plans, family messages, rubrics, brief summaries) give a standard template and say so. Add `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` to the backend environment to switch to full AI; the assistant then also shows natural-language example questions. No other change is needed. Face-recognition attendance needs DeepFace/OpenCV, so its scan button is hidden automatically on a server without them (as on the hosted demo).
 
 > Ports 8009 and 5179 are used so the demo doesn't clash with other local dev servers on 8000/5173.
 
@@ -137,6 +141,22 @@ API: `/api/v1/auth/hr/` (cover, openings, candidates, onboarding, contracts, cre
 
 **Not built yet:** a public careers page (HR enters candidates), tax filing (withholding is a flat percentage), and a school-nurse visit log. Periods that automatic leave cover cannot fill become open cover requests. The timetable, teaching-rule, cover and data-pack work is described in [docs/PLAN_SCHEDULING_AND_DATA_IMPORT.md](docs/PLAN_SCHEDULING_AND_DATA_IMPORT.md).
 
+## Daily briefs, student support and planning
+
+**Daily briefs** (`/education/briefs`, administrators only). A morning brief and an evening summary for the school day, so an administrator can look at one page instead of everywhere.
+
+* **Counts only.** Every figure is a count, an amount or a percentage for the whole school. No student or staff name is stored in a brief or sent to the AI. The list of figures and how each rolls up is in `backend/services/education/briefs/metrics.py`.
+* **Draft, then approve.** A brief is always created as a draft with a short written summary (AI-written if a provider is set and `ai_daily_brief` is on, otherwise a plain summary of the same figures; the page says which). An administrator may edit the words and approves it. An approved brief is locked: it can be printed or deleted, not changed. Approval, edits, creation and deletion go to the audit log.
+* **Headlines and read stamps.** Each brief has a one-screen *Headlines* view, and administrators can mark it as read (name and time shown to the others).
+* **Time zone.** Briefs are prepared at the times in the school's settings (default 06:30 and 17:00) in the *school's* time zone. The scheduled job `daily-briefs` (Celery Beat, every 15 minutes, `services.education.briefs.tasks.run_due_briefs`) makes whatever is due and not yet made. Without a worker (for example the free demo host) press **Prepare it now**.
+* **Roll-ups.** Weekly, fortnightly and monthly briefs are worked out from the daily ones (events add up, rates average, "how many are open" takes the latest day) and follow the same approve and lock rules. The latest finished week, fortnight and month are made automatically.
+* **Kept for about three months.** Daily briefs and roll-ups older than 92 days are deleted by the same job, so the oldest are overwritten instead of piling up. Any can be printed or deleted at any time.
+* API: `/api/v1/auth/briefs/` (today, list, generate, detail, approve, read, settings, rollups). Code: `backend/services/education/briefs/`, `frontend/src/pages/education/briefs/`. Tests: `backend/tests/test_daily_briefs.py`, `test_daily_briefs_extras.py`.
+
+**Absence ladder and interventions.** *Attendance → Absence Reports* sets what happens as unexcused absences add up (default 3, 5 and 10; each step can warn the family, tell staff and open an intervention). *Interventions* (`/education/interventions`; staff see *My Interventions*) is the counsellor's list: owner, due date, notes, done or dismissed with a reason. The early-warning model opens one too when it flags a student. School Reports → Attendance shows chronic absenteeism (10% or more of days recorded). Code: `backend/services/education/interventions/`, `attendance/escalation.py`.
+
+**Planning** (*Reports → Planning*, administrators). A written read of the figures, next year's enrolment forecast (plain arithmetic: last year's grade below × retention + approved offers + waiting applications × conversion, with a range, seats, sections and every assumption shown), score trends term over term (groups under 10 students are never shown), and staff workload signals (served under `/api/v1/auth/hr/signals/`; not a rating). Code: `backend/services/education/insights/planning.py`.
+
 ## Front desk, health, safety, forms, admissions extras and the installable app
 
 * **Front Desk** (`/education/front-desk`): who may collect each child (guardians plus extra authorised adults), a do-not-release hard stop that only an administrator can override with a recorded reason, a release log that cannot be edited, and a visitor book with an "on site now" list.
@@ -165,7 +185,7 @@ One installation serves many schools. Each school's data is kept separate: staff
 
 **Currency and language per school.**
 
-- **Setting them.** The school's currency and default language are chosen at signup; currency is suggested from the visitor's browser. The school admin can change both later in **Settings → Language & currency**.
+- **Setting them.** The school's currency, default language and time zone are chosen at signup. A new school defaults to US dollars and Eastern time (the form offers the U.S. zones, and suggests the visitor's own currency); a school that signs up in pounds starts UK-style, in rupees Pakistan-style. The school admin can change them later in **Settings → Language & currency**. A school that existed before these defaults and never saved a currency or time zone keeps showing what it always did. The server's own clock zone is `TIME_ZONE` (default `America/New_York`); a deployment for schools elsewhere sets it in its environment, for example `TIME_ZONE=Asia/Karachi`.
 - **Supported.** 45 currencies and 23 interface languages: English, German, Spanish, French, Italian, Portuguese, Dutch, Polish, Czech, Slovenian, Serbian, Croatian, Hungarian, Romanian, Albanian, Turkish, Russian, Ukrainian, Arabic, Urdu, Chinese, Japanese and Korean. Arabic and Urdu switch the layout to right-to-left.
 - **Personal choice.** Everyone can pick their own language from the globe button in the header or on the sign-in page. It falls back to the school's default.
 - **Where currency applies.** Money on every screen, AI answers, fee PDFs and invoice text uses the school's currency. Changing the currency relabels amounts; it doesn't convert them.
@@ -177,7 +197,7 @@ One installation serves many schools. Each school's data is kept separate: staff
 
 **Platform owner.** Superusers get **All Schools** in the sidebar (`/platform/schools`): every school with student and staff counts and its admins. A school can be suspended there, after which its users can't sign in. A superuser who belongs to a school sees that school's data on the normal pages. Send `X-Tenant-ID: <school id>` to act for another school through the API.
 
-**Existing data.** The upgrade migration assigns every record that had no school to the school most users belong to (for the demo, CodeCortex Model School), and links superusers without a school to it. Nothing else changes for a single-school installation.
+**Existing data.** The upgrade migration assigns every record that had no school to the school most users belong to, and links superusers without a school to it. Nothing else changes for a single-school installation.
 
 ## Quick Start
 
@@ -250,7 +270,17 @@ The floating **CodeCortex** assistant is available in every portal.
 - **Lesson plans** (Lesson Planner page): the AI drafts objectives, materials, an introduction, timed activities, group work, support for weaker and stronger students, check-for-understanding questions and homework. The teacher reviews and edits the fields before saving.
 - **Quizzes** (`POST /api/v1/ai/generate-quiz/`): the AI writes MCQ, true/false and short-answer questions with explanations, at the chosen difficulty. Questions with a broken answer key are dropped automatically. Quizzes are saved as drafts and published to a specific class with `publish-quiz`; teachers can only publish to their own classes. There is no quiz screen in the app yet, so this is API-only for now.
 
-Both need an AI provider key. Without one they return a clear "not configured" error.
+Lesson plans take optional standards (one per line) and return an alignment section; without a provider they give a standard template and say so. Quizzes need an AI provider key.
+
+### Drafts for teachers and the office
+
+Everything here is a draft for a person to read and edit. Nothing AI-written is sent or saved without staff action, and the AI never decides grades, admissions or discipline.
+
+- **Message to a family** (`POST /ai/parent-message/`; *Messages → New message → Draft with AI*): a type (behaviour concern, positive note, missing assignments, attendance concern, custom), a tone and a few notes. Only the student's first name and the notes are sent. Notes that mention health, support plans, discipline or family matters trigger a warning. It needs the school's AI use notice accepted (*Settings → AI Assistant*); without a provider it returns a plain template.
+- **Rubric** (`POST /ai/rubric/`; Gradebook → assignment → Rubric): criteria by performance level, saved on the assignment, shown from the gradebook header, and never changing a score.
+- **Messages:** translate on demand (saved per text and language, with *Show original*), summaries with a suggested reply for staff, and an urgency label from a keyword check (staff see it; it is not an AI call).
+- **Written summaries of school figures** (*Reports → Planning* and the daily briefs): figures only, never names.
+- **Settings and notice** (`/ai/settings/`, administrators): a switch per AI feature for the school, this month's use, and the AI use notice. `GET /ai/capabilities/` tells the screens whether a provider is set and whether face recognition is available.
 
 ### Analytics (ML)
 
@@ -264,7 +294,7 @@ These need the packages in `ai-ml/requirements.txt` (scikit-learn, XGBoost, pand
 - Each user can send `AI_RATE_LIMIT` requests every `AI_RATE_WINDOW` seconds (default: 30 per 10 minutes).
 - Each school has an optional monthly token cap (`AI_TENANT_MONTHLY_TOKENS`; 0 = unlimited).
 - Token usage is stored per user, per feature and per day (`AIUsage`), and per message (`AIMessage`).
-- AI features can be switched off per school with a feature flag (`ai_chat`, `ai_lesson_plans`, `ai_quiz`). With no flag set, a feature is on.
+- AI features can be switched off per school (*Settings → AI Assistant*, or a feature flag such as `ai_chat`, `ai_lesson_plans`, `ai_quiz`, `ai_parent_message`, `ai_rubric`, `ai_narrative`, `ai_daily_brief`, `ai_translation`, `ai_message_summary`). With no flag set, a feature is on.
 
 ### Configuration
 
@@ -281,6 +311,8 @@ Set these in `.env` (or in the Render dashboard):
 | `AI_SHARE_CONTACT_INFO` | `false` | Send phone/email/CNIC/address to the AI provider. |
 | `AI_RATE_LIMIT` / `AI_RATE_WINDOW` | `30` / `600` | Per-user request limit and window (seconds). |
 | `AI_TENANT_MONTHLY_TOKENS` | `0` | Monthly token cap per school (0 = unlimited). |
+| `TIME_ZONE` | `America/New_York` | The server's clock zone (each school also keeps its own). |
+| `DEMO_RESET_TOKEN` | *(empty)* | Demo or staging server only: enables the nightly demo reset call. Leave unset elsewhere. |
 
 ### API endpoints
 
@@ -293,7 +325,11 @@ Paths are relative to `/api/v1`.
 | GET | `/ai/conversations/` | all roles | Your saved chats |
 | GET / PATCH / DELETE | `/ai/conversations/<id>/` | owner | Open, rename or delete a chat |
 | POST | `/ai/messages/<id>/feedback/` | owner | Rate an answer (`1`, `-1` or `null`) |
-| POST | `/ai/lesson-plan/` | teacher, admin | Draft a lesson plan |
+| POST | `/ai/lesson-plan/` | teacher, admin | Draft a lesson plan (optional `standards`) |
+| POST | `/ai/parent-message/` | teacher, admin | Draft a message to a family |
+| POST | `/ai/rubric/` | teacher, admin | Draft a rubric |
+| GET / PUT | `/ai/settings/`, POST `/ai/settings/accept-notice/` | admin | AI switches, usage and the use notice |
+| GET | `/ai/capabilities/` | all roles | Whether an AI provider and face recognition are available |
 | POST | `/ai/generate-quiz/` | teacher, admin | Draft a quiz |
 | POST | `/ai/publish-quiz/` | teacher, admin | Publish a quiz to a class |
 | POST | `/ai/train-models/` | admin | Run the ML risk scan |
@@ -340,18 +376,18 @@ The code lives in `backend/services/ai/` (assistant, tools, AI providers, limits
 Two items sometimes proposed for this list are **already built**, not planned: dropout risk and fee-default risk are the existing ML risk scan (`ai-ml/predictions/dropout_fee_model.py`, `POST /ai/train-models/`, `GET /ai/student-predictions/`) — see [Analytics (ML)](#analytics-ml) above.
 
 - [ ] Search over school documents (policies, circulars, syllabus) with answers that cite the source.
-- [ ] AI report card remarks for each student, drawn from grades, attendance and behaviour, reviewed by the teacher before saving.
-- [ ] Parent message drafts (fee reminders, absence alerts, progress notes), approved before sending over SMS/WhatsApp.
-- [ ] An AI summary of a long parent message or conversation thread, for a busy staff member — the key points only, not a reply.
-- [ ] At-risk alerts that explain why a student was flagged and suggest what to do.
+- [x] AI report card remarks for each student, drawn from grades, attendance and behaviour, reviewed by the teacher before saving.
+- [~] Parent message drafts: built for teachers (*Messages → Draft with AI*, edited and sent through messaging). Not built: drafts for fee reminders and sending over SMS/WhatsApp.
+- [x] An AI summary of a long parent message or conversation thread, for a busy staff member (with a suggested reply for staff to edit).
+- [x] At-risk alerts that explain why a student was flagged and suggest what to do (they open an intervention).
 - [ ] AI help with grading written answers (teacher confirms every mark).
 - [ ] Plain-language analytics questions, e.g. "compare fee collection this term vs last".
 - [ ] Actions the AI prepares and a person confirms, e.g. "send reminders to defaulters".
-- [ ] A server-side timetable optimizer with plain-language constraints (generation currently runs in the browser, `ai-ml/academics/timetable_optimizer.py`).
-- [ ] A homework helper for students: step-by-step help limited to their own syllabus, not just the final answer.
-- [ ] Screening admission applications against the school's stated criteria, with a reason for each suggestion, before office review (not an automatic accept/reject).
-- [ ] Flagging behaviour patterns (repeated incident types, a rising trend for one student or class) before they escalate, from the existing behaviour records (Phase 9).
-- [ ] Translating a message, announcement or notice into a parent's own language on send, on top of the 23 interface languages already built (Phase 20).
+- [x] A server-side timetable generator with teaching rules, preview and undo (`academics/scheduler.py`; rules-based, not plain-language constraints).
+- [x] A homework helper for students: hints limited to their own syllabus, not the final answer.
+- [x] Screening admission applications against the school's stated criteria, with a reason for each suggestion, before office review (not an automatic accept/reject).
+- [x] Flagging behaviour patterns (repeated incident types, a rising trend for one student or class) before they escalate, from the existing behaviour records.
+- [~] Translation: a message or announcement can be translated on demand (saved per language). Not built: translating every notice, absence or fee text, and report card into each family's own language automatically.
 
 #### Later (Phases 4–5)
 
@@ -365,7 +401,7 @@ Two items sometimes proposed for this list are **already built**, not planned: d
 #### Known issues (not caused by the AI work)
 
 - [ ] `tests/test_finance.py` hangs after `test_retrieve_invoice`.
-- [ ] Report card view ([AnalyticsPage.tsx](frontend/src/pages/education/AnalyticsPage.tsx)): if a student's own record isn't found, the first student in the list is shown. That could show someone else's report card.
+- [x] Report cards, transcripts, grades and fee documents (receipts, invoice PDFs, the older result-card and fee-receipt downloads) are checked on the server so a family or student only gets their own, and the school-wide finance PDFs are for finance staff (tests: `test_demo_audit.py`, `test_finance_documents_access.py`). The Analytics page can only list students the login is allowed to see.
 - [ ] `npm run lint` doesn't run: ESLint 9 needs an `eslint.config.js`.
 - [ ] `frontend/src/i18n/locales.test.ts` fails for most languages: the locale files are out of sync with `en.json`.
 - [x] Timetable and cover rules, teacher-to-subject validation, and one import/export format are done (see the two sections above).
@@ -374,13 +410,15 @@ Two items sometimes proposed for this list are **already built**, not planned: d
 #### Multiple schools: limits to know
 
 - [ ] Student IDs, employee IDs and user emails must be unique across all schools, because they are login usernames. A second school that types an ID another school already uses gets "already exists". Each school should use its own prefix (the school code, e.g. `GVS-001`).
-- [ ] Parent accounts are matched by phone number (`parent.<phone>@school.edu`). A parent with children in two different schools shares one account and sees their first school's children.
+- [ ] Parent accounts are matched by phone number (`parent.<phone>@school.edu`). A parent with children in two different schools shares one account; it opens the school of the child linked first, every time, and never shows the two schools together. There is no school switcher yet.
 - [ ] Billing and plans for schools are not built yet (the platform page only lists, suspends and re-activates schools).
 - [x] The 24 one-off generator scripts that used to sit in `backend/` (some reset everyone to shared default passwords) are removed. Demo and sample data now come from `seed_demo` and the sample data pack in `sample-data/`.
 
 ## Deployment
 
 **Client demo (Render + Vercel):** [deploy/DEMO_DEPLOY.md](deploy/DEMO_DEPLOY.md) puts the sample US school and the four demo accounts online with `deploy/render-demo.yaml` (`python manage.py setup_demo` loads it; `DEMO_RESET=1` wipes an old site first). Set `VITE_DEMO_LOGINS=true` on Vercel to show the demo accounts on the sign-in page.
+
+*Demo notes.* A free Render web service sleeps after about 15 minutes without traffic (the first request then takes up to a minute), so open the backend address a few minutes before a demo, or have a free uptime monitor request `/api/v1/health/live/` every 5 minutes. A nightly reset is available (`.github/workflows/demo-reset.yml` calls `POST /api/v1/demo/reset/` with `DEMO_RESET_TOKEN`; it exists only on a demo or staging server and does nothing until `DEMO_BACKEND_URL` and the secret are set). The free host has no Celery worker, so scheduled jobs (including the daily briefs) do not run there: use **Prepare it now**. Details in [deploy/DEMO_DEPLOY.md](deploy/DEMO_DEPLOY.md).
 
 The backend (Django + PostgreSQL + Redis + Celery + WebSockets) cannot run on static-only hosts. Use one of the prepared options:
 
@@ -422,6 +460,8 @@ pip install -r requirements.txt -r requirements-dev.txt
 pytest tests/ --cov=services --cov=auth_api
 pytest tests/ -q -n 4 --no-cov        # faster: parallel, no coverage (the first run builds the test database)
 pytest tests/test_hr.py               # Staff & HR only
+pytest tests/test_daily_briefs.py tests/test_daily_briefs_extras.py   # Daily briefs
+# Run the whole suite WITH migrations (leave out --nomigrations): some tests need data the migrations create, such as the subscription plans.
 
 # AI features only (no API key needed — the AI provider is faked in tests)
 pytest tests/test_ai_security.py tests/test_ai_platform.py tests/test_ai_generation.py

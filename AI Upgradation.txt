@@ -1,0 +1,621 @@
+CC-EMS US Upgrade Specification
+Oct 9, 2026 · @code cortex in pakistan
+CC-EMS needs 96 upgrades in 10 phases to go from testing to paying US private and charter schools, with the first pilots targeted for January 2027.
+Overview
+This document specifies every new upgrade for CC-EMS (Code Cortex Education Management System) for the US market. Each phase lists its upgrades with what changes, how we know it is done, priority and owner.
+Target market: US private schools, charter schools and microschools first. Public districts come later, after SOC 2 and state reporting.
+Rule for every phase: Phase 1 blocks all sales. No US school sees real data until every Critical item in Phases 1–3 is done.
+Priority key
+• Critical: blocks a sale or risks a privacy incident.
+• High: US buyers expect it; missing it loses deals.
+• Medium: improves the product; can follow the first pilots.
+Owner key
+• Dev: engineering team.
+• Legal: policies and contracts, reviewed by a US edtech lawyer.
+• Business: company setup, sales, support and partnerships.
+Phases at a glance
+Phase
+Timing
+Upgrades
+Outcome
+1. Fix blockers
+Weeks 1–2
+9
+No cross-family or cross-school data leaks; CI green
+2. US privacy and legal
+Weeks 2–6
+14
+Signable DPA, privacy policy, US company
+3. Hosting and security
+Weeks 3–8
+10
+Passes a school security questionnaire
+4. US payments and money
+Weeks 4–10
+7
+Stripe tuition payments and SaaS billing
+5. US academics
+Weeks 6–14
+12
+US gradebook, GPA, transcripts, report cards
+6. Integrations
+Weeks 8–16
+8
+Clever, Google Classroom, OneRoster
+7. Accessibility and polish
+Weeks 8–16
+7
+WCAG 2.1 AA, VPAT, Spanish, US formats
+8. AI as the selling point
+Weeks 6–16
+10
+Teacher-approved AI features, safe by design
+9. Sales and launch
+Oct 2026 – Apr 2027
+13
+3–5 pilots, then first 20 paying schools
+10. Scale up
+6–12 months
+6
+SOC 2 Type I, state reporting, district readiness
+Phase 1. Fix blockers (weeks 1–2)
+Three known bugs can show one family's or school's data to another; they must be fixed before any US demo with real data.
+Upgrade
+Current state
+What changes
+Done when
+Priority
+Owner
+Report card fallback
+If a student's own record isn't found, the first student in the list is shown (AnalyticsPage.tsx)
+Show an empty state or error, never another student
+Test proves a student with no record sees no other student's data
+Critical
+Dev
+Parent accounts per school
+Parents are matched globally by phone (parent.<phone>@school.edu)
+One parent identity can link to children in several schools, scoped by school
+Parent with children in two schools sees each school's children only in that school
+Critical
+Dev
+Usernames scoped to school
+Student IDs, employee IDs and emails must be unique across all schools
+Usernames unique within a school; school code at sign-in or tenant-scoped login
+Two schools can both use EMP-001
+Critical
+Dev
+Wider tenant isolation tests
+test_tenant_isolation.py covers list endpoints
+Add parent logins, AI tool lookups, data-pack export, PDFs, WebSocket broadcasts, caches
+Suite fails on any cross-school leak
+Critical
+Dev
+Finance test hang
+test_finance.py hangs after test_retrieve_invoice
+Find and fix the hang
+Full backend suite completes in CI
+High
+Dev
+Linting
+npm run lint fails without eslint.config.js
+Add ESLint 9 config, fix errors
+Lint passes in CI
+High
+Dev
+Translation files
+locales.test.ts fails for most languages
+Sync every locale with en.json
+Test passes
+Medium
+Dev
+Production settings
+Defaults suited to demos
+Strong SECRET_KEY, real ALLOWED_HOSTS and CORS, HTTPS only, secure cookies, rotate any committed keys
+Security checklist signed off
+Critical
+Dev
+Demo logins off in production
+Demo accounts use shared passwords (Admin@123)
+VITE_DEMO_LOGINS off; demo seeding blocked on customer sites
+No demo account can exist on a customer tenant
+Critical
+Dev
+Phase 2. US privacy and legal (weeks 2–6)
+US schools ask for a signed Data Privacy Agreement and a FERPA/COPPA-aligned privacy policy before anything else; all Legal items need review by a US edtech lawyer.
+Upgrade
+What changes
+Done when
+Priority
+Owner
+Facial recognition off for US
+Disabled by default behind a feature flag; not marketed in the US (several states restrict student biometrics)
+New US tenants have it off; no face data stored
+Critical
+Dev
+Mask US identifiers before AI calls
+Add SSN, date of birth, student ID and health details to the existing masking of phone, email, CNIC and address
+Test shows none of these reach the AI provider
+Critical
+Dev
+Zero-retention AI terms
+Enterprise or zero-data-retention agreement with OpenAI or Anthropic; no training on data
+Signed terms on file; provider listed as subprocessor
+Critical
+Legal
+Privacy policy
+Covers FERPA school-official role, COPPA for under-13s, no ads, no data sales, deletion, breach notice
+Lawyer-reviewed policy published
+Critical
+Legal
+Data Privacy Agreement
+Template based on the Student Data Privacy Consortium National DPA
+Ready to sign for schools in member states
+Critical
+Legal
+Subprocessor list
+Public list of every service touching student data, with purpose and location
+Published on the trust page
+High
+Legal
+Contract-end deletion
+Export the school's data pack, then delete its data and backups on schedule; issue a deletion confirmation
+Deletion run tested on a test school
+High
+Dev
+Breach response plan
+Roles, timelines for notifying schools and parents, contact list
+Plan written and practiced once
+High
+Legal
+No third-party tracking
+Remove ad pixels and third-party analytics from signed-in pages
+Audit shows no tracking scripts after login
+High
+Dev
+Data retention rules
+Set retention for AI chats, audit logs, deleted records, backups; AI chat retention configurable per school
+Policy written and enforced by scheduled jobs
+Medium
+Dev
+Terms of service and SLA
+Uptime commitment, support hours, liability limits, school owns its data
+Published and used in contracts
+High
+Legal
+Student Privacy Pledge
+Sign the Future of Privacy Forum pledge
+Listed as a signatory
+Medium
+Legal
+US company and bank
+US LLC (for example via Stripe Atlas) and USD account
+Can sign US contracts and receive USD
+High
+Business
+Insurance
+Cyber liability and errors-and-omissions cover
+Certificate of insurance available
+Medium
+Business
+Phase 3. Hosting and security (weeks 3–8)
+Real student data moves from free tiers (Render free, Oracle free VM) to paid US-region hosting with tested backups before the first pilot goes live.
+Upgrade
+What changes
+Done when
+Priority
+Owner
+Paid US-region hosting
+Managed Postgres and Redis in a US region (AWS, GCP or paid Render); Celery workers running
+Production runs in the US with workers live
+Critical
+Dev
+Encryption of sensitive fields
+Encryption in transit and at rest; field-level encryption for health, IEP/504 and discipline notes
+Sensitive columns unreadable in a raw database dump
+High
+Dev
+Backups with tested restore
+Daily backups and point-in-time recovery
+A full restore drill completed and timed
+Critical
+Dev
+Multi-factor sign-in
+Required for admins and finance roles, optional for teachers
+Admin sign-in asks for a second factor
+High
+Dev
+Microsoft sign-in
+Add Microsoft 365 sign-in next to Google
+Staff can sign in with a school Microsoft account
+Medium
+Dev
+Session and password policy
+Idle timeout, strong password rules, lockout after failed attempts
+Settings configurable per school
+High
+Dev
+Firewall and rate limiting
+Cloudflare (or similar) for DDoS and bot protection on public pages such as admissions
+Public forms protected; abuse blocked
+Medium
+Dev
+Monitoring and status page
+Turn on Sentry and Prometheus, set alerts, publish an uptime page
+Alerts reach the on-call person; status page live
+High
+Dev
+Penetration test
+External test with a shareable summary letter
+Findings fixed; letter available to buyers
+High
+Business
+SOC 2 readiness
+Policies and controls set up with Vanta or Drata
+On track for a Type I report within 12 months
+Medium
+Business
+Phase 4. US payments and money (weeks 4–10)
+US families pay tuition by card and bank transfer through Stripe, and Code Cortex bills schools through the same platform; Pakistan gateways stay for Pakistan tenants.
+Upgrade
+What changes
+Done when
+Priority
+Owner
+Stripe card and ACH
+Stripe replaces JazzCash/Easypaisa for US tenants; gateway chosen by tenant country
+A US parent pays an invoice by card and by ACH
+Critical
+Dev
+Payment plans and autopay
+Monthly or quarterly plans, saved payment methods, automatic charges, emailed receipts
+Plan charges run on schedule with receipts
+High
+Dev
+Financial aid and sibling discounts
+Track scholarships, need-based aid and sibling discounts on invoices
+Aid shows on invoices and reports
+Medium
+Dev
+SaaS billing for schools
+Plans, per-student pricing, free trial, invoices and card billing via Stripe Billing on the platform page
+A new school can start a trial and convert to paid
+Critical
+Dev
+US payroll integration
+Export payroll to Gusto or ADP instead of flat-rate withholding
+US school runs payroll through the integration
+High
+Dev
+Accounting export
+QuickBooks Online and Xero export for invoices, payments and payroll totals
+Export imports cleanly into both
+Medium
+Dev
+Cafeteria accounts
+Lunch balances, top-ups, confidential free or reduced-price meal eligibility
+Parents top up; eligibility visible only to authorized staff
+Medium
+Dev
+Phase 5. US academics (weeks 6–14)
+A weighted gradebook with GPA, transcripts and US report cards is the core of what US teachers and parents use every day, so it leads this phase.
+Upgrade
+What changes
+Done when
+Priority
+Owner
+Weighted gradebook
+Categories (homework, quizzes, tests, projects) with weights, drop-lowest and late penalties; included in the data pack
+Term grade calculates from weighted categories
+Critical
+Dev
+GPA, class rank, honor roll
+Weighted and unweighted GPA on a 4.0 scale, configurable per school
+GPA and honor roll lists generate per term
+High
+Dev
+Transcripts and credits
+Official transcript PDF on US Letter paper; credits toward graduation for grades 9–12
+Transcript prints with credits and GPA
+High
+Dev
+Standards-based grading
+Rubric scale (1–4) per standard, common in elementary
+Teacher grades by standard; report shows standards
+High
+Dev
+US report card templates
+Elementary (standards) and middle/high (letter grade) layouts with comments
+Both layouts print from real grades
+High
+Dev
+IEP and 504 flags
+Flag students with plans and list accommodations; restricted to authorized staff; access logged
+Only authorized roles see accommodations
+High
+Dev
+English learner status
+Flag English learners and proficiency level
+Filterable in student lists and reports
+Medium
+Dev
+US attendance codes
+Excused, unexcused, tardy, early dismissal; chronic absenteeism report (10% or more missed)
+Report lists chronically absent students
+High
+Dev
+Bell schedules and A/B days
+Multiple bell schedules, rotating days, late-start days
+Timetable follows the day's schedule
+Medium
+Dev
+Quiz screen
+Teacher review, edit and publish screen on the existing quiz API
+Teacher publishes an AI quiz from the app
+Medium
+Dev
+Behavior and discipline codes
+US incident types, actions taken, parent notification
+Incidents log with codes and notify parents
+Medium
+Dev
+US calendar templates
+Federal holidays, Thanksgiving and winter break presets
+New US school starts with a filled calendar
+Medium
+Dev
+Phase 6. Integrations (weeks 8–16)
+Clever sign-in and Google Classroom sync come first because many US schools won't adopt a system that doesn't connect to the tools they already use.
+Upgrade
+What changes
+Done when
+Priority
+Owner
+Clever
+Sign-in and rostering through Clever; apply as a Clever partner
+A pilot school signs in and syncs rosters via Clever
+High
+Dev
+ClassLink
+Second sign-in and rostering hub, strong in some states
+Sign-in and roster sync working
+Medium
+Dev
+OneRoster export
+Standard roster format for classes and enrollments
+Validates against the OneRoster spec
+High
+Dev
+Google Classroom
+Create classes, push rosters and grades
+Grades flow between CC-EMS and Classroom
+High
+Dev
+Canvas and Schoology
+LTI connection and grade sync
+Grade sync working with both
+Medium
+Dev
+US SMS and email
+Twilio for SMS, a transactional email service; WhatsApp stays optional
+US parents receive SMS and email alerts
+High
+Dev
+Import from competitors
+Column mappings for PowerSchool, FACTS, Gradelink and Blackbaud exports into the data pack
+A sample export from each loads cleanly
+High
+Dev
+Public API and webhooks
+API keys per school; webhooks for enrollment, payment and attendance events
+Documented API with a working webhook
+Medium
+Dev
+Phase 7. Accessibility and polish (weeks 8–16)
+A WCAG 2.1 AA audit and a published VPAT let schools meet their own accessibility obligations, and complete Spanish matters most for US parents.
+Upgrade
+What changes
+Done when
+Priority
+Owner
+WCAG 2.1 AA audit
+Run axe on every page; fix contrast, labels, keyboard navigation and screen reader issues
+No critical axe findings on key pages
+High
+Dev
+VPAT
+Accessibility Conformance Report for buyers
+Published on the trust page
+High
+Business
+Spanish first
+Spanish complete on all screens, reviewed by a native speaker
+Every screen available in reviewed Spanish
+High
+Dev
+US formats
+MM/DD/YYYY dates, US phone and address formats, Letter paper on all PDFs
+US tenants see US formats everywhere
+High
+Dev
+Help center
+How-to articles and short videos for admins, teachers and parents
+Top 30 tasks documented
+Medium
+Business
+Load test
+Test a 3,000-student school with many parents online at once
+Pages load in under 2 seconds under load
+Medium
+Dev
+App store apps
+Wrap the installable app for iOS and Android
+Parent app live in both stores
+Medium
+Dev
+Phase 8. AI as the selling point (weeks 6–16)
+AI is CC-EMS's main difference from older systems, and every AI output is reviewed by a person before it reaches a student, parent or record.
+Upgrade
+What changes
+Done when
+Priority
+Owner
+Provider and models live
+Choose the main provider and fast/smart models, add the key, set a monthly budget per school
+Assistant runs in full AI mode in production
+High
+Dev
+Automatic fallback provider
+Switch to the second provider when the first fails
+Simulated outage keeps the assistant answering
+Medium
+Dev
+AI report card comments
+Drafts from grades, attendance and behavior; teacher edits and approves each
+Teacher approves a class's comments in one screen
+High
+Dev
+Parent message drafts and translation
+Absence alerts, fee reminders, progress notes in each parent's language, approved before sending
+Approved message reaches a parent in Spanish
+High
+Dev
+Explained at-risk alerts
+Show why a student was flagged and suggested next steps, not just a score
+Every alert lists its reasons
+High
+Dev
+School document search
+Search policies and handbooks with cited answers (pgvector)
+Answers link to the source document
+Medium
+Dev
+AI usage and cost dashboard
+Per-school usage, cost and feedback for platform and school admins
+Dashboard live for both
+Medium
+Dev
+Per-school AI opt-out
+School can switch all AI off; AI use clearly labelled
+Opt-out disables every AI endpoint for that school
+High
+Dev
+AI safety tests
+Automated prompt-injection and role-escalation tests
+Suite runs in CI and blocks failures
+High
+Dev
+AI promise page
+Plain statement: AI helps staff, never decides alone, never trains on student data
+Published on the trust page
+Medium
+Business
+Phase 9. Sales and launch (Oct 2026 – Apr 2027)
+US schools choose systems between January and April and switch over summer, so 3–5 pilot schools need to be signed by January 2027 for the 2027–28 school year.
+Upgrade
+What changes
+Done when
+Priority
+Owner
+Pricing
+Per student per year (about $15–25) with a minimum per school, plus an AI add-on tier
+Pricing page published
+Critical
+Business
+US marketing website
+Positioning for private and charter schools, demo video, feature pages
+Site live on a US domain
+High
+Business
+Public demo sandbox
+Maple Grove Academy online, reset nightly
+Prospects can try it without a sales call
+High
+Dev
+Trust center
+Privacy policy, DPA, subprocessors, security overview, VPAT, status page in one place
+One link answers a buyer's privacy questions
+High
+Business
+Sales deck and one-pager
+Problem, screenshots, pricing, privacy, pilot offer
+Used in every first meeting
+High
+Business
+Pilot schools
+3–5 schools, discounted first year in return for feedback, testimonial and name use
+Pilots signed by January 2027
+Critical
+Business
+SDPC registry and review sites
+Signed DPAs in the registry; G2 and Capterra listings
+Listed in all three
+Medium
+Business
+School associations
+State private school and charter associations, faith-based networks; one conference booth
+Member of at least two associations
+High
+Business
+US reseller partner
+US education consultant or IT firm on commission or white-label terms
+Partner agreement signed
+High
+Business
+CRM
+Track each school from first contact to signed contract
+Every lead in the pipeline
+Medium
+Business
+US support
+US phone number, help desk, coverage during US school hours
+Support live before pilots start
+High
+Business
+Onboarding package
+Fixed steps for data migration, staff training and go-live
+Pilot onboarded in under 4 weeks
+High
+Business
+Case studies
+Before-and-after figures from pilots: time saved, fee collection, parent engagement
+Two published case studies
+High
+Business
+Phase 10. Scale up (6–12 months)
+After the first paying schools, SOC 2 Type I and state reporting open the door to charter networks and small districts.
+Upgrade
+What changes
+Done when
+Priority
+Owner
+SOC 2 Type I report
+Audit completed from the Phase 3 readiness work
+Report shareable under NDA
+High
+Business
+State reporting
+Reporting for the state where the pilots are, required for charters
+First state submission accepted
+Medium
+Dev
+District RFP readiness
+Standard answers to security questionnaires and RFP templates
+Can answer an RFP in under a week
+Medium
+Business
+Retrain risk models
+Retrain on real school data with consent; track model versions and accuracy
+Versioned models with measured accuracy
+Medium
+Dev
+Background AI and ML jobs
+Training and bulk jobs in workers with progress shown in the app
+No AI or ML job blocks a web request
+Medium
+Dev
+Customer health tracking
+Usage per school, renewal dates, early warnings before a school leaves
+Monthly health report for every school
+Medium
+Business
+Open decisions: main AI provider, monthly AI budget per school, and which US state to target first for pilots and state reporting.
