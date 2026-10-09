@@ -7,7 +7,7 @@ class Tenant(models.Model):
     subdomain = models.CharField(max_length=100, unique=True, db_index=True)
     domain = models.CharField(max_length=200, blank=True)
     logo = models.ImageField(upload_to='tenants/logos/', null=True, blank=True)
-    timezone = models.CharField(max_length=50, default='Asia/Karachi')
+    timezone = models.CharField(max_length=50, default='America/New_York')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

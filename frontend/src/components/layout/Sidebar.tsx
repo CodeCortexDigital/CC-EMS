@@ -6,7 +6,7 @@ import {
   Eye, MessageSquare, Video, FileQuestion,
   Edit, Award, Lock, Unlock, Search, X, ChevronRight, ChevronLeft, LogOut,
   DollarSign, User, Star, Building2, ClipboardList, Mail, Megaphone, CalendarDays, Handshake, TrendingUp, Library, Bus, Boxes, UtensilsCrossed, Plug, FileSpreadsheet, ShieldCheck,
-  LifeBuoy, Briefcase, ScanFace, Stethoscope, AlertOctagon, FileSignature, HeartPulse, Sparkles, ClipboardCheck,
+  LifeBuoy, Briefcase, ScanFace, Stethoscope, AlertOctagon, FileSignature, HeartPulse, Sparkles, ClipboardCheck, Sunrise,
 } from 'lucide-react';
 import cafeteriaService from '@/services/cafeteria.service';
 import transportService from '@/services/transport.service';
@@ -216,6 +216,7 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
   // ============================================================
   const adminMenuItems: MenuItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" />, href: '/dashboard' },
+    ...(role === 'admin' ? [{ id: 'briefs', label: 'Daily Briefs', icon: <Sunrise className="w-4 h-4" />, href: '/education/briefs', always: true }] : []),
     { id: 'students', label: 'Students', icon: <Users className="w-4 h-4" />, href: '/education/students', group: 'people' },
     { id: 'admissions', label: 'Admissions', icon: <ClipboardList className="w-4 h-4" />, href: '/education/admissions', group: 'people' },
     { id: 'employees', label: 'Staff', icon: <Users className="w-4 h-4" />, href: '/education/teachers', group: 'people' },

@@ -2,6 +2,7 @@
 API v1 URL configuration.
 """
 
+from services.education.imports import demo_reset_api
 from django.urls import path, include
 from . import views
 
@@ -33,6 +34,7 @@ from services.education.students.views import CertificateViewSet
 
 urlpatterns = [
     path('health/', include('services.core.health.urls')),
+    path('demo/reset/', demo_reset_api.reset_demo, name='demo-reset'),  # nightly demo reset (demo/staging servers only)
     
     # ============================================================
     # STUDENT CERTIFICATES (must be before auth/ catch-all to avoid
@@ -164,6 +166,7 @@ urlpatterns = [
     path('auth/admissions/', include('services.education.admissions.urls')),
     path('auth/safety/', include('services.education.safety.urls')),
     path('auth/interventions/', include('services.education.interventions.urls')),
+    path('auth/briefs/', include('services.education.briefs.urls')),
     path('auth/forms/', include('services.education.forms.urls')),
     path('auth/analytics/', include('services.analytics.urls')),
     

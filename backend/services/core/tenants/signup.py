@@ -107,8 +107,9 @@ def create_school_with_admin(*, school_name, admin_email, admin_name, password=N
                 'city': city.strip(),
                 'phone': phone.strip(),
                 'currency': currency_code,
-                # A new school billing in rupees starts Pakistan-style; any other currency starts International.
-                'region': 'pk' if currency_code == 'PKR' else 'intl',
+                # A new school's wording follows its currency: dollars start US-style, pounds UK-style, rupees Pakistan-style;
+                # anything else starts International.
+                'region': {'USD': 'us', 'GBP': 'uk', 'PKR': 'pk'}.get(currency_code, 'intl'),
                 'language': language_code,
                 'timezone': (timezone or DEFAULT_TIMEZONE)[:64],
                 'onboarding': {'created_via': 'google' if firebase_uid else 'signup'},

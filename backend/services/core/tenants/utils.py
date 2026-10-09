@@ -79,7 +79,9 @@ def _school_from_records(user) -> School | None:
         return teacher.tenant
     profile = getattr(user, 'parent_profile', None)
     if profile is not None:
-        child = profile.linked_students.filter(tenant__isnull=False).select_related('tenant').first()
+        # A parent with children in two schools opens the school of the child linked first, every time (not whichever row the database
+        # returns first). Each request still sees only that one school's records.
+        child = profile.linked_students.filter(tenant__isnull=False).select_related('tenant').order_by('created_at', 'id').first()
         if child:
             return child.tenant
     return None

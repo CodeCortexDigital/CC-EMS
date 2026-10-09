@@ -92,9 +92,13 @@ LANGUAGES = {
     'ko': ('Korean', '한국어', 'ltr'),
 }
 
-DEFAULT_CURRENCY = 'PKR'
+# What a NEW school starts with (signup, the signup form's suggestions).
+DEFAULT_CURRENCY = 'USD'
 DEFAULT_LANGUAGE = 'en'
-DEFAULT_TIMEZONE = 'Asia/Karachi'
+DEFAULT_TIMEZONE = 'America/New_York'
+# What an EXISTING school that never saved a currency or time zone keeps showing, so nothing changes for it overnight.
+LEGACY_CURRENCY = 'PKR'
+LEGACY_TIMEZONE = 'Asia/Karachi'
 
 
 # ---------------------------------------------------------------------------
@@ -176,7 +180,7 @@ def normalize_language(code) -> str | None:
 def school_locale(school) -> dict:
     """Currency and language of a school (defaults for schools that never chose)."""
     s = (getattr(school, 'settings_json', None) or {}) if school else {}
-    currency = normalize_currency(s.get('currency')) or DEFAULT_CURRENCY
+    currency = normalize_currency(s.get('currency')) or LEGACY_CURRENCY
     language = normalize_language(s.get('language')) or DEFAULT_LANGUAGE
     symbol, name, decimals = CURRENCIES[currency]
     return {
@@ -186,7 +190,7 @@ def school_locale(school) -> dict:
         'currency_decimals': decimals,
         'language': language,
         'direction': LANGUAGES[language][2],
-        'timezone': s.get('timezone') or DEFAULT_TIMEZONE,
+        'timezone': s.get('timezone') or LEGACY_TIMEZONE,
         **region_settings(s),
     }
 

@@ -76,9 +76,15 @@ def test_seed_demo_pack_links_the_demo_logins(monkeypatch):
         assert teacher.role == 'Teacher' and teacher.subjects.filter(code='MATH').exists()
         assert Student.objects.get(email='student@code.com').current_class.name == 'Grade 8'
         assert SubstituteRequest.objects.filter(status='filled', filled_how='auto').exists()
+        # One saved lesson plan, so the Lesson Planner is not empty for a visitor.
+        from services.education.academics.models import LessonPlan
+        plan = LessonPlan.objects.get()
+        assert plan.teacher.email == 'teacher@code.com' and plan.class_subject.class_ref.name == 'Grade 6' and plan.status == 'planned'
     parent = User.objects.get(email='parent@code.com')
     assert parent.parent_profile.linked_students.count() >= 2
     assert User.objects.get(email='admin@code.com').tenant_memberships.filter(school=school, role='admin').exists()
     call_command('seed_demo', '--pack', 'us-school')                          # running it again changes nothing
+    with use_tenant(school):
+        assert LessonPlan.objects.count() == 1
     with use_tenant(school):
         assert Student.objects.count() == 214

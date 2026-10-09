@@ -95,6 +95,7 @@ INSTALLED_APPS = [
     'services.education.hr',
     'services.education.safety',
     'services.education.interventions',
+    'services.education.briefs',
     'services.education.forms',
     'services.analytics',
     'services.ai',
@@ -374,7 +375,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Karachi'
+# The server's own clock zone ("today" for scheduled jobs). Each school also keeps its own time zone. A deployment for
+# schools elsewhere sets TIME_ZONE in its environment (for example Asia/Karachi).
+TIME_ZONE = os.environ.get('TIME_ZONE', 'America/New_York')
 USE_I18N = True
 USE_TZ = True
 
@@ -567,6 +570,11 @@ try:
         'hr-alerts-daily': {
             'task': 'services.education.hr.tasks.hr_alerts',
             'schedule': crontab(hour=6, minute=20),
+        },
+        # Morning brief and evening summary: every 15 minutes, checks which schools' times (in their own time zones) have come.
+        'daily-briefs': {
+            'task': 'services.education.briefs.tasks.run_due_briefs',
+            'schedule': crontab(minute='*/15'),
         },
         'refresh-cover-daily': {
             'task': 'services.education.hr.tasks.refresh_cover',

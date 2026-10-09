@@ -3,21 +3,25 @@ import { toast } from 'sonner';
 import { CheckCircle2, Copy, CreditCard, Loader2, Trash2 } from 'lucide-react';
 import billingService, { type GatewayConfig } from '@/services/billing.service';
 import { API_BASE_URL } from '@/services/api';
+import { useRegion } from '@/utils/region';
 
 const card = 'bg-white rounded-xl border border-slate-200 shadow-sm';
 const input = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--app-accent)]';
 const lbl = 'block text-xs font-semibold text-slate-600 mb-1';
 
-const PROVIDERS = [
+// JazzCash and Easypaisa are Pakistani wallets: they are only offered to schools set to the Pakistan region (or that already use them).
+const ALL_PROVIDERS = [
   { code: 'stripe', name: 'Stripe', blurb: 'Cards (Visa, Mastercard, Amex), Apple Pay and Google Pay in 135+ currencies. Best for international schools.' },
   { code: 'jazzcash', name: 'JazzCash', blurb: 'Mobile wallet and cards in Pakistan.' },
   { code: 'easypaisa', name: 'Easypaisa', blurb: 'Mobile wallet and cards in Pakistan.' },
 ] as const;
+const PAKISTAN_ONLY = ['jazzcash', 'easypaisa'];
 
 type Draft = { id?: string; provider: string; name: string; merchant_id: string; api_key: string; api_secret: string; webhook_secret: string; api_url: string; is_active: boolean };
 
 /** Settings for online fee payment providers. Secrets are write-only: they are never shown again. */
 export default function OnlinePaymentsPage() {
+  const { region } = useRegion();
   const [configs, setConfigs] = useState<GatewayConfig[] | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
@@ -25,11 +29,13 @@ export default function OnlinePaymentsPage() {
   const load = () => billingService.gateways().then(setConfigs).catch(() => toast.error('Could not load payment settings.'));
   useEffect(() => { load(); }, []);
 
+  const PROVIDERS = ALL_PROVIDERS.filter((p) => !PAKISTAN_ONLY.includes(p.code) || region === 'pk' || !!configs?.some((c) => c.provider === p.code));
+
   const webhookUrl = (code: string) => `${API_BASE_URL.replace(/\/$/, '')}/auth/finance/payments/webhook/${code}/`;
 
   const edit = (code: string) => {
     const c = configs?.find((x) => x.provider === code);
-    setDraft({ id: c?.id, provider: code, name: c?.name || PROVIDERS.find((p) => p.code === code)!.name, merchant_id: c?.merchant_id || '',
+    setDraft({ id: c?.id, provider: code, name: c?.name || ALL_PROVIDERS.find((p) => p.code === code)!.name, merchant_id: c?.merchant_id || '',
       api_key: '', api_secret: '', webhook_secret: '', api_url: c?.api_url || '', is_active: c ? c.is_active : true });
   };
 

@@ -11,6 +11,7 @@ from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from services.core.features.models import FeatureFlag
@@ -29,6 +30,7 @@ FEATURES = [
     ('ai_quiz', 'Quizzes', 'Teachers draft quizzes.'),
     ('ai_parent_message', 'Parent message drafts', 'Teachers draft a message to a family and edit it before sending.'),
     ('ai_rubric', 'Rubrics', 'Teachers draft a scoring rubric for an assignment.'),
+    ('ai_daily_brief', 'Daily briefs', 'Writes the short read at the top of the morning brief and evening summary (counts only; an administrator approves it).'),
     ('ai_narrative', 'Report summaries', 'Writes a short plain-language read of the school figures for administrators.'),
     ('ai_report_comments', 'Report card comments', 'Drafts a comment for a teacher to edit.'),
     ('ai_homework_help', 'Homework hints', 'Students get hints, not answers.'),
@@ -123,3 +125,16 @@ def accept_notice(request):
         fresh.save(update_fields=['settings_json'])
     ctx.tenant.settings_json = fresh.settings_json
     return Response(_payload(request))
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def capabilities(request):
+    """What this server can actually do, so screens only offer working features (anyone signed in)."""
+    from services.analytics import ai_views
+
+    ctx = AIContext.from_request(request)
+    return Response({
+        'face_recognition': bool(ai_views.FACE_ML_AVAILABLE and feature_enabled('ai_face_attendance', ctx)),
+        'ai_provider': get_llm_client() is not None,
+    })

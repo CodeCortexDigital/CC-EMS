@@ -39,7 +39,7 @@ OFFICE_ONLY = (
     'academics/subjects', 'academics/class-subjects', 'academics/teacher-assignments', 'academics/grade-scales',
     'academics/assessment-types', 'academics/assessment-weightages', 'academics/teachers', 'academics/leave-balances',
     'classes', 'sections', 'subjects', 'class-subjects', 'teachers', 'students/', 'admissions/applications',
-    'inventory/', 'insights/',
+    'inventory/', 'insights/', 'briefs/',
 )
 # Staff jobs that live under office areas (bus duty, the cafeteria till, their own leave and tasks).
 STAFF_EXCEPTIONS = ('finance/payments/session', 'academics/teacher-leaves', 'security/me/')

@@ -1,0 +1,33 @@
+name: Reset the demo
+
+# Puts the hosted demo (Maple Grove Academy) back to its starting state every night, so a visitor can never leave it broken.
+# Render's free plan has no scheduler, so this calls a protected endpoint on the demo backend.
+#
+# One-time set-up:
+#   1. On the Render demo service add the environment variable DEMO_RESET_TOKEN (any long random string).
+#   2. In this repository add the secret DEMO_RESET_TOKEN (the same string) and the variable DEMO_BACKEND_URL
+#      (for example https://erp-demo-backend-qnhe.onrender.com).
+# The endpoint only exists on a demo or staging server; the live site answers 404.
+
+on:
+  schedule:
+    - cron: '0 8 * * *'    # 08:00 UTC, early morning in the US
+  workflow_dispatch:
+
+jobs:
+  reset:
+    # Does nothing until the demo address is set (so it cannot reset a demo that is being reviewed, and does not fail in the meantime).
+    if: ${{ vars.DEMO_BACKEND_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Ask the demo backend to reset itself
+        env:
+          URL: ${{ vars.DEMO_BACKEND_URL }}
+          TOKEN: ${{ secrets.DEMO_RESET_TOKEN }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$TOKEN" ]; then echo "Set DEMO_BACKEND_URL and DEMO_RESET_TOKEN first."; exit 1; fi
+          # The free backend may be asleep: allow it time to wake.
+          code=$(curl -s -o /tmp/out -w '%{http_code}' --max-time 180 -X POST -H "X-Demo-Reset-Token: $TOKEN" "$URL/api/v1/demo/reset/")
+          cat /tmp/out; echo
+          if [ "$code" != "202" ] && [ "$code" != "409" ]; then echo "Reset call failed: HTTP $code"; exit 1; fi

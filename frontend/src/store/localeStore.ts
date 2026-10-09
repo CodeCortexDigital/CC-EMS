@@ -6,7 +6,7 @@ import { browserLanguage } from '@/i18n/languages';
 
 /** The school's currency and language (from /tenants/locale/). */
 export interface SchoolLocale {
-  currency: string; // ISO code, e.g. PKR, EUR
+  currency: string; // ISO code, e.g. USD, EUR
   currency_symbol: string; // e.g. Rs, €
   currency_name: string;
   currency_decimals: number;
@@ -30,18 +30,18 @@ export interface LocaleOptions {
 }
 
 const DEFAULT_LOCALE: SchoolLocale = {
-  currency: 'PKR',
-  currency_symbol: 'Rs',
-  currency_name: 'Pakistani Rupee',
-  currency_decimals: 0,
+  currency: 'USD',
+  currency_symbol: '$',
+  currency_name: 'US Dollar',
+  currency_decimals: 2,
   language: 'en',
   direction: 'ltr',
-  timezone: 'Asia/Karachi',
-  region: 'pk',
-  region_label: 'Pakistan',
-  date_format: 'DD/MM/YYYY',
-  date_locale: 'en-GB',
-  week_start: 1,
+  timezone: 'America/New_York',
+  region: 'us',
+  region_label: 'United States',
+  date_format: 'MM/DD/YYYY',
+  date_locale: 'en-US',
+  week_start: 0,
   hidden_fields: [],
   payment_methods: [],
   terms: {},

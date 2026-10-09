@@ -45,6 +45,25 @@ Then in Render > Environment set:
 - Open the Vercel address, sign in as `admin@code.com`: 214 students, Staff & HR with open cover requests.
 - Settings > Import data > Download: the data pack of the school.
 
+## 4. Make the demo impressive and keep it that way
+
+**Turn on the AI (full AI mode instead of the quick-answer fallback).** On the Render demo service add one provider key as an
+environment variable: `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` (and `AI_PROVIDER=openai` or `anthropic` if you set both). Never put a key in a
+`VITE_` variable. Without a key the assistant, lesson plans and the other AI features answer from templates and say so. Set a small
+monthly cap (`AI_TENANT_MONTHLY_TOKENS`) so a public demo cannot run up a bill.
+
+**Reset the demo every night** so visitors cannot break it:
+1. Render > Environment: add `DEMO_RESET_TOKEN` = a long random string (keep `APP_ENV=staging`; remove any `DEMO_RESET`).
+2. GitHub > Settings > Secrets and variables > Actions: add the secret `DEMO_RESET_TOKEN` (same string) and the variable
+   `DEMO_BACKEND_URL` (the Render address, no trailing slash).
+3. The workflow `.github/workflows/demo-reset.yml` now calls the backend at 08:00 UTC each night (run it by hand from the Actions tab to test).
+   The reset takes a minute or two; sign-in may fail briefly while it runs. The endpoint does not exist on a live (`APP_ENV=production`) server.
+
+**Face recognition** is hidden automatically when the server does not have the face-recognition packages (a hosted demo does not).
+
+**Daily Briefs** are prepared by the scheduled job `daily-briefs` (every 15 minutes) when a Celery worker and Beat are running. The free
+demo host has none, so on the demo an administrator presses **Prepare it now** on the Daily Briefs page instead.
+
 ## If something is wrong
 - Logs of the backend show `setup_demo` output only on the machine (`/tmp/setup_demo.log`). To see it, add a Render shell or temporarily change
   the start command to run `python manage.py setup_demo` in the foreground (the server will not answer until it finishes).

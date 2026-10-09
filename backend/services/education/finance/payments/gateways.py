@@ -91,7 +91,7 @@ def invoice_currency(invoice) -> str:
     return school_locale(getattr(invoice.student, 'tenant', None))['currency']
 
 
-def generate_payment_session(invoice, provider: str = 'jazzcash', customer_name: str | None = None,
+def generate_payment_session(invoice, provider: str = 'stripe', customer_name: str | None = None,
                              customer_phone: str | None = None, success_url: str = '', cancel_url: str = '',
                              customer_email: str = ''):
     provider = provider.lower()

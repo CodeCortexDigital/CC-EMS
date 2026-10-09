@@ -590,3 +590,43 @@ def template_narrative(*, title: str, facts: list[dict]) -> dict:
             s += f" ({f['change']})"
         parts.append(s)
     return {"source": "template", "summary": f"{title}. " + ". ".join(parts) + "."}
+
+
+# ---------------------------------------------------------------------------
+# Daily brief: a short written read of the day's figures (counts only, never names)
+# ---------------------------------------------------------------------------
+BRIEF_SCHEMA = _obj({"summary": _STR})
+BRIEF_TITLES = {"morning": "Morning brief", "evening": "Evening summary", "rollup": "Period summary"}
+
+
+def brief_system(region: str | None = 'pk') -> str:
+    place, _ = _voice(region)
+    return (f"You write the daily briefing for the head of a school {place}. You are given counts and amounts that the school's "
+            "system has already calculated, and nothing else. Describe only what those figures show. Never name or describe any "
+            "person, never guess a cause, never predict, and never mention a figure that is not in the list. Put the items marked "
+            "'needs attention' first. Plain sentences, no headings or bullet points.")
+
+
+def generate_brief_narrative(llm: LLMClient, *, kind: str, date_label: str, facts: list[dict], region: str = 'pk') -> tuple[dict, Usage, str]:
+    lines = "\n".join(f"- {f['label']}: {f['value']}" + (" [needs attention]" if f.get('attention') else "") for f in facts)
+    goal = ("what to look at before the day starts" if kind == 'morning' else "how the day went and what is left for tomorrow")
+    prompt = (f"{'Morning brief' if kind == 'morning' else 'Evening summary'} for {date_label}.\nFigures:\n{lines}\n\n"
+              f"summary: 3 to 5 sentences on {goal}. Start with what needs attention; if nothing does, say so plainly.")
+    out, usage, model = llm.structured(system=brief_system(region), prompt=prompt, schema=BRIEF_SCHEMA)
+    text = (out.get("summary") or "").strip()[:1500]
+    if not text:
+        raise LLMError("The model did not return a summary.")
+    return {"summary": text}, usage, model
+
+
+def template_brief_narrative(*, kind: str, date_label: str, facts: list[dict]) -> str:
+    """The same figures in plain words, used when no AI is set up or the AI is switched off."""
+    head = f"{BRIEF_TITLES[kind]} for {date_label}."
+    needs = [f for f in facts if f.get('attention')]
+    if needs:
+        body = "Needs attention: " + "; ".join(f"{f['label'].lower()}: {f['value']}" for f in needs[:6]) + "."
+    else:
+        body = "Nothing is flagged as needing attention."
+    rate = next((f for f in facts if 'ttendance' in f['label']), None)
+    tail = f" {rate['label']}: {rate['value']}." if rate else ""
+    return f"{head} {body}{tail}"

@@ -20,10 +20,10 @@ interface AccountData {
 
 const DEFAULT: AccountData = {
   email: '',
-  password: 'mminhas123',
-  timezone: 'Asia/Karachi',
-  currency: 'Rupees (PKR)',
-  symbol: 'Rs'
+  password: '',
+  timezone: 'America/New_York',
+  currency: 'Dollars (USD)',
+  symbol: '$'
 };
 
 export default function AccountSettings() {

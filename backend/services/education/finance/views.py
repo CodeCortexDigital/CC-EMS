@@ -434,7 +434,7 @@ class InvoicePaymentSessionView(APIView):
 
     def post(self, request):
         invoice_id = request.data.get('invoice_id')
-        provider = request.data.get('provider', 'jazzcash')
+        provider = request.data.get('provider', 'stripe')
         customer_name = request.data.get('customer_name')
         customer_phone = request.data.get('customer_phone')
 
@@ -521,10 +521,11 @@ def invoice_receipt(request, invoice_id):
     """Generate printable invoice receipt with student history"""
 
     try:
-        invoice = Invoice.objects.select_related(
+        # A family sees only its own children's invoices; staff roles are filtered the same way as the invoice list.
+        invoice = filter_invoices_for_user(request.user, Invoice.objects.select_related(
             'student',
             'fee_structure'
-        ).get(id=invoice_id)
+        )).get(id=invoice_id)
 
         # Current invoice payments
         payments = Payment.objects.filter(
@@ -565,7 +566,7 @@ def invoice_receipt(request, invoice_id):
 def payment_receipt(request, payment_id):
     """Generate printable payment receipt"""
     try:
-        payment = Payment.objects.select_related('invoice__student').get(id=payment_id)
+        payment = filter_payments_for_user(request.user, Payment.objects.select_related('invoice__student')).get(id=payment_id)
         
         context = {
             'payment': payment,
@@ -677,7 +678,7 @@ def export_payments_csv(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([FinanceStaff])
 def finance_report_pdf(request):
     """Generate PDF finance report"""
     try:
@@ -734,7 +735,7 @@ def finance_report_pdf(request):
         return response
         
     except ImportError:
-        return Response({'error': 'PDF generation requires reportlab. Install with: pip install reportlab'}, status=500)
+        return Response({'error': 'PDF export is not available on this server.'}, status=503)
 
 
 @api_view(['GET'])
@@ -747,7 +748,8 @@ def invoice_pdf(request, invoice_id):
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         
-        invoice = Invoice.objects.select_related('student', 'fee_structure', 'installment_plan', 'scholarship').get(id=invoice_id)
+        invoice = filter_invoices_for_user(request.user, Invoice.objects.select_related(
+            'student', 'fee_structure', 'installment_plan', 'scholarship')).get(id=invoice_id)
         payments = Payment.objects.filter(invoice=invoice).order_by('-payment_date')
         
         buffer = io.BytesIO()
@@ -868,11 +870,11 @@ def invoice_pdf(request, invoice_id):
     except Invoice.DoesNotExist:
         return Response({'error': 'Invoice not found'}, status=404)
     except ImportError:
-        return Response({'error': 'PDF generation requires reportlab'}, status=500)
+        return Response({'error': 'PDF export is not available on this server.'}, status=503)
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([FinanceStaff])
 def defaulter_report_pdf(request):
     """Generate PDF defaulter report"""
     try:
@@ -969,11 +971,11 @@ def defaulter_report_pdf(request):
         return response
         
     except ImportError:
-        return Response({'error': 'PDF generation requires reportlab'}, status=500)
+        return Response({'error': 'PDF export is not available on this server.'}, status=503)
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([FinanceStaff])
 def monthly_finance_report_pdf(request):
     """Generate comprehensive monthly finance report"""
     try:
@@ -1096,7 +1098,7 @@ def monthly_finance_report_pdf(request):
         return response
         
     except ImportError:
-        return Response({'error': 'PDF generation requires reportlab'}, status=500)
+        return Response({'error': 'PDF export is not available on this server.'}, status=503)
 
 
 from rest_framework.permissions import IsAuthenticated, AllowAny

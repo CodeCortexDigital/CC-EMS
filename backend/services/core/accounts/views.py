@@ -773,8 +773,12 @@ def download_result_card(request, student_id):
     from django.apps import apps
     Student = apps.get_model('education_students', 'Student')
     
+    from services.core.accounts.decorators import ensure_student_access
+
     try:
         student = Student.objects.get(id=student_id)
+        if not ensure_student_access(request.user, student):   # a family or student only gets their own record
+            return Response({'error': 'Student not found'}, status=404)
         generator = PDFGenerator()
         pdf_buffer = generator.generate_result_card(student, [], None)
         
@@ -797,7 +801,9 @@ def download_fee_receipt(request, invoice_id):
     
     try:
         Invoice = apps.get_model('education_finance', 'Invoice')
-        invoice = Invoice.objects.select_related('student', 'student__current_class').get(id=invoice_id)
+        from services.core.accounts.decorators import filter_invoices_for_user
+
+        invoice = filter_invoices_for_user(request.user, Invoice.objects.select_related('student', 'student__current_class')).get(id=invoice_id)
         student = invoice.student
         payments = list(invoice.payments.all())
         

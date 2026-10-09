@@ -18,7 +18,7 @@ const ZONE_CURRENCY: Record<string, string> = {
   'Asia/Seoul': 'KRW', 'America/Toronto': 'CAD', 'America/Mexico_City': 'MXN', 'America/Sao_Paulo': 'BRL',
 };
 
-export function guessCurrency(supported: string[], fallback = 'PKR'): string {
+export function guessCurrency(supported: string[], fallback = 'USD'): string {
   try {
     const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (zone && ZONE_CURRENCY[zone] && supported.includes(ZONE_CURRENCY[zone])) return ZONE_CURRENCY[zone];
@@ -36,8 +36,8 @@ export function guessCurrency(supported: string[], fallback = 'PKR'): string {
 
 export const browserTimezone = (): string => {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Karachi';
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
   } catch {
-    return 'Asia/Karachi';
+    return 'America/New_York';
   }
 };

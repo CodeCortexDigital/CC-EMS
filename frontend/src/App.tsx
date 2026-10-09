@@ -141,6 +141,7 @@ import HelpCentrePage from '@/pages/help/HelpCentrePage'
 import TicketsPage from '@/pages/help/TicketsPage'
 import SchoolReportsPage from '@/pages/education/insights/SchoolReportsPage'
 import PlanningPage from '@/pages/education/insights/PlanningPage'
+import BriefsPage from '@/pages/education/briefs/BriefsPage'
 import SearchPage from '@/pages/SearchPage'
 import LessonAttendancePage from '@/pages/education/attendance/LessonAttendancePage'
 import AbsenceReportsPage from '@/pages/education/attendance/AbsenceReportsPage'
@@ -653,6 +654,7 @@ function App() {
                 <Route path="education/health-office" element={<RoleBasedRoute allowedRoles={['admin', 'nurse']}><HealthOfficePage /></RoleBasedRoute>} />
                 <Route path="education/safety" element={<RoleBasedRoute allowedRoles={['admin', 'counsellor', 'teacher', 'staff', 'nurse', 'front_desk', 'manager', 'hr']}><SafetyPage /></RoleBasedRoute>} />
                 <Route path="education/interventions" element={<RoleBasedRoute allowedRoles={['admin', 'counsellor', 'teacher', 'staff', 'manager', 'hr']}><InterventionsPage /></RoleBasedRoute>} />
+                <Route path="education/briefs" element={<RoleBasedRoute allowedRoles={['admin']}><BriefsPage /></RoleBasedRoute>} />
                 <Route path="education/forms" element={<RoleBasedRoute allowedRoles={['admin', 'manager']}><FormsPage /></RoleBasedRoute>} />
                 <Route path="parent/forms" element={<RoleBasedRoute allowedRoles={['parent']}><ParentFormsPage /></RoleBasedRoute>} />
                 <Route path="parent/health" element={<RoleBasedRoute allowedRoles={['parent']}><ParentHealthPage /></RoleBasedRoute>} />

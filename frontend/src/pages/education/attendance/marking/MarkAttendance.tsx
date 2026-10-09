@@ -91,6 +91,10 @@ export default function MarkAttendance() {
     }
   }
 
+  // The face scan is only offered when the server can do it (it needs extra packages that a hosted demo does not have).
+  const [faceScan, setFaceScan] = useState(false)
+  useEffect(() => { api.get('/ai/capabilities/').then((r) => setFaceScan(!!r.data?.face_recognition)).catch(() => setFaceScan(false)) }, [])
+
   useEffect(() => {
     fetchCourses()
     fetchClassrooms()
@@ -265,6 +269,7 @@ export default function MarkAttendance() {
               </Button>
             </div>
             
+            {faceScan && (
             <Button 
               className="bg-purple-600 hover:bg-purple-700 text-white"
               onClick={() => setShowScanner(true)}
@@ -272,6 +277,7 @@ export default function MarkAttendance() {
               <Camera className="w-4 h-4 mr-2" />
               AI Face Recognition Scan
             </Button>
+            )}
           </div>
 
           {/* AI Face Recognition Scanner Modal */}

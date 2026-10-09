@@ -888,6 +888,13 @@ def get_all_teachers(request):
 def get_teacher_detail(request, pk):
     """Get single teacher details"""
     from django.shortcuts import get_object_or_404
+
+    from services.core.accounts.decorators import get_user_role
+    from services.education.hr.access import is_hr
+
+    # Staff records (pay, contact, ID numbers) are for staff and the office, not for families or students.
+    if not (is_hr(request.user) or get_user_role(request.user) == 'teacher'):
+        return Response({'error': 'Only staff can open a staff record.'}, status=403)
     teacher = get_object_or_404(Teacher, pk=pk)
     serializer = TeacherSerializer(teacher)
     return Response(serializer.data)

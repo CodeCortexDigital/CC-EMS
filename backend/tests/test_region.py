@@ -70,3 +70,38 @@ def test_new_schools_start_in_the_style_of_their_currency(db):
     assert school_locale(pk)['region'] == 'pk' and school_locale(pk)['terms']['date_sheet'] == 'Date Sheet'
     assert school_locale(eu)['region'] == 'intl' and school_locale(eu)['terms']['date_sheet'] == 'Exam Timetable'
     assert 'cast' in school_locale(eu)['hidden_fields']
+
+
+@pytest.mark.django_db
+def test_a_new_school_defaults_to_dollars_and_a_us_time_zone(db, settings):
+    from services.core.tenants.localization import DEFAULT_CURRENCY, DEFAULT_TIMEZONE
+    from services.core.tenants.signup import create_school_with_admin
+
+    assert (DEFAULT_CURRENCY, DEFAULT_TIMEZONE) == ('USD', 'America/New_York')
+    us, _ = create_school_with_admin(school_name='Springfield Prep', admin_email='a@sp.test', admin_name='A', password='Secret-123x')
+    uk, _ = create_school_with_admin(school_name='London Prep', admin_email='b@lp.test', admin_name='B', password='Secret-123x', currency='GBP')
+    loc = school_locale(us)
+    assert loc['currency'] == 'USD' and loc['timezone'] == 'America/New_York' and loc['region'] == 'us'
+    assert loc['date_format'] == 'MM/DD/YYYY' and loc['week_start'] == 0
+    assert school_locale(uk)['region'] == 'uk'
+    assert settings.TIME_ZONE == 'America/New_York'
+
+
+@pytest.mark.django_db
+def test_the_signup_form_is_offered_dollars_and_a_us_zone(db):
+    from rest_framework.test import APIClient
+
+    res = APIClient().get('/api/v1/tenants/signup/config/')
+    if res.status_code == 404:
+        res = APIClient().get('/api/v1/auth/tenants/signup/config/')
+    assert res.status_code == 200, res.content
+    assert res.json()['defaults'] == {'currency': 'USD', 'language': 'en', 'timezone': 'America/New_York'}
+
+
+@pytest.mark.django_db
+def test_an_existing_school_that_never_chose_keeps_what_it_had():
+    from types import SimpleNamespace
+
+    legacy = SimpleNamespace(settings_json={})
+    loc = school_locale(legacy)
+    assert loc['currency'] == 'PKR' and loc['timezone'] == 'Asia/Karachi' and loc['region'] == 'pk'   # nothing changes overnight

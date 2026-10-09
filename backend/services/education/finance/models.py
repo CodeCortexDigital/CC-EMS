@@ -443,7 +443,7 @@ class PaymentTransaction(models.Model):
     gateway = models.CharField(max_length=30, choices=PaymentGatewayConfig.GATEWAY_PROVIDERS)
     config = models.ForeignKey(PaymentGatewayConfig, on_delete=models.SET_NULL, null=True, blank=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=10, default='PKR')
+    currency = models.CharField(max_length=10, default='USD')
     gateway_reference = models.CharField(max_length=128, unique=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     request_payload = models.JSONField(null=True, blank=True)

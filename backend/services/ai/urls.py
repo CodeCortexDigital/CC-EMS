@@ -10,6 +10,7 @@ urlpatterns = [
     # The school's AI settings and use notice (administrators)
     path("settings/", settings_api.ai_settings, name="ai-settings"),
     path("settings/accept-notice/", settings_api.accept_notice, name="ai-accept-notice"),
+    path("capabilities/", settings_api.capabilities, name="ai-capabilities"),
     # Teacher assistant: drafts for the teacher to edit
     path("parent-message/", teacher_tools.ai_parent_message, name="ai-parent-message"),
     path("rubric/", teacher_tools.ai_rubric, name="ai-rubric"),

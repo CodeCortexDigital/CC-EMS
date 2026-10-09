@@ -8,6 +8,7 @@ import {
   listConversations, sendAiMessage, sendFeedback, streamAiMessage,
 } from '@/services/ai.service';
 import MarkdownText from '@/components/MarkdownText';
+import api from '@/services/api';
 
 export type ChatMode = 'student' | 'teacher' | 'parent' | 'admin';
 
@@ -44,6 +45,39 @@ const SUGGESTIONS: Record<ChatMode, string[]> = {
     'My timetable',
     'My certificates',
     'My notifications',
+  ],
+};
+
+// Natural questions, shown when a real AI provider is set up. (Without one the assistant matches keywords, so the list above
+// stays: those phrases are the ones it understands.)
+const AI_SUGGESTIONS: Record<ChatMode, string[]> = {
+  admin: [
+    'Which classes had the lowest attendance this month?',
+    'Who has overdue fees, and how much is owed in total?',
+    'How many students are in each grade?',
+    'Which students have the most absences?',
+    'Give me a summary of how the school year is going',
+  ],
+  teacher: [
+    'Who was absent in my classes this week?',
+    'What does my timetable look like tomorrow?',
+    'Which of my students are missing assignments?',
+    'Which students might be struggling in my classes?',
+    'What homework is due this week?',
+  ],
+  parent: [
+    'How is my child doing in school?',
+    'Does my child have any missing assignments?',
+    'How many days has my child been absent?',
+    'What fees are due?',
+    'What does my child have tomorrow?',
+  ],
+  student: [
+    'What homework do I have due soon?',
+    'What is my current grade in each class?',
+    'Did I miss any assignments?',
+    'What is on my timetable tomorrow?',
+    'How is my attendance?',
   ],
 };
 
@@ -97,6 +131,8 @@ export default function AiAssistant({ mode = 'admin' }: { mode?: ChatMode }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [offline, setOffline] = useState(false);
+  const [aiProvider, setAiProvider] = useState(false);
+  useEffect(() => { api.get('/ai/capabilities/').then((r) => setAiProvider(!!r.data?.ai_provider)).catch(() => setAiProvider(false)); }, []);
   const [messages, setMessages] = useState<ChatMessage[]>([welcome]);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
@@ -470,7 +506,7 @@ export default function AiAssistant({ mode = 'admin' }: { mode?: ChatMode }) {
 
             {messages.length === 1 && !loading && (
               <div className="flex flex-wrap gap-2 pt-1">
-                {SUGGESTIONS[mode].map((s) => (
+                {(aiProvider && !offline ? AI_SUGGESTIONS : SUGGESTIONS)[mode].map((s) => (
                   <button
                     key={s}
                     onClick={() => send(s)}

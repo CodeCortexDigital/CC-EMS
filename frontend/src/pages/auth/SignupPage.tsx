@@ -15,7 +15,14 @@ interface GoogleState {
   name?: string;
 }
 
-type Fields = 'school_name' | 'city' | 'phone' | 'admin_name' | 'email' | 'password' | 'currency' | 'language';
+type Fields = 'school_name' | 'city' | 'phone' | 'admin_name' | 'email' | 'password' | 'currency' | 'language' | 'timezone';
+
+// New schools start on a U.S. time zone (the visitor's own, if it is one of these); anything else can be picked from the list.
+const US_ZONES: Array<[string, string]> = [
+  ['America/New_York', 'Eastern Time (New York)'], ['America/Chicago', 'Central Time (Chicago)'], ['America/Denver', 'Mountain Time (Denver)'],
+  ['America/Phoenix', 'Arizona (Phoenix)'], ['America/Los_Angeles', 'Pacific Time (Los Angeles)'], ['America/Anchorage', 'Alaska (Anchorage)'], ['Pacific/Honolulu', 'Hawaii (Honolulu)'],
+];
+const initialZone = (): string => { const z = browserTimezone(); return US_ZONES.some(([id]) => id === z) ? z : 'America/New_York'; };
 
 /** Self-service: create a school (with its currency and language) and become its administrator. */
 export default function SignupPage() {
@@ -30,7 +37,7 @@ export default function SignupPage() {
   const [form, setForm] = useState<Record<Fields, string>>({
     school_name: '', city: '', phone: '', admin_name: fromGoogle.name || '', email: fromGoogle.email || '', password: '',
     // Default to the language the visitor already picked on the sign-in page.
-    currency: '', language: useLocaleStore.getState().userLanguage || i18n.language || 'en',
+    currency: '', language: useLocaleStore.getState().userLanguage || i18n.language || 'en', timezone: initialZone(),
   });
   const [googleToken, setGoogleToken] = useState(fromGoogle.googleToken || '');
   const [googleEmail, setGoogleEmail] = useState(fromGoogle.googleToken ? fromGoogle.email || '' : '');
@@ -47,7 +54,7 @@ export default function SignupPage() {
         // Suggest the visitor's local currency; they can change it.
         setForm((f) => ({ ...f, currency: f.currency || guessCurrency(c.currencies.map((x) => x.code), c.defaults.currency) }));
       })
-      .catch(() => setForm((f) => ({ ...f, currency: f.currency || 'PKR' })));
+      .catch(() => setForm((f) => ({ ...f, currency: f.currency || 'USD' })));
   }, []);
 
   const currencies = useMemo(
@@ -74,7 +81,7 @@ export default function SignupPage() {
 
     setLoading(true);
     setError('');
-    const locale = { currency: form.currency || 'PKR', language: form.language || 'en', timezone: browserTimezone() };
+    const locale = { currency: form.currency || 'USD', language: form.language || 'en', timezone: form.timezone || 'America/New_York' };
     try {
       const data = await schoolService.signup(
         token
@@ -153,7 +160,7 @@ export default function SignupPage() {
             <div>
               <label htmlFor="signup-currency" className="block text-sm font-semibold text-slate-700 mb-1.5">{t('signup.currency')}</label>
               <select id="signup-currency" value={form.currency} onChange={set('currency')} className="auth-input px-3">
-                {!currencies.length && <option value={form.currency}>{form.currency || 'PKR'}</option>}
+                {!currencies.length && <option value={form.currency}>{form.currency || 'USD'}</option>}
                 {currencies.map((c) => (
                   <option key={c.code} value={c.code}>{c.name} ({c.code} · {c.symbol})</option>
                 ))}
@@ -167,6 +174,14 @@ export default function SignupPage() {
                 ))}
               </select>
             </div>
+          </div>
+          <div>
+            <label htmlFor="signup-timezone" className="block text-sm font-semibold text-slate-700 mb-1.5">{t('signup.timezone', { defaultValue: 'Time zone' })}</label>
+            <select id="signup-timezone" value={form.timezone} onChange={set('timezone')} className="auth-input px-3">
+              {US_ZONES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              {!US_ZONES.some(([id]) => id === form.timezone) && <option value={form.timezone}>{form.timezone}</option>}
+              {!US_ZONES.some(([id]) => id === browserTimezone()) && form.timezone !== browserTimezone() && <option value={browserTimezone()}>{`Your current time zone (${browserTimezone()})`}</option>}
+            </select>
           </div>
           <p className="-mt-2 text-xs text-slate-500">{t('signup.currencyHint')} {t('signup.languageHint')}</p>
         </fieldset>

@@ -204,7 +204,7 @@ export default function IntegrationsPage() {
           <li className="flex items-center gap-2"><Status on={e.google_sign_in.enabled} label="Google sign-in" /> <span className="text-slate-500">for every account</span></li>
           <li className="flex items-center gap-2"><Status on={e.calendar.enabled} label="Calendar feeds" /> <span className="text-slate-500">Google / Apple / Outlook</span> <Link to={e.calendar.where} className="text-blue-600 text-xs font-bold ml-auto">Open</Link></li>
           <li className="flex items-center gap-2"><Status on={e.sms.enabled} label="SMS (Twilio)" /> <Link to={e.sms.where} className="text-blue-600 text-xs font-bold ml-auto">Set up</Link></li>
-          <li className="flex items-center gap-2"><Status on={e.payments.gateways.some((g) => g.active)} label="Online payments" /> <span className="text-slate-500 truncate">{e.payments.gateways.filter((g) => g.active).map((g) => g.label).join(', ') || 'Stripe, JazzCash, Easypaisa'}</span> <Link to={e.payments.where} className="text-blue-600 text-xs font-bold ml-auto">Set up</Link></li>
+          <li className="flex items-center gap-2"><Status on={e.payments.gateways.some((g) => g.active)} label="Online payments" /> <span className="text-slate-500 truncate">{e.payments.gateways.filter((g) => g.active).map((g) => g.label).join(', ') || 'Stripe'}</span> <Link to={e.payments.where} className="text-blue-600 text-xs font-bold ml-auto">Set up</Link></li>
         </ul>
       </section>
       <MicrosoftCard row={row('microsoft')} onSaved={load} />
