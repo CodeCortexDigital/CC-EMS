@@ -1112,29 +1112,13 @@ export default function AttendancePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Attendance Management</h1>
-          <p className="text-gray-500">Mark and track student and teacher attendance</p>
-        </div>
-      </div>
+    <div className="space-y-3">
+      <h1 className="sr-only">Attendance Management</h1>
 
       <Tabs value={activeView} className="space-y-4">
 
-        <TabsContent value="students" className="space-y-6">
+        <TabsContent value="students" className="space-y-3">
           
-          {/* Top Breadcrumb Bar */}
-          <div className="flex items-center justify-between py-0.5 print:hidden">
-            <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
-              <span className="text-slate-500 font-bold">Attendance</span>
-              <span>|</span>
-              <span className="text-slate-450 font-bold flex items-center gap-1">
-                📁 - Mark or update Student Attendance
-              </span>
-            </div>
-          </div>
-
           {/* Sub-tabs Selection - Replicates Manual vs Card scanning tabs */}
           <div className="flex border-b border-slate-150 print:hidden mb-1 select-none">
             <button
@@ -1142,20 +1126,20 @@ export default function AttendancePage() {
                 setSubTab('manual');
                 setManualSubmitClicked(false);
               }}
-              className={`px-6 py-2.5 text-xs font-bold transition-all border-t-2 border-x ${
+              className={`px-4 py-2 text-[13px] font-medium transition-colors border-b-2 -mb-px ${
                 subTab === 'manual' 
-                  ? 'bg-white border-t-[#5C53CD] border-x-slate-150 text-[#5C53CD] -mb-[1px] rounded-t-xl shadow-4xs' 
-                  : 'border-transparent text-slate-400 hover:text-slate-600'
+                  ? 'border-[var(--app-accent)] text-[var(--app-accent-text)] font-semibold' 
+                  : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
               Manual Attendance
             </button>
             <button
               onClick={() => setSubTab('card')}
-              className={`px-6 py-2.5 text-xs font-bold transition-all border-t-2 border-x ${
+              className={`px-4 py-2 text-[13px] font-medium transition-colors border-b-2 -mb-px ${
                 subTab === 'card' 
-                  ? 'bg-white border-t-[#5C53CD] border-x-slate-150 text-[#5C53CD] -mb-[1px] rounded-t-xl shadow-4xs' 
-                  : 'border-transparent text-slate-400 hover:text-slate-600'
+                  ? 'border-[var(--app-accent)] text-[var(--app-accent-text)] font-semibold' 
+                  : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
               Card Scanning
@@ -1164,9 +1148,9 @@ export default function AttendancePage() {
 
           {subTab === 'card' ? (
             /* CARD SCANNING LOCKED VIEW - Matches Screenshot 2 exactly */
-            <div className="bg-white rounded-3xl border border-slate-150 shadow-sm p-12 text-center flex flex-col items-center justify-center space-y-4 min-h-[340px]">
+            <div className="bg-white rounded-2xl border border-slate-150 shadow-sm p-6 text-center flex flex-col items-center justify-center space-y-3">
               <div className="space-y-1">
-                <h3 className="text-lg font-black text-[#1C1656] tracking-tight">Mark attendance with card scanning</h3>
+                <h3 className="text-base font-semibold text-slate-900 tracking-tight">Mark attendance with card scanning</h3>
                 <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold mt-1">
                   <span className="flex items-center gap-1 text-[#5C53CD]"><span className="w-1.5 h-1.5 rounded-full bg-[#5C53CD] block"></span> Required*</span>
                   <span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-slate-400 block"></span> Optional</span>
@@ -1186,22 +1170,22 @@ export default function AttendancePage() {
             /* MANUAL ATTENDANCE VIEW */
             !manualSubmitClicked ? (
               /* SELECTION FORM CARD - Matches Screenshot 1 exactly */
-              <div className="bg-white rounded-3xl border border-slate-150 shadow-sm p-12 text-center flex flex-col items-center justify-center space-y-6 max-w-2xl mx-auto">
+              <div className="bg-white rounded-2xl border border-slate-150 shadow-sm p-5 text-center flex flex-col items-center justify-center space-y-3 max-w-2xl mx-auto">
                 <div className="space-y-1">
-                  <h3 className="text-lg font-black text-[#1C1656] tracking-tight">Add/update attendance</h3>
+                  <h3 className="text-base font-semibold text-slate-900 tracking-tight">Add/update attendance</h3>
                   <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold mt-1">
                     <span className="flex items-center gap-1 text-[#5C53CD]"><span className="w-1.5 h-1.5 rounded-full bg-[#5C53CD] block"></span> Required*</span>
                     <span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-slate-400 block"></span> Optional</span>
                   </div>
                 </div>
 
-                <form onSubmit={handleManualSubmit} className="w-full max-w-md space-y-5 text-left">
+                <form onSubmit={handleManualSubmit} className="w-full max-w-xl space-y-3 text-left">
                   <div>
-                    <label className="block text-[9px] font-black tracking-wider text-slate-400 uppercase mb-2">DATE *</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Date *</label>
                     <div className="relative flex items-center">
                       <input
                         type="date"
-                        className="w-full h-11 px-4 pr-10 rounded-xl border border-slate-205 bg-white text-xs font-semibold text-slate-650 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all shadow-4xs"
+                        className="w-full h-10 px-3 pr-10 rounded-lg border border-slate-205 bg-white text-xs font-semibold text-slate-650 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all shadow-4xs"
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
                         required
@@ -1210,8 +1194,8 @@ export default function AttendancePage() {
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-[9px] font-black tracking-wider text-slate-400 uppercase">SELECT CLASS *</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-medium text-slate-600">Select class *</label>
                       {classes.length > 0 && (
                         <button
                           type="button"
@@ -1222,7 +1206,7 @@ export default function AttendancePage() {
                         </button>
                       )}
                     </div>
-                    <div className="max-h-60 overflow-y-auto rounded-xl border border-slate-205 bg-white divide-y divide-slate-100">
+                    <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-205 bg-white divide-y divide-slate-100">
                       {classes.map(cls => {
                         const checked = selectedClasses.includes(cls.id);
                         return (
@@ -1494,19 +1478,8 @@ export default function AttendancePage() {
 
         </TabsContent>
 
-        <TabsContent value="teachers" className="space-y-6">
+        <TabsContent value="teachers" className="space-y-3">
           
-          {/* Top Breadcrumb Bar */}
-          <div className="flex items-center justify-between py-0.5 print:hidden">
-            <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
-              <span className="text-slate-500 font-bold">Attendance</span>
-              <span>|</span>
-              <span className="text-slate-450 font-bold flex items-center gap-1">
-                📁 - Mark or update Employee Attendance
-              </span>
-            </div>
-          </div>
-
           {/* Sub-tabs Selection - Replicates Manual vs Card scanning tabs */}
           <div className="flex border-b border-slate-150 print:hidden mb-1 select-none">
             <button
@@ -1514,20 +1487,20 @@ export default function AttendancePage() {
                 setSubTab('manual');
                 setTeacherSubmitClicked(false);
               }}
-              className={`px-6 py-2.5 text-xs font-bold transition-all border-t-2 border-x ${
+              className={`px-4 py-2 text-[13px] font-medium transition-colors border-b-2 -mb-px ${
                 subTab === 'manual' 
-                  ? 'bg-white border-t-[#5C53CD] border-x-slate-150 text-[#5C53CD] -mb-[1px] rounded-t-xl shadow-4xs' 
-                  : 'border-transparent text-slate-400 hover:text-slate-600'
+                  ? 'border-[var(--app-accent)] text-[var(--app-accent-text)] font-semibold' 
+                  : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
               Manual Attendance
             </button>
             <button
               onClick={() => setSubTab('card')}
-              className={`px-6 py-2.5 text-xs font-bold transition-all border-t-2 border-x ${
+              className={`px-4 py-2 text-[13px] font-medium transition-colors border-b-2 -mb-px ${
                 subTab === 'card' 
-                  ? 'bg-white border-t-[#5C53CD] border-x-slate-150 text-[#5C53CD] -mb-[1px] rounded-t-xl shadow-4xs' 
-                  : 'border-transparent text-slate-400 hover:text-slate-600'
+                  ? 'border-[var(--app-accent)] text-[var(--app-accent-text)] font-semibold' 
+                  : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
               Card Scanning
@@ -1536,9 +1509,9 @@ export default function AttendancePage() {
 
           {subTab === 'card' ? (
             /* CARD SCANNING LOCKED VIEW - Matches Screenshot 2 exactly */
-            <div className="bg-white rounded-3xl border border-slate-150 shadow-sm p-12 text-center flex flex-col items-center justify-center space-y-4 min-h-[340px]">
+            <div className="bg-white rounded-2xl border border-slate-150 shadow-sm p-6 text-center flex flex-col items-center justify-center space-y-3">
               <div className="space-y-1">
-                <h3 className="text-lg font-black text-[#1C1656] tracking-tight">Mark attendance with card scanning</h3>
+                <h3 className="text-base font-semibold text-slate-900 tracking-tight">Mark attendance with card scanning</h3>
                 <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold mt-1">
                   <span className="flex items-center gap-1 text-[#5C53CD]"><span className="w-1.5 h-1.5 rounded-full bg-[#5C53CD] block"></span> Required*</span>
                   <span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-slate-400 block"></span> Optional</span>
@@ -1558,22 +1531,22 @@ export default function AttendancePage() {
             /* MANUAL ATTENDANCE VIEW */
             !teacherSubmitClicked ? (
               /* SELECTION FORM CARD - Matches Screenshot 1 format */
-              <div className="bg-white rounded-3xl border border-slate-150 shadow-sm p-12 text-center flex flex-col items-center justify-center space-y-6 max-w-2xl mx-auto">
+              <div className="bg-white rounded-2xl border border-slate-150 shadow-sm p-5 text-center flex flex-col items-center justify-center space-y-3 max-w-2xl mx-auto">
                 <div className="space-y-1">
-                  <h3 className="text-lg font-black text-[#1C1656] tracking-tight">Add/update attendance</h3>
+                  <h3 className="text-base font-semibold text-slate-900 tracking-tight">Add/update attendance</h3>
                   <div className="flex items-center justify-center gap-1.5 text-[10px] font-bold mt-1">
                     <span className="flex items-center gap-1 text-[#5C53CD]"><span className="w-1.5 h-1.5 rounded-full bg-[#5C53CD] block"></span> Required*</span>
                     <span className="flex items-center gap-1 text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-slate-400 block"></span> Optional</span>
                   </div>
                 </div>
 
-                <form onSubmit={handleTeacherManualSubmit} className="w-full max-w-md space-y-5 text-left">
+                <form onSubmit={handleTeacherManualSubmit} className="w-full max-w-xl space-y-3 text-left">
                   <div>
-                    <label className="block text-[9px] font-black tracking-wider text-slate-400 uppercase mb-2">DATE *</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Date *</label>
                     <div className="relative flex items-center">
                       <input
                         type="date"
-                        className="w-full h-11 px-4 pr-10 rounded-xl border border-slate-205 bg-white text-xs font-semibold text-slate-655 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all shadow-4xs"
+                        className="w-full h-10 px-3 pr-10 rounded-lg border border-slate-205 bg-white text-xs font-semibold text-slate-655 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all shadow-4xs"
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
                         required
@@ -1596,7 +1569,7 @@ export default function AttendancePage() {
               <div className="space-y-6">
                 
                 {/* Filters info header with back button */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-150 shadow-sm flex items-center justify-between">
+                <div className="bg-white p-4 rounded-xl border border-slate-150 shadow-sm flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-[#5C53CD] font-bold">
                       💼
@@ -1675,7 +1648,7 @@ export default function AttendancePage() {
                   </div>
 
                   <div className="space-y-1">
-                    <h3 className="text-lg font-black text-[#1C1656] tracking-tight">Mark Attendance</h3>
+                    <h3 className="text-base font-semibold text-slate-900 tracking-tight">Mark Attendance</h3>
                     {/* Status Legends */}
                     <div className="flex items-center justify-center gap-3 text-[10px] font-bold mt-1">
                       <span className="flex items-center gap-1 text-blue-600">
@@ -1803,23 +1776,12 @@ export default function AttendancePage() {
 
         <TabsContent value="class-report" className="space-y-6">
           
-          {/* Top Breadcrumb Bar */}
-          <div className="flex items-center justify-between py-0.5 print:hidden">
-            <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
-              <span className="text-slate-500 font-bold">Attendance</span>
-              <span>|</span>
-              <span className="text-slate-450 font-bold flex items-center gap-1">
-                📁 - Class wise Attendance Report
-              </span>
-            </div>
-          </div>
-
           {/* Date Selector Filter Card */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-150 shadow-sm print:hidden max-w-sm">
-            <label className="block text-[9px] font-black tracking-wider text-slate-400 uppercase mb-2">SELECT REPORT DATE *</label>
+          <div className="bg-white p-4 rounded-xl border border-slate-150 shadow-sm print:hidden max-w-sm">
+            <label className="block text-[9px] font-black tracking-wider text-slate-400 uppercase mb-2">Select report date *</label>
             <input
               type="date"
-              className="w-full h-11 px-4 rounded-xl border border-slate-205 bg-white text-xs font-semibold text-slate-655 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all shadow-4xs"
+              className="w-full h-10 px-3 rounded-lg border border-slate-205 bg-white text-xs font-semibold text-slate-655 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all shadow-4xs"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               required
@@ -1975,17 +1937,6 @@ export default function AttendancePage() {
             </h1>
           </div>
 
-          {/* Top Breadcrumb Bar */}
-          <div className="flex items-center justify-between py-0.5 print:hidden">
-            <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
-              <span className="text-slate-500 font-bold">Attendance</span>
-              <span>|</span>
-              <span className="text-slate-450 font-bold flex items-center gap-1">
-                📁 - Students Attendance Record
-              </span>
-            </div>
-          </div>
-
           {/* Blue Date Range Selector Card - Matches Screenshot 2 */}
           <div className="bg-[#5C53CD] p-6 rounded-2xl border border-[#4c43bd] shadow-sm print:hidden text-white space-y-4 max-w-lg">
             <div className="flex items-center gap-2 text-xs font-bold">
@@ -2139,17 +2090,6 @@ export default function AttendancePage() {
             <h1 className="text-xl font-black text-slate-800">
               Employees attendance record ({new Date(reportStartDate).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })} - {new Date(reportEndDate).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })})
             </h1>
-          </div>
-
-          {/* Top Breadcrumb Bar */}
-          <div className="flex items-center justify-between py-0.5 print:hidden">
-            <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
-              <span className="text-slate-500 font-bold">Attendance</span>
-              <span>|</span>
-              <span className="text-slate-450 font-bold flex items-center gap-1">
-                📁 - Employees Attendance Record
-              </span>
-            </div>
           </div>
 
           {/* Blue Date Range Selector Card - Matches Code Cortex */}
