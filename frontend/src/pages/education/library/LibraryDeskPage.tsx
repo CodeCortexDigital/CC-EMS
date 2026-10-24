@@ -3,6 +3,7 @@ import { AlertTriangle, BookDown, BookUp, CreditCard, Loader2, RotateCcw, ScanLi
 import { toast } from 'sonner';
 import library, { errorText, Loan, MemberBrief, MemberDetail } from '@/services/library.service';
 import { formatMoney } from '@/utils/currency';
+import ReturnCheck from './ReturnCheck';
 
 const card = 'bg-white rounded-xl border border-slate-200 shadow-sm p-4';
 const input = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--app-accent)]';
@@ -18,6 +19,7 @@ export default function LibraryDeskPage() {
   const [inCode, setInCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [returns, setReturns] = useState<Returned[]>([]);
+  const [checking, setChecking] = useState<Loan | null>(null);
   const outRef = useRef<HTMLInputElement>(null);
   const inRef = useRef<HTMLInputElement>(null);
 
@@ -52,16 +54,18 @@ export default function LibraryDeskPage() {
     } catch (e) { toast.error(errorText(e, 'Could not issue this book.')); }
     finally { setBusy(false); outRef.current?.focus(); }
   };
+  const afterReturn = async (r: Awaited<ReturnType<typeof library.returnBook>>) => {
+    setReturns((list) => [{ ...r, at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }, ...list].slice(0, 12));
+    if (r.hold_for) toast.message(`Put this book aside for ${r.hold_for.name}.`);
+    else toast.success(`"${r.loan.title}" is back.`);
+    if (member?.id === r.loan.member.id) await reload();
+  };
   const giveBack = async (code: string) => {
     if (!code.trim()) return;
     setBusy(true);
     try {
-      const r = await library.returnBook(code.trim());
-      setReturns((list) => [{ ...r, at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }, ...list].slice(0, 12));
-      if (r.hold_for) toast.message(`Put this book aside for ${r.hold_for.name}.`);
-      else toast.success(`"${r.loan.title}" is back.`);
+      await afterReturn(await library.returnBook(code.trim()));
       setInCode('');
-      if (member?.id === r.loan.member.id) await reload();
     } catch (e) { toast.error(errorText(e, 'Could not return this book.')); }
     finally { setBusy(false); inRef.current?.focus(); }
   };
@@ -124,7 +128,7 @@ export default function LibraryDeskPage() {
                       <span className="mr-auto"><b>{l.title}</b> <span className="text-slate-400">· {l.barcode}</span></span>
                       <span className={`text-xs font-bold ${l.overdue ? 'text-rose-600' : 'text-slate-500'}`}>{l.overdue ? `${l.days_overdue} day(s) overdue` : `due ${fmt(l.due_date)}`}</span>
                       <button onClick={() => renew(l)} className="text-xs font-bold text-blue-600 inline-flex items-center gap-1"><RotateCcw size={12} /> Renew</button>
-                      <button onClick={() => giveBack(l.barcode)} className="text-xs font-bold text-emerald-700 inline-flex items-center gap-1"><BookDown size={12} /> Return</button>
+                      <button onClick={() => setChecking(l)} className="text-xs font-bold text-emerald-700 inline-flex items-center gap-1"><BookDown size={12} /> Return</button>
                     </li>
                   ))}
                 </ul>
@@ -160,6 +164,7 @@ export default function LibraryDeskPage() {
           )}
         </section>
       </div>
+      {checking && <ReturnCheck loan={checking} onClose={() => setChecking(null)} onDone={async (r) => { setChecking(null); await afterReturn(r); }} />}
     </div>
   );
 }

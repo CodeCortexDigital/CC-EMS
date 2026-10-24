@@ -93,7 +93,7 @@ class TestPreferences:
     def test_everything_is_on_until_switched_off(self, people):
         c = api(people['parent'])
         types = c.get(f'{N}/push/preferences/').json()['types']
-        assert {t['key'] for t in types} == {'attendance', 'finance', 'exam', 'admission', 'announcement', 'system'} and all(t['enabled'] for t in types)
+        assert {t['key'] for t in types} == {'attendance', 'finance', 'exam', 'admission', 'announcement', 'library', 'system'} and all(t['enabled'] for t in types)
         after = c.put(f'{N}/push/preferences/', {'muted_types': ['finance', 'exam']}, format='json').json()['types']
         assert {t['key'] for t in after if not t['enabled']} == {'finance', 'exam'}
         assert c.put(f'{N}/push/preferences/', {'muted_types': ['nonsense']}, format='json').status_code == 400

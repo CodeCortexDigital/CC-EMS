@@ -12,6 +12,8 @@ export interface Book {
 export interface CopyRow {
   id: string; barcode: string; status: string; status_label: string; condition: string; location: string; notes: string;
   price: number | null; borrower: string | null; due_date: string | null; overdue: boolean;
+  /** A locked copy is kept in the safe; these say why, when and by whom. */
+  locked_reason?: string; locked_at?: string | null; locked_by?: string;
 }
 export interface MemberBrief {
   id: string | null; ref_id?: string; kind: 'student' | 'staff'; name: string; card_number: string | null; detail: string;
@@ -22,6 +24,8 @@ export interface Loan {
   member: { id: string; name: string; kind: string; card_number: string };
   issued_at: string; due_date: string; returned_at: string | null; renewals: number; overdue: boolean; days_overdue: number;
   fine_amount: number; fine_status: 'none' | 'due' | 'paid' | 'waived'; notes: string;
+  /** How it was returned: the book was scanned and matched, or the desk confirmed it by hand. */
+  return_method?: 'scan' | 'manual' | '';
 }
 export interface Reservation {
   id: string; book_id: string; title: string; authors: string; member: { id: string; name: string }; status: string;
@@ -53,7 +57,7 @@ const library = {
   removeBook: async (id: string) => api.delete(`${base}/books/${id}/`),
   addCopies: async (id: string, body: { count: number; location?: string; price?: string }) =>
     (await api.post<{ barcodes: string[] }>(`${base}/books/${id}/copies/`, body)).data,
-  updateCopy: async (id: string, body: Partial<CopyRow>) => (await api.patch<CopyRow>(`${base}/copies/${id}/`, body)).data,
+  updateCopy: async (id: string, body: Partial<CopyRow> & { reason?: string }) => (await api.patch<CopyRow>(`${base}/copies/${id}/`, body)).data,
   labels: async (params: { book?: string; copies?: string; members?: string }) =>
     (await api.get<{ labels: Label[]; qr: boolean }>(`${base}/labels/`, { params })).data,
   members: async (q = '', show = '') => (await api.get<{ results: MemberBrief[]; exact: boolean }>(`${base}/members/`, { params: q ? { q } : show ? { show } : {} })).data,
@@ -64,7 +68,7 @@ const library = {
     (await api.patch<MemberDetail>(`${base}/members/${id}/`, body)).data,
   issue: async (barcode: string, member_id: string) =>
     (await api.post<{ loan: Loan; member: MemberBrief }>(`${base}/issue/`, { barcode, member_id })).data,
-  returnBook: async (barcode: string, extra: { condition?: string; damaged?: boolean; notes?: string } = {}) =>
+  returnBook: async (barcode: string, extra: { condition?: string; damaged?: boolean; notes?: string; loan_id?: string; manual?: boolean } = {}) =>
     (await api.post<{ loan: Loan; days_late: number; fine: number; hold_for: { name: string; until: string } | null; member: MemberBrief }>(`${base}/return/`, { barcode, ...extra })).data,
   loans: async (status: string, q = '') =>
     (await api.get<{ results: Loan[]; counts: Record<string, number> }>(`${base}/loans/`, { params: { status, ...(q ? { q } : {}) } })).data,

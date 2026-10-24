@@ -25,6 +25,8 @@ from .models import Notification, PushPreference, PushSubscription
 logger = logging.getLogger(__name__)
 
 MAX_DEVICES = 10
+# Tapping a push opens the page it is about.
+PAGE_FOR_TYPE = {'library': '/library'}
 _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix='push')
 
 
@@ -45,7 +47,8 @@ def muted_types(user_id):
 
 
 def payload_for(notification):
-    return {'title': notification.title, 'body': notification.message[:240], 'url': '/', 'tag': str(notification.pk),
+    return {'title': notification.title, 'body': notification.message[:240], 'url': PAGE_FOR_TYPE.get(notification.notification_type, '/'),
+            'tag': str(notification.pk),
             'type': notification.notification_type}
 
 

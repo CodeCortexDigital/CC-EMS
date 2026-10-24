@@ -54,7 +54,7 @@ class Book(TenantScopedModel):
 class BookCopy(TenantScopedModel):
     STATUSES = [
         ('available', 'On the shelf'), ('on_loan', 'On loan'), ('on_hold', 'Held for a reservation'),
-        ('lost', 'Lost'), ('damaged', 'Damaged'), ('withdrawn', 'Withdrawn'),
+        ('lost', 'Lost'), ('damaged', 'Damaged'), ('withdrawn', 'Withdrawn'), ('locked', 'Locked in the safe'),
     ]
     CONDITIONS = [('new', 'New'), ('good', 'Good'), ('fair', 'Fair'), ('poor', 'Poor')]
 
@@ -67,6 +67,9 @@ class BookCopy(TenantScopedModel):
     acquired_on = models.DateField(null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     notes = models.CharField(max_length=255, blank=True, default='')
+    locked_reason = models.CharField(max_length=255, blank=True, default='', help_text='Why a locked copy is kept in the safe')
+    locked_at = models.DateTimeField(null=True, blank=True)
+    locked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -106,6 +109,7 @@ class Loan(TenantScopedModel):
     issued_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     returned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     condition_on_return = models.CharField(max_length=10, blank=True, default='')
+    return_method = models.CharField(max_length=10, blank=True, default='', choices=[('scan', 'Book scanned and matched'), ('manual', 'Confirmed by hand')])
     fine_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     fine_status = models.CharField(max_length=10, default='none',
                                    choices=[('none', 'No fine'), ('due', 'To pay'), ('paid', 'Paid'), ('waived', 'Waived')])

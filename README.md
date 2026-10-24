@@ -169,6 +169,15 @@ API: `/api/v1/auth/hr/` (cover, openings, candidates, onboarding, contracts, cre
 * **Installable app and push**: manifest, safe service worker, and Web Push. Generate keys with `manage.py generate_vapid_keys` and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT` (and `FRONTEND_URL` for email links). A guided tour runs on first sign-in and is replayable from Help.
 * Named roles `front_desk`, `nurse` and `counsellor` give a staff member one of these tools. Where to click for each is in [docs/USER_MANUAL.md](docs/USER_MANUAL.md); open items are in [docs/Future Plan.md](docs/Future%20Plan.md).
 
+## Library
+
+Campus services > Library (`backend/services/education/library/`, `frontend/src/pages/education/library/`). Catalogue with numbered copies and barcode labels, members and library cards, the circulation desk (issue, return, renew), reservations and holds, fines and reports. Families see their children's loans under **Library**.
+
+- **Lock a copy in the safe.** A copy on the shelf can be locked with a required reason (for example "rare first edition"). Locked copies are not counted as available and cannot be lent; the catalogue shows the reason, who locked it and when. Unlocking puts it back on the shelf. Locking and unlocking are written to the audit log. Only a copy that is on the shelf can be locked.
+- **Return check.** The Return button on a loan asks for the barcode of the book in hand. If it is not the book on that loan, nothing is returned and the message names both books. If a label is torn, the desk can confirm by hand; the loan records whether it was returned by scan or by hand. Scanning a barcode on the Desk's "Returns" box still works as before.
+- **Library notices on phones.** Borrowing, "due tomorrow", overdue and "ready to collect" notices are a separate *Library* notification type, so they appear in the app and are pushed to phones that have turned on web push (VAPID keys needed, see Notifications). Tapping one opens the Library page, and people can switch Library notices off on their own. `send_library_reminders` runs daily at 07:00 through Celery beat (or run the management command from cron).
+- **Not built:** a phone-camera scanning screen for librarians.
+
 ## Multiple schools
 
 One installation serves many schools. Each school's data is kept separate: staff, students and parents only ever see their own school.

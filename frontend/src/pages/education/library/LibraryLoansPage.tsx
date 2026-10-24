@@ -3,6 +3,7 @@ import { Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import library, { errorText, Loan, Reservation } from '@/services/library.service';
 import { formatMoney } from '@/utils/currency';
+import ReturnCheck from './ReturnCheck';
 
 const TABS: Array<[string, string]> = [['active', 'On loan'], ['overdue', 'Overdue'], ['fines', 'Fines to settle'], ['returned', 'Returned'], ['reservations', 'Reservations']];
 const fmt = (d?: string | null) => (d ? new Date(d.length === 10 ? `${d}T00:00:00` : d).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
@@ -14,6 +15,7 @@ export default function LibraryLoansPage() {
   const [rows, setRows] = useState<Loan[] | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [res, setRes] = useState<Reservation[] | null>(null);
+  const [checking, setChecking] = useState<Loan | null>(null);
 
   const load = () => {
     if (tab === 'reservations') { library.reservations().then(setRes).catch(() => setRes([])); return; }
@@ -77,7 +79,7 @@ export default function LibraryLoansPage() {
                   <td>{l.fine_amount ? `${formatMoney(l.fine_amount)} · ${l.fine_status}` : '—'}</td>
                   <td className="text-right pr-3 whitespace-nowrap space-x-2">
                     {!l.returned_at && <button onClick={() => act(() => library.renew(l.id), 'Renewed.')} className="text-xs font-bold text-blue-600">Renew</button>}
-                    {!l.returned_at && <button onClick={() => act(() => library.returnBook(l.barcode), 'Returned.')} className="text-xs font-bold text-emerald-700">Return</button>}
+                    {!l.returned_at && <button onClick={() => setChecking(l)} className="text-xs font-bold text-emerald-700">Return</button>}
                     {!l.returned_at && <button onClick={() => window.confirm(`Mark "${l.title}" as lost?`) && act(() => library.markLost(l.id), 'Marked lost.')} className="text-xs font-bold text-rose-600">Lost</button>}
                     {l.fine_status === 'due' && <button onClick={() => act(() => library.settleFine(l.id, 'paid'), 'Fine paid.')} className="text-xs font-bold text-emerald-700">Paid</button>}
                     {l.fine_status === 'due' && <button onClick={() => act(() => library.settleFine(l.id, 'waived'), 'Fine waived.')} className="text-xs font-bold text-slate-600">Waive</button>}
@@ -89,6 +91,7 @@ export default function LibraryLoansPage() {
           {rows.length === 0 && <p className="p-6 text-center text-sm text-slate-400">Nothing here.</p>}
         </div>
       )}
+      {checking && <ReturnCheck loan={checking} onClose={() => setChecking(null)} onDone={() => { setChecking(null); toast.success('Returned.'); load(); }} />}
     </div>
   );
 }

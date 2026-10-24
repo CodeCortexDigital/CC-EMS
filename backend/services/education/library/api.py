@@ -110,7 +110,7 @@ def _loan_payload(l: Loan, today=None) -> dict:
             'issued_at': l.issued_at.isoformat(), 'due_date': l.due_date.isoformat(),
             'returned_at': l.returned_at.isoformat() if l.returned_at else None, 'renewals': l.renewals,
             'overdue': l.returned_at is None and l.due_date < today, 'days_overdue': days_over,
-            'fine_amount': float(l.fine_amount), 'fine_status': l.fine_status, 'notes': l.notes}
+            'fine_amount': float(l.fine_amount), 'fine_status': l.fine_status, 'notes': l.notes, 'return_method': l.return_method}
 
 
 def _reservation_payload(r: Reservation) -> dict:
@@ -145,7 +145,7 @@ def _tell(member: Member, title: str, message: str):
         if member.user.email:
             emails.add(member.user.email)
     for u in users:
-        create_user_notification(u, title, message, 'system')
+        create_user_notification(u, title, message, 'library')
     if emails:
         try:
             send_mail(title, message, None, sorted(emails), fail_silently=True)
@@ -326,11 +326,13 @@ def book_detail(request, book_id):
         open_loans = {l.copy_id: l for l in Loan.objects.filter(copy__book=b, returned_at__isnull=True).select_related('member')}
         out['copy_list'] = [{'id': str(c.id), 'barcode': c.barcode, 'status': c.status, 'status_label': c.get_status_display(),
                              'condition': c.condition, 'location': c.location, 'notes': c.notes,
+                             'locked_reason': c.locked_reason, 'locked_at': c.locked_at.isoformat() if c.locked_at else None,
+                             'locked_by': (c.locked_by.full_name or c.locked_by.email) if c.locked_by_id else '',
                              'price': float(c.price) if c.price is not None else None,
                              'borrower': open_loans[c.id].member.name if c.id in open_loans else None,
                              'due_date': open_loans[c.id].due_date.isoformat() if c.id in open_loans else None,
                              'overdue': c.id in open_loans and open_loans[c.id].due_date < today}
-                            for c in b.copies.all()]
+                            for c in b.copies.select_related('locked_by')]
         out['queue'] = [_reservation_payload(r) for r in b.reservations.filter(status__in=('waiting', 'ready')).select_related('member', 'copy', 'book')]
         out['times_borrowed'] = Loan.objects.filter(copy__book=b).count()
     else:
@@ -357,6 +359,17 @@ def add_copies(request, book_id):
     return Response({'barcodes': [c.barcode for c in made]}, status=201)
 
 
+def _audit_copy(request, copy, what, data=None):
+    """Locking and unlocking a copy go to the audit log, with who did it and why."""
+    try:
+        from services.core.audit.models import AuditLog
+
+        AuditLog.objects.create(user=request.user, school=copy.tenant, action='UPDATE', resource_type=f'library.copy.{what}',
+                                resource_id=copy.id, new_data={'barcode': copy.barcode, **(data or {})})
+    except Exception:
+        pass
+
+
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def copy_detail(request, copy_id):
@@ -365,12 +378,27 @@ def copy_detail(request, copy_id):
     c = get_object_or_404(BookCopy, pk=copy_id)
     status = request.data.get('status')
     if status:
-        if status not in ('available', 'lost', 'damaged', 'withdrawn'):
+        if status not in ('available', 'lost', 'damaged', 'withdrawn', 'locked'):
             return _err('Choose a valid status.')
         if c.status == 'on_loan':
             return _err('This copy is on loan. Return it (or mark the loan lost) first.')
-        if c.status == 'on_hold' and status != 'available':
-            Reservation.objects.filter(copy=c, status='ready').update(status='waiting', copy=None, hold_until=None, ready_at=None)
+        if status == 'locked':
+            # A book is locked when it has been received and is kept in the safe. It needs a reason, and it must be on the shelf.
+            reason = str(request.data.get('reason') or '').strip()
+            if not reason:
+                return _err('Say why the book is being locked, for example "rare edition, kept in the safe".')
+            if c.status == 'on_hold':
+                return _err('This copy is held for a reservation. Cancel the hold before locking it.')
+            if c.status != 'available':
+                return _err('Only a copy that is on the shelf can be locked.')
+            c.locked_reason, c.locked_at, c.locked_by = reason[:255], timezone.now(), request.user
+            _audit_copy(request, c, 'locked', {'reason': c.locked_reason})
+        else:
+            if c.status == 'locked':
+                _audit_copy(request, c, 'unlocked', {'now': status})
+                c.locked_reason, c.locked_at, c.locked_by = '', None, None
+            if c.status == 'on_hold' and status != 'available':
+                Reservation.objects.filter(copy=c, status='ready').update(status='waiting', copy=None, hold_until=None, ready_at=None)
         c.status = status
     for f in ('location', 'notes'):
         if f in request.data:
@@ -381,7 +409,7 @@ def copy_detail(request, copy_id):
     if c.status == 'available':
         _serve_waiting(c.book)
     return Response({'id': str(c.id), 'barcode': c.barcode, 'status': c.status, 'status_label': c.get_status_display(),
-                     'condition': c.condition, 'location': c.location, 'notes': c.notes})
+                     'condition': c.condition, 'location': c.location, 'notes': c.notes, 'locked_reason': c.locked_reason})
 
 
 @api_view(['GET'])
@@ -559,6 +587,8 @@ def issue(request):
     if copy.status == 'on_loan':
         who = Loan.objects.filter(copy=copy, returned_at__isnull=True).select_related('member').first()
         return _err(f'This copy is already on loan{" to " + who.member.name if who else ""}. Return it first.')
+    if copy.status == 'locked':
+        return _err(f'This copy is locked in the safe ({copy.locked_reason or "no reason given"}). Unlock it first.')
     if copy.status in ('lost', 'damaged', 'withdrawn'):
         return _err(f'This copy is marked {copy.get_status_display().lower()} and cannot be lent.')
     held = None
@@ -584,16 +614,36 @@ def issue(request):
             mine.status, mine.copy = 'collected', copy
             mine.save(update_fields=['status', 'copy'])
     loan = Loan.objects.select_related('copy__book', 'member').get(pk=loan.pk)
+    _tell(m, 'Library book borrowed', f'{m.name} borrowed "{copy.book.title}". It is due back on {loan.due_date:%d %b %Y}.')
     return Response({'loan': _loan_payload(loan), 'member': _member_brief(m)}, status=201)
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def return_book(request):
-    """{barcode, condition?, damaged?, notes?} → the loan is closed; any fine is worked out; a waiting reservation is served."""
+    """{barcode, condition?, damaged?, notes?} → the loan is closed; any fine is worked out; a waiting reservation is served.
+
+    From a loan's own Return button the desk also sends ``loan_id``: the barcode of the book in hand must then be the one on that
+    loan, or nothing is returned and the answer says which book was scanned. If the label will not scan, ``manual`` (the desk has
+    checked the title by eye) closes that loan and is recorded as such."""
     if not is_admin(request.user):
         return _err('Only the library desk can take returns.', 403)
     code = str(request.data.get('barcode') or '').strip()
+    method = 'scan'
+    loan_id = request.data.get('loan_id')
+    if loan_id:
+        wanted = Loan.objects.filter(pk=loan_id, returned_at__isnull=True).select_related('copy__book').first()
+        if wanted is None:
+            return _err('That loan is not open any more. It may already have been returned.', 404)
+        if str(request.data.get('manual', '')).lower() in ('1', 'true', 'yes', 'on'):
+            code, method = wanted.copy.barcode, 'manual'
+        else:
+            scanned = BookCopy.objects.select_related('book').filter(barcode__iexact=code).first()
+            if scanned is None:
+                return _err(f'No copy has the barcode {code or "(blank)"}.', 404)
+            if scanned.id != wanted.copy_id:
+                return _err(f'That is "{scanned.book.title}" ({scanned.barcode}), not the book on this loan. This loan is for '
+                            f'"{wanted.copy.book.title}" ({wanted.copy.barcode}). Please scan the right book.', 409)
     copy = BookCopy.objects.select_related('book').filter(barcode__iexact=code).first()
     if copy is None:
         return _err(f'No copy has the barcode {code or "(blank)"}.', 404)
@@ -606,6 +656,7 @@ def return_book(request):
     with transaction.atomic():
         loan.returned_at = timezone.now()
         loan.returned_to = request.user
+        loan.return_method = method
         loan.notes = str(request.data.get('notes') or loan.notes)[:255]
         if request.data.get('condition') in dict(BookCopy.CONDITIONS):
             loan.condition_on_return = copy.condition = request.data['condition']

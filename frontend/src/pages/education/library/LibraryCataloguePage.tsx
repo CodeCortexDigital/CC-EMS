@@ -13,6 +13,7 @@ const FIELDS: Array<[keyof Book, string]> = [
 const STATUS_TONE: Record<string, string> = {
   available: 'bg-emerald-100 text-emerald-700', on_loan: 'bg-blue-100 text-blue-700', on_hold: 'bg-amber-100 text-amber-800',
   lost: 'bg-rose-100 text-rose-700', damaged: 'bg-rose-100 text-rose-700', withdrawn: 'bg-slate-100 text-slate-500',
+  locked: 'bg-violet-100 text-violet-700',
 };
 
 function BookForm({ book, onSaved }: { book?: Book; onSaved: (b: Book) => void }) {
@@ -59,6 +60,8 @@ function BookDetail({ id, onChanged, onRemoved }: { id: string; onChanged: () =>
   const [b, setB] = useState<Book | null>(null);
   const [more, setMore] = useState('1');
   const [editing, setEditing] = useState(false);
+  const [locking, setLocking] = useState<{ id: string; barcode: string } | null>(null);
+  const [reason, setReason] = useState('');
   const load = () => library.book(id).then(setB).catch(() => toast.error('Could not load the book.'));
   useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -72,6 +75,11 @@ function BookDetail({ id, onChanged, onRemoved }: { id: string; onChanged: () =>
   const setStatus = async (copyId: string, status: string) => {
     try { await library.updateCopy(copyId, { status }); load(); onChanged(); }
     catch (e) { toast.error(errorText(e, 'Could not change the copy.')); }
+  };
+  const lock = async () => {
+    if (!locking || !reason.trim()) return;
+    try { await library.updateCopy(locking.id, { status: 'locked', reason: reason.trim() }); toast.success(`${locking.barcode} is locked in the safe.`); setLocking(null); setReason(''); load(); onChanged(); }
+    catch (e) { toast.error(errorText(e, 'Could not lock the copy.')); }
   };
   const remove = async () => {
     if (!window.confirm(`Remove "${b.title}" from the catalogue?`)) return;
@@ -97,14 +105,20 @@ function BookDetail({ id, onChanged, onRemoved }: { id: string; onChanged: () =>
           {(b.copy_list || []).map((c) => (
             <tr key={c.id}>
               <td className="py-2 font-mono text-xs">{c.barcode}</td>
-              <td><span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_TONE[c.status] || ''}`}>{c.status_label}</span></td>
+              <td>
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_TONE[c.status] || ''}`}>{c.status_label}</span>
+                {c.status === 'locked' && <p className="text-[11px] text-slate-500 mt-0.5 max-w-[16rem]">{c.locked_reason}{c.locked_by ? ` · ${c.locked_by}` : ''}{c.locked_at ? `, ${new Date(c.locked_at).toLocaleDateString([], { day: 'numeric', month: 'short' })}` : ''}</p>}
+              </td>
               <td className="text-xs">{c.borrower ? <>{c.borrower} <span className={c.overdue ? 'text-rose-600 font-bold' : 'text-slate-400'}>· due {c.due_date}</span></> : '—'}</td>
               <td className="text-xs text-slate-500">{c.location || '—'}</td>
               <td className="text-right">
                 {c.status !== 'on_loan' && (
-                  <select aria-label={`Status of ${c.barcode}`} value="" onChange={(e) => e.target.value && setStatus(c.id, e.target.value)} className="rounded border border-slate-200 text-xs px-1 py-0.5">
+                  <select aria-label={`Status of ${c.barcode}`} value=""
+                    onChange={(e) => { const v = e.target.value; if (v === 'locked') { setLocking({ id: c.id, barcode: c.barcode }); setReason(''); } else if (v) setStatus(c.id, v); }}
+                    className="rounded border border-slate-200 text-xs px-1 py-0.5">
                     <option value="">Change…</option>
-                    {c.status !== 'available' && <option value="available">Back on the shelf</option>}
+                    {c.status !== 'available' && <option value="available">{c.status === 'locked' ? 'Unlock, back on the shelf' : 'Back on the shelf'}</option>}
+                    {c.status === 'available' && <option value="locked">Lock in the safe…</option>}
                     <option value="damaged">Damaged</option><option value="lost">Lost</option><option value="withdrawn">Withdraw</option>
                   </select>
                 )}
@@ -117,6 +131,16 @@ function BookDetail({ id, onChanged, onRemoved }: { id: string; onChanged: () =>
         <input type="number" min={1} max={200} aria-label="Copies to add" className="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-sm" value={more} onChange={(e) => setMore(e.target.value)} />
         <button onClick={addCopies} className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold">Add copies</button>
       </div>
+      {locking && (
+        <Modal open onClose={() => setLocking(null)} title={`Lock ${locking.barcode}`} size="sm"
+          footer={<><button type="button" onClick={() => setLocking(null)} className="px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium">Cancel</button>
+            <button type="button" onClick={lock} disabled={!reason.trim()} className="px-3.5 py-2 rounded-lg bg-violet-600 text-white text-sm font-medium disabled:opacity-50">Lock it</button></>}>
+          <p className="text-sm text-slate-600 mb-2">The copy stays in the safe and cannot be lent while it is locked.</p>
+          <label className="block text-sm font-medium text-slate-700">Why is it being locked?
+            <textarea aria-label="Reason for locking" rows={3} className={`${input} mt-1`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="For example: rare first edition" />
+          </label>
+        </Modal>
+      )}
       {b.queue && b.queue.length > 0 && (
         <div>
           <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-1">Reservations</h4>

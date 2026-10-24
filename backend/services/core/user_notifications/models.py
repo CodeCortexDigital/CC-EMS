@@ -20,6 +20,7 @@ class Notification(SoftDeleteModel):
         ('exam', 'Exam'),
         ('admission', 'Admission'),
         ('announcement', 'Announcement'),
+        ('library', 'Library'),
         ('system', 'System'),
     ]
     

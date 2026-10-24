@@ -576,6 +576,11 @@ try:
             'task': 'services.education.briefs.tasks.run_due_briefs',
             'schedule': crontab(minute='*/15'),
         },
+        # Library: books due tomorrow, overdue books and unclaimed holds. Each is a notification, pushed to phones that allow it.
+        'library-reminders': {
+            'task': 'services.education.library.tasks.send_library_reminders',
+            'schedule': crontab(hour=7, minute=0),
+        },
         'refresh-cover-daily': {
             'task': 'services.education.hr.tasks.refresh_cover',
             'schedule': crontab(hour=6, minute=30),
