@@ -32,7 +32,7 @@ openai>=1.30
 anthropic>=1.8
 
 # Firebase / Google OAuth
-firebase-admin>=6.5
+firebase-admin>=7.7.0
 google-auth>=2.30
 segno>=1.6  # QR codes on library labels (pure Python)
 openpyxl>=3.1,<4  # reading Excel files for data import
