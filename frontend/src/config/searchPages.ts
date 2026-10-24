@@ -13,6 +13,7 @@ const OFFICE: PageLink[] = [
   { label: 'Pickup', url: '/education/front-desk', words: 'front desk release collect authorised adult do not release custody' },
   { label: 'Visitors', url: '/education/front-desk/visitors', words: 'sign in sign out visitor badge on site' },
   { label: 'Health office', url: '/education/health-office', words: 'nurse visit medication dose sick injury' },
+  { label: 'AI approvals and school documents', url: '/education/ai-governance', words: 'ai approve reject requests assistant documents policy handbook knowledge rag sources' },
   { label: 'Daily briefs: morning brief and evening summary', url: '/education/briefs', words: 'morning evening summary daily report weekly monthly approve print' },
   { label: 'Interventions', url: '/education/interventions', words: 'counselor counsellor at risk absence attendance follow up task student support' },
   { label: 'Safety reports', url: '/education/safety', words: 'incident injury bullying report follow up' },

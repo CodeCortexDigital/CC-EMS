@@ -688,6 +688,9 @@ def call_tool(name: str, arguments: dict | None, ctx: AIContext) -> Any:
         return {"error": f"Tool {name} failed to run."}
 
 
+from . import governed  # noqa: E402,F401  (registers the knowledge search and the approval-gated action tools)
+
+
 def redact_for_llm(result: Any) -> Any:
     """Strip contact details from tool output before it leaves for an external LLM."""
     if getattr(settings, "AI_SHARE_CONTACT_INFO", False):

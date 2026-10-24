@@ -144,6 +144,8 @@ DIRECT = [
     'education_hr.PayrollProfile',
     'ai.AIConversation',
     'ai.AIUsage',
+    'ai.KnowledgeDocument',
+    'ai.AIActionRequest',
 ]
 
 # Models without their own column: path to the school through a required parent.
@@ -193,6 +195,7 @@ THROUGH_PARENT = {
     'analytics.AcademicPrediction': 'student__tenant',
     'analytics.Recommendation': 'student__tenant',
     'ai.AIMessage': 'conversation__tenant',
+    'ai.KnowledgeChunk': 'document__tenant',
     'education_communication.ConversationParticipant': 'conversation__tenant',
     'education_communication.ChatMessage': 'conversation__tenant',
     'education_communication.AnnouncementReceipt': 'announcement__tenant',

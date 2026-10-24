@@ -350,10 +350,9 @@ export default function InvoicesPage() {
         if (!isPartial) return false;
       } 
       else if (statusFilter === 'pending') {
-        // Only show pending invoices (no payments made)
-        const isPending = invoiceStatus === 'pending' || 
-                         (paidAmt === 0 && totalAmt > 0 && !isDef);
-        if (!isPending || isDef) return false;
+        // Pending = nothing paid yet. It matches the Pending card, so overdue unpaid invoices are included
+        // (they also appear under Defaulters, which is about being past the due date).
+        if (invoiceStatus !== 'pending') return false;
       } 
       else if (statusFilter === 'defaulters') {
         // Only show defaulters
@@ -400,7 +399,9 @@ export default function InvoicesPage() {
       } else if (invoiceStatus === 'pending') {
         pendingCount += 1;
         totalPendingAmount += balance;
-      } else if (isDef) {
+      }
+      // Past the due date with a balance left: counted on its own, whether it is pending or partly paid.
+      if (isDef) {
         defaulterCount += 1;
         totalDefaulterAmount += balance;
       }

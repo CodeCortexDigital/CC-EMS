@@ -14,7 +14,7 @@ from services.core.accounts.decorators import (
     ensure_student_access,
 )
 from services.core.utils.filters import parse_status_param
-from services.core.tenants.scoping import scope_queryset, save_with_tenant
+from services.core.tenants.scoping import scope_queryset, save_with_tenant, tenant_for_request
 from services.core.utils.cache import CachedListResponseMixin, CacheKeys
 from django.core.cache import cache
 from django.conf import settings
@@ -68,13 +68,14 @@ class StudentListCreateView(CachedListResponseMixin, generics.ListCreateAPIView)
     def perform_create(self, serializer):
         extra = {}
         if not serializer.validated_data.get('student_id'):
-            extra['student_id'] = f"STU-{uuid.uuid4().hex[:8].upper()}"
+            from .serializers import generate_unique_student_id
+            extra['student_id'] = generate_unique_student_id(tenant=tenant_for_request(self.request))
         try:
             save_with_tenant(serializer, self.request, **extra)
         except IntegrityError:
             # Extremely rare race on student_id; regenerate and retry once.
             from .serializers import generate_unique_student_id
-            serializer.validated_data['student_id'] = generate_unique_student_id()
+            serializer.validated_data['student_id'] = generate_unique_student_id(tenant=tenant_for_request(self.request))
             save_with_tenant(serializer, self.request)
         invalidate_student_list_cache(self.request.user)
 

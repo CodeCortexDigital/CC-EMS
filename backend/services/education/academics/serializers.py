@@ -189,6 +189,37 @@ class TeacherSerializer(serializers.ModelSerializer):
     def get_subject_names(self, obj):
         return sorted(s.name for s in obj.subjects.all())
 
+    def get_extra_kwargs(self):
+        extra = super().get_extra_kwargs()
+        extra['employee_id'] = {**extra.get('employee_id', {}), 'required': False, 'allow_blank': True}   # blank = the school's next number
+        return extra
+
+    def validate_employee_id(self, value):
+        """Employee IDs are login names, so the school's own code goes in front (two schools can both start at EMP-0001). A taken ID is
+        refused with a clear message. Blank means "number it for me"; an existing ID is left as it is."""
+        from services.core.tenants.identifiers import next_id, tenant_of, with_prefix
+
+        tenant = tenant_of(self)
+        value = (value or '').strip()
+        if not value:
+            return next_id(Teacher, 'employee_id', 'EMP-', tenant)
+        if self.instance is not None and value == self.instance.employee_id:
+            return value
+        value = with_prefix(value, tenant)
+        taken = Teacher._base_manager.filter(employee_id=value)
+        if self.instance is not None:
+            taken = taken.exclude(pk=self.instance.pk)
+        if taken.exists():
+            raise serializers.ValidationError('This employee ID is already in use. Please choose another.')
+        return value
+
+    def validate(self, data):
+        if self.instance is None and not data.get('employee_id'):
+            from services.core.tenants.identifiers import next_id, tenant_of
+
+            data['employee_id'] = next_id(Teacher, 'employee_id', 'EMP-', tenant_of(self))
+        return data
+
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, 'copy') else dict(data)
         if data.get('date_of_birth') == '':

@@ -638,7 +638,7 @@ def convert_to_student(request, id):
                 email=next((g.get('email') for g in guardians if g.get('email')), ''),
             )
         student = Student.objects.create(
-            tenant_id=applicant.tenant_id, student_id=generate_unique_student_id(),
+            tenant_id=applicant.tenant_id, student_id=generate_unique_student_id(tenant=applicant.tenant),
             full_name=applicant.full_name, email=applicant.email, phone=applicant.phone,
             date_of_birth=applicant.date_of_birth,
             gender={'M': 'male', 'F': 'female', 'O': 'other'}.get(applicant.gender, 'other'),

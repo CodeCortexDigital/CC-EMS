@@ -3,6 +3,8 @@ import uuid
 from django.conf import settings
 from django.db import models
 
+from services.core.tenants.mixins import TenantScopedModel
+
 
 class AIConversation(models.Model):
     """One chat thread between a user and the AI assistant."""
@@ -43,6 +45,7 @@ class AIMessage(models.Model):
     latency_ms = models.PositiveIntegerField(default=0)
     feedback = models.SmallIntegerField(choices=FEEDBACK_CHOICES, null=True, blank=True)
     feedback_note = models.CharField(max_length=500, blank=True)
+    sources = models.JSONField(default=list, blank=True)      # school documents the answer used: [{id, title}]
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -82,3 +85,62 @@ class AIUsage(models.Model):
     class Meta:
         # Not unique: tenant is nullable (NULLs never collide), so reports sum rows.
         indexes = [models.Index(fields=['tenant', 'date']), models.Index(fields=['user', 'date'])]
+
+
+class KnowledgeDocument(TenantScopedModel):
+    """A school document the assistant may quote from: handbook, policies, fee rules, calendar notes.
+
+    The text is split into passages (KnowledgeChunk) that are searched when someone asks a question. Who may be shown a
+    document is set per document, and always checked on the server."""
+    AUDIENCES = [('everyone', 'Everyone (students, parents and staff)'), ('staff', 'Staff only'), ('admin', 'Administrators only')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=200)
+    audience = models.CharField(max_length=10, choices=AUDIENCES, default='everyone')
+    body = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['title']
+
+
+class KnowledgeChunk(models.Model):
+    """One searchable passage of a document. Reaches its school through the document."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    document = models.ForeignKey(KnowledgeDocument, on_delete=models.CASCADE, related_name='chunks')
+    ordinal = models.PositiveIntegerField()
+    text = models.TextField()
+    terms = models.JSONField(default=dict, blank=True)         # word -> times it appears (the search index)
+    length = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['document_id', 'ordinal']
+
+
+class AIActionRequest(TenantScopedModel):
+    """Something the AI assistant wants done. It is only a request: nothing happens until a person with the right role
+    approves it, and then only through an action that is registered in code (see actions.py)."""
+    STATUSES = [('pending', 'Waiting for approval'), ('executed', 'Approved and done'), ('failed', 'Approved, but it did not work'),
+                ('rejected', 'Rejected'), ('expired', 'Expired')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    action = models.CharField(max_length=60)
+    summary = models.CharField(max_length=300)
+    arguments = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=10, choices=STATUSES, default='pending', db_index=True)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='ai_action_requests')
+    requester_role = models.CharField(max_length=20, blank=True)
+    conversation = models.ForeignKey(AIConversation, null=True, blank=True, on_delete=models.SET_NULL, related_name='action_requests')
+    decided_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.CharField(max_length=500, blank=True)
+    result = models.JSONField(default=dict, blank=True)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['tenant', 'status', '-created_at'])]

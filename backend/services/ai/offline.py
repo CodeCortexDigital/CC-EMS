@@ -213,6 +213,10 @@ def offline_answer(query: str, ctx: AIContext) -> str:
             if d is not None:
                 return _fmt_self(tool, d)
 
+    found = _run(ctx, "search_school_knowledge", query=query)
+    if found and found.get("found"):
+        parts = [f"From the school's documents:\n\n{p['text']}\n— {p['document']}" for p in found["passages"][:2]]
+        return "\n\n".join(parts)
     return _help_text(ctx.role)
 
 

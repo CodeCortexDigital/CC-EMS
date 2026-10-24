@@ -265,6 +265,14 @@ The floating **CodeCortex** assistant is available in every portal.
 - **Chat experience.** Answers stream in as they're written, with a status such as "Checking attendance…" while the AI looks things up. Also: a stop button, saved chat history (open, continue, delete), copy, 👍/👎 feedback, tables in answers, and voice input/output in English or Urdu.
 - **Basic mode.** If no AI provider is configured, or the provider is down, the assistant answers common questions ("fee defaulters", "my attendance", …) with simple keyword matching, under the same role limits.
 
+### Governed AI: school documents and approvals (administrators)
+
+Page: **AI Approvals & Documents** (`/education/ai-governance`). Code: `backend/services/ai/` (`knowledge.py`, `actions.py`, `governed.py`, `governance_api.py`).
+
+- **Answers from the school's own documents (retrieval-augmented).** An administrator adds the handbook, policies or fee rules as text (paste, or load a `.txt` / `.md` file). They are split into passages and searched with keyword ranking (BM25), so this needs no extra service and also works without an AI provider. The assistant names the documents it used ("Sources: ...") and says so when nothing matches. Each document has an audience (everyone, staff only, administrators only) that is enforced on the server by role and school, and one school's documents are never searched for another. Passages are given to the model as reference text, not instructions. *Not built yet: PDF upload and meaning-based (embedding) search.*
+- **The assistant can only ask; a person approves.** Actions are registered in code (`actions.py`), each with who may ask, who may approve and its own checks. Today: send a fee reminder for one unpaid invoice, and open a student support case. When someone asks the assistant to do one, it stores a pending request and tells the user nothing has been done. An administrator approves or rejects it on the Approvals tab. Before it runs, the approver's role, the school, the request's age (two days) and the asker's own permission are checked again, and it runs once. Requests, decisions and results go to the audit log. An asker cannot approve their own request unless they are an administrator, and a school can never see or decide another school's requests.
+- **Limits.** This is a small, tested set of actions, not a general agent platform: there is no per-agent identity or policy language, and it has been tested on sample data only.
+
 ### Lesson plans and quizzes (teachers and admins)
 
 - **Lesson plans** (Lesson Planner page): the AI drafts objectives, materials, an introduction, timed activities, group work, support for weaker and stronger students, check-for-understanding questions and homework. The teacher reviews and edits the fields before saving.

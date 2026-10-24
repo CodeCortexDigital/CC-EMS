@@ -22,6 +22,7 @@ import time
 
 from asgiref.sync import sync_to_async
 from django.http import StreamingHttpResponse
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes, renderer_classes
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 from rest_framework.response import Response
@@ -29,7 +30,7 @@ from rest_framework.response import Response
 from .agent import run_agent
 from .context import AIContext
 from .llm import LLMError, get_llm_client
-from .models import AIConversation, AIMessage
+from .models import AIActionRequest, AIConversation, AIMessage
 from .offline import offline_answer
 from .permissions import HasAIRole
 from .quota import AIQuotaExceeded, check_rate_limit, check_token_budget, feature_enabled, record_usage
@@ -116,6 +117,12 @@ def _alternate(history: list) -> list:
     return out
 
 
+def _requests_made(conversation, since) -> list:
+    """Approval requests the assistant made while answering, so the chat can say they are waiting."""
+    rows = AIActionRequest.all_objects.filter(conversation=conversation, created_at__gte=since)
+    return [{"id": str(r.id), "summary": r.summary, "status": r.status} for r in rows]
+
+
 def _is_uuid(value) -> bool:
     import uuid
     try:
@@ -131,14 +138,16 @@ def _answer_events(ctx, conversation, history, *, stream):
     Yields agent events; the final event is {"type": "done", ...} with the reply.
     """
     started = time.monotonic()
+    started_at = timezone.now()
+    ctx.extra["conversation_id"] = conversation.id
     llm = get_llm_client()
-    reply, offline, usage, model, tool_log = None, True, None, "", []
+    reply, offline, usage, model, tool_log, sources = None, True, None, "", [], []
     if llm is not None:
         try:
             for event in run_agent(ctx, history, llm, stream=stream):
                 if event["type"] == "done":
                     res = event["result"]
-                    reply, usage, model, tool_log, offline = res.reply, res.usage, res.model, res.tool_log, False
+                    reply, usage, model, tool_log, offline, sources = res.reply, res.usage, res.model, res.tool_log, False, res.sources
                 else:
                     yield event
         except LLMError:
@@ -147,10 +156,11 @@ def _answer_events(ctx, conversation, history, *, stream):
             logger.exception("AI agent crashed; using offline fallback")
     if reply is None:
         reply = offline_answer(history[-1]["content"], ctx)
+        sources = [{"id": k, "title": v} for k, v in ctx.extra.get("sources", {}).items()]
 
     msg = AIMessage.objects.create(
         conversation=conversation, role="assistant", content=reply, tool_calls=tool_log,
-        provider=llm.provider if llm and not offline else "", model=model, offline=offline,
+        provider=llm.provider if llm and not offline else "", model=model, offline=offline, sources=sources,
         input_tokens=usage.input_tokens if usage else 0,
         output_tokens=usage.output_tokens if usage else 0,
         cached_input_tokens=usage.cached_input_tokens if usage else 0,
@@ -160,7 +170,8 @@ def _answer_events(ctx, conversation, history, *, stream):
     if usage:
         record_usage(ctx, FEATURE, llm.provider, model, usage)
     yield {"type": "done", "reply": reply, "offline": offline,
-           "conversation_id": str(conversation.id), "message_id": str(msg.id)}
+           "conversation_id": str(conversation.id), "message_id": str(msg.id), "sources": sources,
+           "requests": _requests_made(conversation, started_at)}
 
 
 @api_view(["POST"])
@@ -232,7 +243,7 @@ def _conversation_json(c: AIConversation) -> dict:
 
 
 def _message_json(m: AIMessage) -> dict:
-    return {"id": str(m.id), "role": m.role, "content": m.content, "offline": m.offline,
+    return {"id": str(m.id), "role": m.role, "content": m.content, "offline": m.offline, "sources": m.sources or [],
             "feedback": m.feedback, "created_at": m.created_at}
 
 

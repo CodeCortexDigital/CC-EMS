@@ -217,6 +217,7 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
   const adminMenuItems: MenuItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" />, href: '/dashboard' },
     ...(role === 'admin' ? [{ id: 'briefs', label: 'Daily Briefs', icon: <Sunrise className="w-4 h-4" />, href: '/education/briefs', always: true }] : []),
+    ...(role === 'admin' ? [{ id: 'ai-governance', label: 'AI Approvals & Documents', icon: <ShieldCheck className="w-4 h-4" />, href: '/education/ai-governance', always: true }] : []),
     { id: 'students', label: 'Students', icon: <Users className="w-4 h-4" />, href: '/education/students', group: 'people' },
     { id: 'admissions', label: 'Admissions', icon: <ClipboardList className="w-4 h-4" />, href: '/education/admissions', group: 'people' },
     { id: 'employees', label: 'Staff', icon: <Users className="w-4 h-4" />, href: '/education/teachers', group: 'people' },

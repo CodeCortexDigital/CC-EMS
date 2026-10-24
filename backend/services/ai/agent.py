@@ -63,12 +63,18 @@ COMMON_RULES = (
     "withheld for privacy - tell the user to check the record in the app. Answer "
     "concisely; use short markdown lists or tables when listing several items. "
     "Reply in the language the user writes in (English, Urdu or Arabic)."
+    "\n\nFor questions about how the school works (policies, rules, handbook), use search_school_knowledge and name the document you used; "
+    "if nothing matches, say so instead of guessing. You cannot change anything yourself. To get something done, use a propose_ tool: it only "
+    "sends a request for a person to approve, so tell the user it is waiting for approval and that nothing has been done yet."
 )
 
 TOOL_LABELS = {
     "student_strength_by_class": "Counting students by class",
     "search_students": "Searching students",
     "student_detail": "Looking up the student",
+    "search_school_knowledge": "Searching the school documents",
+    "propose_send_fee_reminder": "Preparing a request for approval",
+    "propose_open_support_case": "Preparing a request for approval",
     "fee_defaulters": "Checking fee defaulters",
     "finance_summary": "Summarising finances",
     "attendance_stats": "Checking attendance",
@@ -89,6 +95,7 @@ class AgentResult:
     usage: Usage = field(default_factory=Usage)
     model: str = ""
     tool_log: list = field(default_factory=list)
+    sources: list = field(default_factory=list)
 
 
 def system_prompt(role: str | None, tenant=None) -> str:
@@ -149,6 +156,7 @@ def run_agent(ctx: AIContext, history: list[dict], llm: LLMClient, *, stream: bo
             yield {"type": "tool_end", "name": call.name, "ok": ok}
         messages.extend(llm.tool_results(outputs))
 
+    result.sources = [{"id": k, "title": v} for k, v in ctx.extra.get("sources", {}).items()]
     yield {"type": "done", "result": result}
 
 

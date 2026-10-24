@@ -5,9 +5,10 @@ API v1 serializers — frozen field set; deprecated fields retained for compatib
 from rest_framework import serializers
 
 from services.education.students.models import Student
+from services.education.students.serializers import StudentNumberMixin
 
 
-class StudentSerializerV1(serializers.ModelSerializer):
+class StudentSerializerV1(StudentNumberMixin, serializers.ModelSerializer):
     """
     v1 student contract. Fields are only added in newer versions, never removed.
     """
@@ -85,6 +86,10 @@ class StudentSerializerV1(serializers.ModelSerializer):
             'mother_income',
         ]
         read_only_fields = ('id', 'created_at', 'updated_at', 'class_name', 'section_name', 'attendance_rate')
+        extra_kwargs = {'student_id': {'required': False, 'allow_blank': True}}      # blank = the school's next number
+
+    def validate(self, data):
+        return self.fill_student_id(data)
 
     def get_attendance_rate(self, obj):
         from services.education.attendance.models import AttendanceRecord

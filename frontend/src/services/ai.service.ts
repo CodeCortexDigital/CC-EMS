@@ -9,13 +9,22 @@ export interface ChatMessage {
   content: string;
   offline?: boolean;
   feedback?: 1 | -1 | null;
+  /** School documents the answer used. */
+  sources?: AiSource[];
+  /** Things the assistant asked to be done: they wait for a person to approve them. */
+  requests?: AiRequestNote[];
 }
+
+export interface AiSource { id: string; title: string }
+export interface AiRequestNote { id: string; summary: string; status: string }
 
 export interface AiChatResponse {
   reply: string;
   offline: boolean;
   conversation_id: string;
   message_id: string;
+  sources?: AiSource[];
+  requests?: AiRequestNote[];
 }
 
 export interface AiConversation {

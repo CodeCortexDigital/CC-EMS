@@ -140,7 +140,9 @@ class TestToolScoping:
 
     def test_student_role_only_gets_self_tools(self):
         names = {t["name"] for t in get_tools_for_role("student")}
-        assert names and all(n.startswith("my_") for n in names)
+        # Their own data, plus the school documents they may be shown (never an action the assistant could ask for).
+        assert names and all(n.startswith("my_") or n == "search_school_knowledge" for n in names)
+        assert not any(n.startswith("propose_") for n in names)
         assert get_tools_for_role(None) == []
 
     def test_unknown_arguments_are_dropped(self, school_a):

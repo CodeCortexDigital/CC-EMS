@@ -301,10 +301,9 @@ def onboarding_start(request):
 
 
 def _next_employee_id():
-    n = Teacher.objects.count() + 1
-    while Teacher.objects.filter(employee_id=f'EMP-{n:04d}').exists():
-        n += 1
-    return f'EMP-{n:04d}'
+    from services.core.tenants.identifiers import next_id
+
+    return next_id(Teacher, 'employee_id', 'EMP-')      # this school's next number, with its own code in front
 
 
 @api_view(['POST'])

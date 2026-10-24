@@ -1,5 +1,5 @@
 from django.urls import include, path
-from . import settings_api, teacher_tools, views
+from . import governance_api, settings_api, teacher_tools, views
 
 urlpatterns = [
     path("chat/", views.ai_chat, name="ai-chat"),
@@ -11,6 +11,14 @@ urlpatterns = [
     path("settings/", settings_api.ai_settings, name="ai-settings"),
     path("settings/accept-notice/", settings_api.accept_notice, name="ai-accept-notice"),
     path("capabilities/", settings_api.capabilities, name="ai-capabilities"),
+    # Governed AI: approvals for what the assistant asks to do, and the school documents it may quote
+    path("governance/actions/", governance_api.action_list, name="ai-gov-actions"),
+    path("governance/approvals/", governance_api.approval_list, name="ai-gov-approvals"),
+    path("governance/approvals/<uuid:pk>/approve/", governance_api.approval_approve, name="ai-gov-approve"),
+    path("governance/approvals/<uuid:pk>/reject/", governance_api.approval_reject, name="ai-gov-reject"),
+    path("governance/knowledge/", governance_api.knowledge_list, name="ai-gov-knowledge"),
+    path("governance/knowledge/search/", governance_api.knowledge_search, name="ai-gov-knowledge-search"),
+    path("governance/knowledge/<uuid:pk>/", governance_api.knowledge_detail, name="ai-gov-knowledge-detail"),
     # Teacher assistant: drafts for the teacher to edit
     path("parent-message/", teacher_tools.ai_parent_message, name="ai-parent-message"),
     path("rubric/", teacher_tools.ai_rubric, name="ai-rubric"),

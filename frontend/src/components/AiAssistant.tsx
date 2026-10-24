@@ -197,7 +197,7 @@ export default function AiAssistant({ mode = 'admin' }: { mode?: ChatMode }) {
           finalReply = ev.reply;
           setOffline(ev.offline);
           setConversationId(ev.conversation_id);
-          patchLast((m) => ({ ...m, id: ev.message_id, content: ev.reply, offline: ev.offline }));
+          patchLast((m) => ({ ...m, id: ev.message_id, content: ev.reply, offline: ev.offline, sources: ev.sources, requests: ev.requests }));
         } else if (ev.type === 'error') {
           patchLast((m) => ({ ...m, content: ev.message }));
         }
@@ -214,7 +214,7 @@ export default function AiAssistant({ mode = 'admin' }: { mode?: ChatMode }) {
           finalReply = res.reply;
           setOffline(res.offline);
           setConversationId(res.conversation_id);
-          patchLast((m) => ({ ...m, id: res.message_id, content: res.reply, offline: res.offline }));
+          patchLast((m) => ({ ...m, id: res.message_id, content: res.reply, offline: res.offline, sources: res.sources, requests: res.requests }));
         } catch {
           patchLast((m) => ({ ...m, content: 'Sorry, I could not reach the assistant service. Please try again.' }));
         }
@@ -445,6 +445,15 @@ export default function AiAssistant({ mode = 'admin' }: { mode?: ChatMode }) {
                     {m.role === 'assistant'
                       ? <MarkdownText text={m.content} />
                       : <div className="whitespace-pre-wrap break-words">{m.content}</div>}
+                    {m.role === 'assistant' && !!m.requests?.length && (
+                      <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900" data-testid="ai-requests">
+                        <b>Waiting for approval, nothing has been done yet:</b>
+                        <ul className="list-disc pl-4">{m.requests.map((r) => <li key={r.id}>{r.summary}</li>)}</ul>
+                      </div>
+                    )}
+                    {m.role === 'assistant' && !!m.sources?.length && (
+                      <p className="mt-2 text-[11px] text-slate-500" data-testid="ai-sources">Sources: {m.sources.map((s) => s.title).join(', ')}</p>
+                    )}
                     {m.role === 'assistant' && i > 0 && m.content && !streaming && (
                       <div className="mt-1.5 flex items-center gap-2.5">
                         <button onClick={() => copy(i)} className="text-slate-400 hover:text-purple-500" title="Copy" aria-label="Copy answer">
