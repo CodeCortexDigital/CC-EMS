@@ -17,6 +17,12 @@ class StudentRisk(models.Model):
     recommendations = models.JSONField(default=list)
     assessed_at = models.DateTimeField(auto_now_add=True)
     is_resolved = models.BooleanField(default=False)
+    # A person looks at every flag. The score is advice; nothing happens to a student because of it alone.
+    REVIEWS = [('confirmed', 'Confirmed: worth acting on'), ('dismissed', 'Dismissed: not a concern'), ('needs_info', 'Needs more information')]
+    review_decision = models.CharField(max_length=12, choices=REVIEWS, blank=True, default='')
+    review_note = models.CharField(max_length=500, blank=True, default='')
+    reviewed_by = models.ForeignKey('core_accounts.User', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
     
     def __str__(self):
         return f"{self.student.full_name} - {self.risk_level}"

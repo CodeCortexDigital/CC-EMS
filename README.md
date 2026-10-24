@@ -178,6 +178,15 @@ Campus services > Library (`backend/services/education/library/`, `frontend/src/
 - **Library notices on phones.** Borrowing, "due tomorrow", overdue and "ready to collect" notices are a separate *Library* notification type, so they appear in the app and are pushed to phones that have turned on web push (VAPID keys needed, see Notifications). Tapping one opens the Library page, and people can switch Library notices off on their own. `send_library_reminders` runs daily at 07:00 through Celery beat (or run the management command from cron).
 - **Not built:** a phone-camera scanning screen for librarians.
 
+## Privacy, school isolation and AI review
+
+The full answers, with the code and tests behind each, are in **[docs/CLIENT_READINESS.md](docs/CLIENT_READINESS.md)**. In short:
+
+- **Schools are kept apart by machine-checked rules.** Every model that links to a school is either filtered to the signed-in school automatically or listed with the reason it is safe; a test fails when a new model is neither (`tests/test_school_isolation_sweep.py`). That check found that employee tasks, timesheets and HR documents were not filtered by school; they now are.
+- **Retention and deletion.** Each school sets how long each kind of record is kept (Settings > Security), including AI chat history and decided AI requests, with a preview before anything is removed. From a **privacy request** the office can **download a copy of one student's data** and **erase it** (a preview, then the student ID typed to confirm, then audited). Marks, attendance and invoices stay without a name.
+- **A person reviews AI risk flags.** Scores are labelled advice only; each high or critical flag waits for a person to confirm it, ask for more information or dismiss it with a reason, and the decision is recorded (Reports > AI Predictive Analytics). Nothing is decided or sent by a score alone.
+- **Not claimed:** an independent audit, certification, or "GDPR compliance". The document lists what is still open.
+
 ## Multiple schools
 
 One installation serves many schools. Each school's data is kept separate: staff, students and parents only ever see their own school.
@@ -209,6 +218,13 @@ One installation serves many schools. Each school's data is kept separate: staff
 **Platform owner.** Superusers get **All Schools** in the sidebar (`/platform/schools`): every school with student and staff counts and its admins. A school can be suspended there, after which its users can't sign in. A superuser who belongs to a school sees that school's data on the normal pages. Send `X-Tenant-ID: <school id>` to act for another school through the API.
 
 **Existing data.** The upgrade migration assigns every record that had no school to the school most users belong to, and links superusers without a school to it. Nothing else changes for a single-school installation.
+
+## Future upgrades (pending)
+
+Planned, not built. Full briefs with sizes are in [docs/Future Plan.md](docs/Future%20Plan.md); AI items are under [Pending actions](#pending-actions).
+
+- [ ] **Live bus tracking** (Campus services > Transport). Today transport covers fleet, routes, stops, riders, daily trips, boarding events, family notices, monthly fees and reports, but it has no live location. Plan, about 5 days: (1) the driver's phone sends GPS from a web page and the server keeps only the latest position, (2) a live map and ETA for the office and for families, (3) a once-per-trip "bus is about 10 minutes away" alert, also pushed to phones, (4) a screen to set stop and school coordinates by clicking the map, (5) privacy, offline handling, tests and a labelled demo trip. The ETA, stale-location and alert-once logic can be taken from the SecureCampus project's `bus_eta` service. A native driver app is not planned.
+- [ ] **Library phone-camera scanning for librarians** (the library lock, return check and notices are built; this part is not).
 
 ## Quick Start
 
@@ -415,7 +431,7 @@ Two items sometimes proposed for this list are **already built**, not planned: d
 - [ ] Consent and data-deletion handling for face recognition.
 - [ ] Automated AI quality tests: sample questions per role, prompt-injection and role-escalation checks.
 - [ ] An admin dashboard for AI usage, cost per school and feedback.
-- [ ] Privacy note for schools, per-school AI opt-out, and a retention policy for saved chats.
+- [x] Privacy note for schools, per-school AI opt-out, and a retention rule for saved AI chats (Settings > Security; see [docs/CLIENT_READINESS.md](docs/CLIENT_READINESS.md)).
 
 #### Known issues (not caused by the AI work)
 

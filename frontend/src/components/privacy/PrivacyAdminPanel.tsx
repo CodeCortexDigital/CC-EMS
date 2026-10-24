@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { AlertOctagon, Download, FileText, Loader2, Megaphone, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import privacy, { ConsentTypeRow, errorText, LegalDoc, PrivacyReq } from '@/services/privacy.service';
+import { Modal } from '@/components/ui/Modal';
+import privacy, { ConsentTypeRow, ErasePreview, errorText, LegalDoc, PrivacyReq } from '@/services/privacy.service';
 
 const card = 'bg-white rounded-xl border border-slate-200 shadow-sm';
 const input = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm';
@@ -112,7 +113,56 @@ function ConsentSection() {
   );
 }
 
+const TABLE_NAMES: Record<string, string> = {
+  'analytics.StudentRisk': 'AI risk scores', 'analytics.AcademicPrediction': 'AI grade predictions', 'analytics.Recommendation': 'AI recommendations',
+  'education_attendance.StudentFaceEncoding': 'Face recognition template', 'education_students.StudentHealth': 'Health notes',
+  'education_students.Immunization': 'Immunisation records', 'education_students.StudentDocument': 'Uploaded documents',
+  'education_students.StudentGuardian': 'Links to guardians', 'education_attendance.AttendanceRecord': 'Attendance',
+  'education_exams.ExamResult': 'Exam results', 'education_finance.Invoice': 'Invoices', 'education_gradebook.Score': 'Gradebook scores',
+  'behaviour.BehaviourRating': 'Behaviour ratings',
+};
+const tableName = (label: string) => TABLE_NAMES[label] || label.split('.').pop() || label;
+
+/** Erase a student's personal data for an erasure request: shows exactly what happens first, then needs the student's ID typed. */
+function EraseDialog({ request, onClose, onDone }: { request: PrivacyReq; onClose: () => void; onDone: () => void }) {
+  const [preview, setPreview] = useState<ErasePreview | null>(null);
+  const [typed, setTyped] = useState('');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { privacy.erasePreview(request.id).then((d) => setPreview(d.preview)).catch((e) => { toast.error(errorText(e, 'Could not prepare the erasure.')); onClose(); }); }, [request.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ref = request.student_ref || '';
+  const go = async () => {
+    setBusy(true);
+    try { await privacy.erase(request.id, typed); toast.success('The personal details were erased and the request is closed.'); onDone(); }
+    catch (e) { toast.error(errorText(e, 'Could not erase.')); } finally { setBusy(false); }
+  };
+  return (
+    <Modal open onClose={onClose} title={`Erase ${request.student || 'student'}'s data`} size="md"
+      footer={<><button type="button" onClick={onClose} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium">Cancel</button>
+        <button type="button" onClick={go} disabled={busy || typed.trim().toLowerCase() !== ref.toLowerCase() || !preview}
+          className="rounded-lg bg-rose-600 px-3.5 py-2 text-sm font-medium text-white disabled:opacity-40">{busy && <Loader2 className="inline w-4 h-4 animate-spin mr-1" />}Erase now</button></>}>
+      {!preview ? <Loader2 className="animate-spin text-slate-400" /> : (
+        <div className="space-y-3 text-sm">
+          <p>This cannot be undone. The student becomes <b>{preview.becomes}</b>.</p>
+          {Object.keys(preview.removed).length > 0 && (
+            <div><p className="font-semibold text-slate-700">Removed completely</p>
+              <ul className="list-disc pl-5 text-slate-600">{Object.entries(preview.removed).map(([k, n]) => <li key={k}>{tableName(k)}: {n}</li>)}</ul></div>
+          )}
+          {Object.keys(preview.kept_without_a_name).length > 0 && (
+            <div><p className="font-semibold text-slate-700">Kept, without a name (so the school's records still add up)</p>
+              <ul className="list-disc pl-5 text-slate-600">{Object.entries(preview.kept_without_a_name).map(([k, n]) => <li key={k}>{tableName(k)}: {n}</li>)}</ul></div>
+          )}
+          <ul className="list-disc pl-5 text-slate-600">{preview.also.map((t) => <li key={t}>{t}</li>)}</ul>
+          <label className="block font-medium text-slate-700">Type the student ID <span className="font-mono">{ref}</span> to confirm
+            <input aria-label="Type the student ID to confirm" className={`${input} mt-1`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
+          </label>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 function Requests() {
+  const [erasing, setErasing] = useState<PrivacyReq | null>(null);
   const [rows, setRows] = useState<PrivacyReq[] | null>(null);
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [replies, setReplies] = useState<Record<string, string>>({});
@@ -136,6 +186,13 @@ function Requests() {
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${r.overdue ? 'bg-rose-100 text-rose-700' : TONE[r.status]}`}>{r.overdue ? `Overdue (due ${day(r.due_date)})` : `${r.status_label} · due ${day(r.due_date)}`}</span>
               </div>
               <p className="text-slate-600 mt-1">{r.details}</p>
+              {(r.can_export || r.can_erase) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {r.can_export && <button onClick={() => privacy.exportRequest(r.id, r.student_ref || 'student').catch((e) => toast.error(errorText(e, 'Could not download.')))}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700"><Download size={13} /> Download their data</button>}
+                  {r.can_erase && <button onClick={() => setErasing(r)} className="inline-flex items-center gap-1 rounded-lg border border-rose-300 px-3 py-1 text-xs font-semibold text-rose-700">Erase their data…</button>}
+                </div>
+              )}
               {(r.status === 'open' || r.status === 'in_progress') ? (
                 <div className="mt-2 space-y-2">
                   <textarea className={input} rows={2} placeholder="Reply to the requester (required if you refuse)" value={replies[r.id] ?? r.response} onChange={(e) => setReplies({ ...replies, [r.id]: e.target.value })} />
@@ -150,6 +207,7 @@ function Requests() {
           ))}
         </ul>
       )}
+      {erasing && <EraseDialog request={erasing} onClose={() => setErasing(null)} onDone={() => { setErasing(null); load(); }} />}
     </section>
   );
 }

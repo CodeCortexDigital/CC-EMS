@@ -173,7 +173,14 @@ Build in this order. Items marked ✔ at the end of Part D are already built and
 * **Year-end family statements and tax receipts (New).** 2-3 / 4-5 days.
 * **Department budgeting (New).** 4-5 / 7-9 days.
 * **OneRoster-style district import (New).** Only when a district asks. 4-5 per system / 7-9.
-* **Facility booking and maintenance tickets, event ticketing, bus GPS tracking (New).** Only when a customer asks. 4-5, 5-6 and 8-12 days with Claude Code.
+* **Facility booking and maintenance tickets, event ticketing (New).** Only when a customer asks. 4-5 and 5-6 days with Claude Code.
+* **Live bus tracking (Extend). PENDING, planned.** The transport module already has routes, stops, riders, trips, boarding events and family notices, but no live location. Plan, with about 5 days of work in total:
+  1. *Driver location (about 1 day).* The driver opens "My trip" on their phone in the web app; the page sends GPS about every 15 seconds. The server keeps only the latest position per trip with its own timestamp (a wrong phone clock cannot fake freshness). Only the driver assigned to that route can post; rate-limited; a position older than 3 minutes counts as lost.
+  2. *Map and ETA (about 1.5 days).* A live map (OpenStreetMap through Leaflet, no key) on the admin Today page and in the family view. ETA by OSRM road routing with a straight-line fallback, and the screen says which method was used. Families see only their own child's route, and only while a trip is running.
+  3. *"Bus is about 10 minutes away" alert (about 1 day).* Once per rider per trip, as a new Transport notification type that is also pushed to phones (like the Library notices).
+  4. *Stop coordinates and the school's location (about 1 day).* Click the map to set each stop (the stop latitude and longitude fields exist but no screen sets them). This is needed before the ETA and the alert can work.
+  5. *Hardening (about 1 day).* No location history (or 24 hours at most), phones going offline, tests, README and a Help article, and a clearly labelled simulated trip for demos.
+  Reuse from the SecureCampus project (`securecampus/bus_eta/app/geo.py` and `service.py`): the ETA methods, the stale-location check, the once-per-trip alert rule and the "write only when changed" rule. Both are Python. Not built there either: a test on a real moving bus. Out of scope for now: a native driver app (the web page can be paused by the phone when the screen locks).
 * **Multi-campus (Built in a different shape).** Today each school is separate and the platform console manages many schools. Clarify with the client whether they mean several buildings sharing one roster before any work; that would be 10-15 days plus a design review.
 
 ### D2. Already built: do not rebuild

@@ -5,9 +5,24 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import Q, Sum
+
+from rest_framework.exceptions import ValidationError
 
 from .models import EmployeeTask, Timesheet, EmployeeDocument
+
+
+def _person(request, wanted):
+    """Who a new task, timesheet or document is for. Only an administrator may choose someone else, and only someone in the same school."""
+    from services.core.tenants.scoping import tenant_for_request
+    from services.core.tenants.utils import user_can_access_tenant
+
+    if wanted is None or wanted == request.user or not is_admin(request.user):
+        return request.user
+    tenant = tenant_for_request(request)
+    if tenant is not None and not user_can_access_tenant(wanted, tenant):
+        raise ValidationError('That person is not in your school.')
+    return wanted
 from .serializers import EmployeeTaskSerializer, TimesheetSerializer, EmployeeDocumentSerializer
 
 
@@ -27,13 +42,20 @@ class EmployeeTaskListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         user = self.request.user
-        serializer.save(created_by=user, assignee=serializer.validated_data.get('assignee') or user)
+        serializer.save(created_by=user, assignee=_person(self.request, serializer.validated_data.get('assignee')))
 
 
 class EmployeeTaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = EmployeeTask.objects.all()
     serializer_class = EmployeeTaskSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = EmployeeTask.objects.all()          # already limited to this school
+        if not is_admin(user):
+            queryset = queryset.filter(Q(assignee=user) | Q(created_by=user))
+        return queryset
 
     def perform_update(self, serializer):
         # Auto-stamp completed_at when marked done.
@@ -57,13 +79,17 @@ class TimesheetListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         user = self.request.user
-        serializer.save(employee=serializer.validated_data.get('employee') or user)
+        serializer.save(employee=_person(self.request, serializer.validated_data.get('employee')))
 
 
 class TimesheetDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = Timesheet.objects.all()
     serializer_class = TimesheetSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        queryset = Timesheet.objects.all()
+        return queryset if is_admin(self.request.user) else queryset.filter(employee=self.request.user)
 
 
 class EmployeeDocumentListCreateView(generics.ListCreateAPIView):
@@ -81,7 +107,7 @@ class EmployeeDocumentListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         file = self.request.FILES.get('file')
         serializer.save(
-            owner=serializer.validated_data.get('owner') or user,
+            owner=_person(self.request, serializer.validated_data.get('owner')),
             uploaded_by=user,
             file_name=file.name if file else '',
         )
@@ -89,8 +115,12 @@ class EmployeeDocumentListCreateView(generics.ListCreateAPIView):
 
 class EmployeeDocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = EmployeeDocument.objects.all()
     serializer_class = EmployeeDocumentSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        queryset = EmployeeDocument.objects.all()
+        return queryset if is_admin(self.request.user) else queryset.filter(owner=self.request.user)
 
 
 class EmployeeSummaryView(generics.GenericAPIView):

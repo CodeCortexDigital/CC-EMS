@@ -140,6 +140,14 @@ def ai_lesson_plan(request):
     record_usage(ctx, 'ai_lesson_plans', llm.provider, model, usage)
     return Response({**plan, "source": "ai"}, status=status.HTTP_200_OK)
 
+def clear_stale_review(risk, previous_level) -> bool:
+    """When a new scan moves a student to a different risk level, a person's earlier review of the old score no longer applies."""
+    if risk.review_decision and risk.risk_level != previous_level:
+        risk.review_decision, risk.review_note, risk.reviewed_by, risk.reviewed_at = '', '', None, None
+        return True
+    return False
+
+
 def _run_risk_scan(tenant_id=None) -> dict:
     """Train the grade, dropout and fee-default models and write scores into StudentRisk.
 
@@ -173,6 +181,7 @@ def _run_risk_scan(tenant_id=None) -> dict:
             student=student,
             defaults={'risk_level': 'low', 'risk_score': 0.0}
         )
+        previous_level = risk_obj.risk_level
         factors = risk_obj.factors or {}
         factors["fee_default_risk"] = predictions["fee_default_risk"]
         factors["dropout_risk"] = predictions["dropout_risk"]
@@ -203,6 +212,7 @@ def _run_risk_scan(tenant_id=None) -> dict:
         else:
             risk_obj.risk_level = 'low'
 
+        clear_stale_review(risk_obj, previous_level)
         risk_obj.save()
 
         # A high or critical dropout risk becomes a task for a counselor (one per student, not one per scan).
@@ -269,10 +279,56 @@ def get_student_predictions(request):
             'predicted_grade': p.predicted_grade if p else 'N/A',
             'confidence': float(p.confidence) if p else 0.0,
             'fee_default_risk': fee_default_risk,
-            'dropout_risk': dropout_risk
+            'dropout_risk': dropout_risk,
+            # The score is advice for staff. A person reviews each high flag, and that review is recorded.
+            'advisory': True,
+            'needs_review': r.risk_level in ('high', 'critical') and not r.review_decision,
+            'review': _review_payload(r),
         })
         
     return Response(data, status=status.HTTP_200_OK)
+
+def _review_payload(r):
+    if not r.review_decision:
+        return None
+    return {'decision': r.review_decision, 'label': r.get_review_decision_display(), 'note': r.review_note,
+            'by': (r.reviewed_by.full_name or r.reviewed_by.email) if r.reviewed_by_id else '',
+            'at': r.reviewed_at.isoformat() if r.reviewed_at else None}
+
+
+@api_view(['POST'])
+@permission_classes([IsAIEducator])
+def review_student_risk(request, student_id):
+    """A person records what they decided about an AI risk flag: confirmed, dismissed or needs more information.
+
+    {decision, note}. A note is required to dismiss or to ask for more information. Nothing else happens automatically: the score
+    is advice for staff, and this record shows that someone looked at it, who, when and why.
+    """
+    StudentRisk = apps.get_model('analytics', 'StudentRisk')
+    ctx = AIContext.from_request(request)
+    if not _visible_student_ids(ctx).filter(pk=student_id).exists():
+        return Response({'error': 'Student not found.'}, status=status.HTTP_404_NOT_FOUND)
+    risk = StudentRisk.objects.filter(student_id=student_id).select_related('reviewed_by').first()
+    if risk is None:
+        return Response({'error': 'There is no risk score for this student yet.'}, status=status.HTTP_404_NOT_FOUND)
+    data = request.data if isinstance(request.data, dict) else {}
+    decision, note = data.get('decision'), str(data.get('note') or '').strip()
+    if decision not in dict(StudentRisk.REVIEWS):
+        return Response({'error': 'Choose confirmed, dismissed or needs_info.'}, status=status.HTTP_400_BAD_REQUEST)
+    if decision != 'confirmed' and len(note) < 5:
+        return Response({'error': 'Say why (a few words) so the record explains the decision.'}, status=status.HTTP_400_BAD_REQUEST)
+    risk.review_decision, risk.review_note, risk.reviewed_by, risk.reviewed_at = decision, note[:500], request.user, timezone.now()
+    risk.save(update_fields=['review_decision', 'review_note', 'reviewed_by', 'reviewed_at'])
+    try:
+        from services.core.audit.models import AuditLog
+
+        AuditLog.objects.create(user=request.user, school=ctx.tenant, action='UPDATE', resource_type='analytics.risk.review',
+                                resource_id=risk.id, new_data={'student_id': str(student_id), 'decision': decision,
+                                                               'level_at_review': risk.risk_level})
+    except Exception:
+        logger.exception('Could not audit a risk review')
+    return Response({'review': _review_payload(risk)})
+
 
 @api_view(['POST'])
 @permission_classes([IsAIEducator])

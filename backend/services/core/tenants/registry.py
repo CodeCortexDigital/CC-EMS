@@ -145,6 +145,9 @@ DIRECT = [
     'ai.AIConversation',
     'ai.AIUsage',
     'ai.KnowledgeDocument',
+    'employee.EmployeeTask',
+    'employee.Timesheet',
+    'employee.EmployeeDocument',
     'ai.AIActionRequest',
 ]
 

@@ -7,6 +7,12 @@ export interface ConsentItem { type_id: string; key: string; label: string; desc
 export interface PrivacyReq {
   id: string; kind: string; kind_label: string; details: string; status: string; status_label: string; student: string | null;
   requester: string; created_at: string; due_date: string; overdue: boolean; response: string; handled_by: string; closed_at: string | null;
+  /** The student's ID, and what the office may do with this request. */
+  student_ref?: string | null; can_export?: boolean; can_erase?: boolean;
+}
+export interface ErasePreview {
+  student: { student_id: string; name: string }; already_erased: boolean; becomes: string;
+  removed: Record<string, number>; kept_without_a_name: Record<string, number>; also: string[];
 }
 export interface ConsentTypeRow { id: string; key: string; label: string; description: string; subject: 'student' | 'user'; subject_label: string; is_active: boolean; version: number }
 export interface SubProcessorRow { id?: number; name: string; purpose: string; data: string; location: string; optional: boolean; website: string }
@@ -41,6 +47,16 @@ const privacyService = {
   },
   requests: () => api.get('/privacy/requests/').then((r) => r.data as { results: PrivacyReq[]; statuses: Record<string, string> }),
   updateRequest: (id: string, body: { status?: string; response?: string }) => api.post(`/privacy/requests/${id}/`, body).then((r) => r.data.request as PrivacyReq),
+  /** Download a copy of everything held about the student the request is about (a JSON file). */
+  exportRequest: async (id: string, ref: string) => {
+    const res = await api.get(`/privacy/requests/${id}/export/`, { responseType: 'blob' });
+    const href = URL.createObjectURL(res.data as Blob);
+    const a = document.createElement('a'); a.href = href; a.download = `student-data-${ref}.json`; a.click(); URL.revokeObjectURL(href);
+  },
+  /** What an erasure would do, without doing it. */
+  erasePreview: (id: string) => api.post(`/privacy/requests/${id}/erase/`, {}).then((r) => r.data as { preview: ErasePreview; confirm_with: string }),
+  /** Do it. `confirm` must be the student's ID. */
+  erase: (id: string, confirm: string) => api.post(`/privacy/requests/${id}/erase/`, { confirm }).then((r) => r.data as { request: PrivacyReq; done: ErasePreview }),
   reportIncident: (title: string, description: string) => api.post('/privacy/incidents/report/', { title, description }).then((r) => r.data as { message: string }),
   platformDocuments: () => api.get('/privacy/platform/documents/').then((r) => r.data),
   publishPlatform: (kind: string, title: string, body: string, summary: string) => api.post('/privacy/platform/documents/', { kind, title, body, summary }).then((r) => r.data),

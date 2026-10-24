@@ -112,6 +112,9 @@ def _request(r):
             'status_label': r.get_status_display(), 'student': r.student.full_name if r.student_id else None,
             'requester': r.requester_email, 'created_at': _local(r.created_at), 'due_date': r.due_date,
             'overdue': r.status in ('open', 'in_progress') and r.due_date < timezone.localdate(), 'response': r.response,
+            'student_ref': r.student.student_id if r.student_id else None,
+            'can_export': bool(r.student_id) and r.kind in ('access', 'erasure'),
+            'can_erase': bool(r.student_id) and r.kind == 'erasure' and r.status not in ('done', 'refused'),
             'handled_by': _name(r.handled_by), 'closed_at': _local(r.closed_at)}
 
 
@@ -334,6 +337,73 @@ def request_update(request, request_id):
     r.handled_by = request.user
     r.save()
     return Response({'request': _request(r)})
+
+
+def _request_student(request, request_id):
+    """(privacy request, the student it is about, an error response) for an administrator of this school."""
+    denied = _admin(request)
+    if denied:
+        return None, None, denied
+    r = get_object_or_404(PrivacyRequest, pk=request_id, school=request.tenant)
+    if not r.student_id:
+        return None, None, Response({'error': 'This request is not about a particular student.'}, status=status.HTTP_400_BAD_REQUEST)
+    student = apps.get_model('education_students', 'Student')._base_manager.filter(pk=r.student_id, tenant=request.tenant).first()
+    if student is None:
+        return None, None, Response({'error': 'The student was not found in this school.'}, status=status.HTTP_404_NOT_FOUND)
+    return r, student, None
+
+
+def _audit_privacy(request, what, student, data=None):
+    from services.core.audit.models import AuditLog
+
+    AuditLog.objects.create(user=request.user, school=request.tenant, action='EXPORT' if what == 'export' else 'DELETE',
+                            resource_type=f'privacy.{what}', resource_id=student.pk,
+                            new_data={'student_id': student.student_id, **(data or {})}, ip_address=client_ip(request))
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def request_export(request, request_id):
+    """A copy of everything held about the student (a JSON file), for an access or erasure request. Logged."""
+    import json
+
+    from . import subject
+
+    r, student, error = _request_student(request, request_id)
+    if error:
+        return error
+    data = subject.export_student(student)
+    _audit_privacy(request, 'export', student, {'tables': len(data['tables'])})
+    resp = HttpResponse(json.dumps(data, indent=2, ensure_ascii=False), content_type='application/json')
+    resp['Content-Disposition'] = f'attachment; filename="student-data-{student.student_id}.json"'
+    return resp
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def request_erase(request, request_id):
+    """An erasure request. Without ``confirm`` it only shows what would happen. With ``confirm`` equal to the student ID it is done."""
+    from . import subject
+
+    r, student, error = _request_student(request, request_id)
+    if error:
+        return error
+    if r.kind != 'erasure':
+        return Response({'error': 'Only an erasure request can erase data.'}, status=status.HTTP_400_BAD_REQUEST)
+    if r.status in ('done', 'refused'):
+        return Response({'error': 'This request is already closed.'}, status=status.HTTP_400_BAD_REQUEST)
+    typed = str((request.data or {}).get('confirm') or '').strip()
+    if not typed:
+        return Response({'preview': subject.erase_preview(student), 'confirm_with': student.student_id})
+    if typed.lower() != (student.student_id or '').lower():
+        return Response({'error': f'Type the student ID ({student.student_id}) to confirm.'}, status=status.HTTP_400_BAD_REQUEST)
+    result = subject.erase_student(student)
+    r.status, r.closed_at, r.handled_by = 'done', timezone.now(), request.user
+    r.response = (f"The personal details held about student {result['student']['student_id']} were erased on {timezone.localdate():%d %b %Y}. "
+                  "Marks, attendance and invoices are kept without a name so the school's records still add up.")
+    r.save()
+    _audit_privacy(request, 'erasure', student, {'removed': result['removed'], 'request': str(r.pk)})
+    return Response({'request': _request(r), 'done': result})
 
 
 @api_view(['POST'])

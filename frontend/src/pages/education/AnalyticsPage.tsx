@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { AlertTriangle, TrendingUp, DollarSign, Calendar, Users, Award, ShieldAlert, Mail, Search, Printer, ArrowLeft, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import analyticsService from '@/services/analytics.service';
+import RiskReviewPanel from '@/components/analytics/RiskReviewPanel';
 import api from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { cur } from '@/utils/currency';
@@ -1273,6 +1274,7 @@ setTeacherPerformance(rawTeachers);
         </TabsContent>
 
         <TabsContent value="risks" className="space-y-4">
+          <RiskReviewPanel />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader><CardTitle>Top Students at Dropout Risk (XGBoost)</CardTitle></CardHeader>

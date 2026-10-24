@@ -21,6 +21,8 @@ from django.utils import timezone
 
 from services.core.tenants.registry import tenant_paths
 
+ERASED_PREFIX = 'Former student'
+
 # key: (label, action, unit, minimum in days, help)
 TYPES = {
     'left_students': ('Students who left or graduated', 'anonymise', 'years', 365,
@@ -33,6 +35,10 @@ TYPES = {
     'delivery_logs': ('Text and email delivery logs', 'delete', 'months', 30, 'SMS, WhatsApp and system email records.'),
     'attendance_notices': ('Attendance alerts and absence notes', 'delete', 'months', 90,
                            "Alerts sent to families and parents' absence notes. The attendance itself stays."),
+    'ai_chats': ('AI assistant chat history', 'delete', 'months', 30,
+                 'Saved conversations with the AI assistant, counted from the last message. Deleting them also deletes the questions people typed.'),
+    'ai_actions': ('AI action requests that were decided', 'delete', 'months', 90,
+                   'Requests the assistant made that were approved, rejected or expired. Waiting requests are never removed. The audit log keeps its own record.'),
     'paid_invoices': ('Paid or cancelled invoices and their payments', 'delete', 'years', 5 * 365,
                       'Most countries require accounts to be kept 6 to 7 years; at least 5 years is enforced.'),
 }
@@ -87,7 +93,7 @@ def _due(school, key, days):
         left = (Enrollment._base_manager.filter(student__tenant=school, status__in=('withdrawn', 'graduated'))
                 .values('student').annotate(last=Max('end_date')).filter(last__lt=day).values_list('student', flat=True))
         return {'education_students.Student': _qs('education_students.Student', school)
-                .filter(pk__in=list(left), is_active=False).exclude(full_name__startswith='Former student')}
+                .filter(pk__in=list(left), is_active=False).exclude(full_name__startswith=ERASED_PREFIX)}
     if key == 'declined_applications':
         return {'education_admissions.Application': _qs('education_admissions.Application', school)
                 .filter(status__in=('rejected', 'withdrawn'), updated_at__lt=cutoff)}
@@ -105,6 +111,10 @@ def _due(school, key, days):
         return {'education_attendance.AttendanceNotice': _qs('education_attendance.AttendanceNotice', school).filter(date__lt=day),
                 'education_attendance.AbsenceReport': _qs('education_attendance.AbsenceReport', school)
                 .filter(end_date__lt=day).exclude(status='pending')}
+    if key == 'ai_chats':
+        return {'ai.AIConversation': _qs('ai.AIConversation', school).filter(updated_at__lt=cutoff)}
+    if key == 'ai_actions':
+        return {'ai.AIActionRequest': _qs('ai.AIActionRequest', school).exclude(status='pending').filter(created_at__lt=cutoff)}
     if key == 'paid_invoices':
         return {'education_finance.Invoice': _qs('education_finance.Invoice', school)
                 .filter(status__in=('paid', 'cancelled'), due_date__lt=day)}
@@ -137,7 +147,7 @@ def _anonymise_student(student):
     changes = {k: fake(kind, getattr(student, k), fields[k]) for k, kind in rules.items() if k in fields}
     if student.date_of_birth:
         changes['date_of_birth'] = student.date_of_birth.replace(month=1, day=1)
-    changes['full_name'] = f'Former student {student.student_id or str(student.pk)[:8]}'
+    changes['full_name'] = f'{ERASED_PREFIX} {student.student_id or str(student.pk)[:8]}'
     if 'profile_picture' in fields:
         changes['profile_picture'] = ''
     email = student.email
@@ -153,6 +163,12 @@ def _anonymise_student(student):
             for row in rows:
                 getattr(row, f.name).delete(save=False) if getattr(row, f.name) else None
         rows.delete()
+    # What was worked out about the person: their face template and the risk scores and predictions made about them.
+    for label in ('education_attendance.StudentFaceEncoding', 'analytics.StudentRisk', 'analytics.AcademicPrediction', 'analytics.Recommendation'):
+        try:
+            apps.get_model(label)._base_manager.filter(student=student).delete()
+        except LookupError:
+            continue
     StudentGuardian = apps.get_model('education_students', 'StudentGuardian')
     Guardian = apps.get_model('education_students', 'Guardian')
     for link in StudentGuardian._base_manager.filter(student=student).select_related('guardian'):
