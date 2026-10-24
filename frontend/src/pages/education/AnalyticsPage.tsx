@@ -114,15 +114,22 @@ export default function AnalyticsPage() {
     status: true
   });
 
+  const [scanning, setScanning] = useState(false);
   const handleRunRiskScan = async () => {
+    if (scanning) return;                       // a second click would start a second scan on top of the first
+    setScanning(true);
     try {
-      setStatus({ type: 'info', message: 'Running AI risk scan...' });
-      await api.post('/ai/train-models/');
+      setStatus({ type: 'info', message: 'Running AI risk scan... this can take up to a minute. Please wait.' });
+      await api.post('/ai/train-models/', {}, { timeout: 180000 });      // training takes longer than the 30 second default
       await fetchData();
       setStatus({ type: 'success', message: 'AI risk scan completed. Models trained.' });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setStatus({ type: 'error', message: 'Risk scan failed. Please try again.' });
+      // Say what the server said: for example the risk model is not installed on this server, which trying again will not fix.
+      const reason = error?.response?.data?.error || error?.response?.data?.message;
+      setStatus({ type: 'error', message: reason ? `Risk scan could not run: ${reason}` : 'Risk scan failed. Please try again.' });
+    } finally {
+      setScanning(false);
     }
   };
 
@@ -1157,9 +1164,10 @@ setTeacherPerformance(rawTeachers);
         </div>
         <Button
           onClick={handleRunRiskScan}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg"
+          disabled={scanning}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg disabled:opacity-60"
         >
-          Run AI Risk Scan
+          {scanning ? 'Scanning…' : 'Run AI Risk Scan'}
         </Button>
       </div>
 

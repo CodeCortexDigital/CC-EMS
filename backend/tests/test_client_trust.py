@@ -211,3 +211,46 @@ class TestHumanReviewOfAIRiskFlags:
         risk.risk_level = 'critical'
         assert clear_stale_review(risk, previous_level='high') is True
         assert risk.review_decision == '' and risk.reviewed_by is None and risk.reviewed_at is None
+
+
+@pytest.mark.django_db
+class TestScanKeepsReviewsAndRunsOnce:
+    def test_a_scan_rebuilds_risk_rows_but_a_saved_review_comes_back_when_the_level_is_unchanged(self, two):
+        from services.analytics.ai_views import carry_over_review, clear_stale_review, review_snapshot
+
+        (a, admin, api), _ = two
+        kid = StudentFactory(tenant=a)
+        old = StudentRisk.objects.create(student=kid, risk_level='high', risk_score=70, review_decision='dismissed',
+                                         review_note='On a payment plan', reviewed_by=admin, reviewed_at=timezone.now())
+        kept = review_snapshot(str(a.id))
+        assert set(kept) == {kid.pk}
+        old.delete()                                                  # what a scan does: it deletes and rebuilds every risk row
+        fresh = StudentRisk.objects.create(student=kid, risk_level='high', risk_score=71)
+        previous = carry_over_review(fresh, kept.get(kid.pk))
+        assert previous == 'high' and fresh.review_decision == 'dismissed' and fresh.reviewed_by_id == admin.pk
+        assert clear_stale_review(fresh, previous) is False and fresh.review_note == 'On a payment plan'
+        fresh.risk_level = 'critical'                                 # the new score is at a different level: the old review is dropped
+        assert clear_stale_review(fresh, previous) is True and fresh.review_decision == ''
+
+    def test_a_student_with_no_review_is_unaffected(self, two):
+        from services.analytics.ai_views import carry_over_review
+
+        (a, *_), _ = two
+        risk = StudentRisk.objects.create(student=StudentFactory(tenant=a), risk_level='low', risk_score=5)
+        assert carry_over_review(risk, None) == 'low' and risk.review_decision == ''
+
+    def test_only_one_scan_runs_at_a_time_for_a_school(self, two, monkeypatch):
+        from django.core.cache import cache
+        from services.analytics import ai_views
+
+        (a, admin, api), _ = two
+        calls = []
+        monkeypatch.setattr(ai_views, 'RISK_ML_AVAILABLE', True)
+        monkeypatch.setattr(ai_views, '_run_risk_scan', lambda tenant_id=None: calls.append(tenant_id) or {})
+        cache.add(f'risk-scan:{a.id}', 1, timeout=60)                  # a scan is already running
+        busy = api.post('/api/v1/ai/train-models/', {}, format='json')
+        assert busy.status_code == 409 and 'already running' in busy.json()['error'] and calls == []
+        cache.delete(f'risk-scan:{a.id}')
+        ok = api.post('/api/v1/ai/train-models/', {}, format='json')
+        assert ok.status_code == 200 and calls == [str(a.id)]
+        assert cache.get(f'risk-scan:{a.id}') is None                   # released when done, even though it just finished

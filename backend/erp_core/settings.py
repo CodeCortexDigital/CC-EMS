@@ -148,6 +148,9 @@ if _use_sqlite:
             'ENGINE': 'django.db.backends.sqlite3',
             # SQLITE_PATH lets the backup restore test load a backup into a separate, empty database.
             'NAME': os.environ.get('SQLITE_PATH') or BASE_DIR / 'db.sqlite3',
+            # Wait up to 30 seconds for another writer (the default is 5) so a long job such as the risk scan does not fail with
+            # "database is locked" while the live notification and audit writes of the running demo finish.
+            'OPTIONS': {'timeout': 30},
         }
     }
 else:

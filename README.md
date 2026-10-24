@@ -77,7 +77,7 @@ To stop, run **`stop-demo.bat`** (or close the two server windows); **`restart-d
 
 1. **Admin → Dashboard:** live totals (students, staff, fee collection, today's attendance).
 2. **Admin → AI assistant** (purple button, bottom right): ask *"Fee defaulters & finance summary"*, then *"How many students are absent today?"*.
-3. **Admin → Reports (Analytics):** click **Run AI Risk Scan**. The ML models score every student for dropout and fee-default risk; the at-risk list and charts update.
+3. **Admin → Reports → the AI Risk & Review tab:** click **Run AI Risk Scan**. The ML models score every student for dropout and fee-default risk; the at-risk list and charts update.
 4. **Teacher → Lesson Planner:** a saved sample plan is already there. Add one: pick a class and subject, enter a topic (and, optionally, standards to address), generate a draft. **Messages → New message → Draft with AI** writes a message to a family for you to edit.
 5. **Parent → Dashboard:** the child's attendance and fee history; ask the assistant *"My fees & dues"*. It only ever shows this family's data.
 6. **Student → assistant:** *"My attendance"*. Then ask *"finance summary"*: students can't see school-wide data.
@@ -184,7 +184,7 @@ The full answers, with the code and tests behind each, are in **[docs/CLIENT_REA
 
 - **Schools are kept apart by machine-checked rules.** Every model that links to a school is either filtered to the signed-in school automatically or listed with the reason it is safe; a test fails when a new model is neither (`tests/test_school_isolation_sweep.py`). That check found that employee tasks, timesheets and HR documents were not filtered by school; they now are.
 - **Retention and deletion.** Each school sets how long each kind of record is kept (Settings > Security), including AI chat history and decided AI requests, with a preview before anything is removed. From a **privacy request** the office can **download a copy of one student's data** and **erase it** (a preview, then the student ID typed to confirm, then audited). Marks, attendance and invoices stay without a name.
-- **A person reviews AI risk flags.** Scores are labelled advice only; each high or critical flag waits for a person to confirm it, ask for more information or dismiss it with a reason, and the decision is recorded (Reports > AI Predictive Analytics). Nothing is decided or sent by a score alone.
+- **A person reviews AI risk flags.** Scores are labelled advice only; each high or critical flag waits for a person to confirm it, ask for more information or dismiss it with a reason, and the decision is recorded (Reports > AI Risk & Review > AI Predictive Analytics). Nothing is decided or sent by a score alone.
 - **Not claimed:** an independent audit, certification, or "GDPR compliance". The document lists what is still open.
 - **More:** how the system fits together, with diagrams, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); the school-isolation scenarios and known exclusions are in [docs/TENANT_ISOLATION_TEST_SUMMARY.md](docs/TENANT_ISOLATION_TEST_SUMMARY.md).
 

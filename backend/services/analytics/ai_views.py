@@ -148,6 +148,26 @@ def clear_stale_review(risk, previous_level) -> bool:
     return False
 
 
+def review_snapshot(tenant_id=None) -> dict:
+    """The reviews people have recorded, by student, taken before a scan. The scan rebuilds every risk row, which would otherwise
+    wipe them: {student id: (level when reviewed, decision, note, reviewer id, when)}."""
+    StudentRisk = apps.get_model('analytics', 'StudentRisk')
+    Student = apps.get_model('education_students', 'Student')
+    students = Student.objects.filter(is_active=True)
+    if tenant_id:
+        students = students.filter(Q(tenant_id=tenant_id) | Q(tenant_id__isnull=True))
+    rows = StudentRisk.objects.filter(student__in=students).exclude(review_decision='')
+    return {r.student_id: (r.risk_level, r.review_decision, r.review_note, r.reviewed_by_id, r.reviewed_at) for r in rows}
+
+
+def carry_over_review(risk, kept):
+    """Put a saved review back on a rebuilt risk row. Returns the level the student had when it was reviewed (or the row's own level)."""
+    if not kept:
+        return risk.risk_level
+    level, risk.review_decision, risk.review_note, risk.reviewed_by_id, risk.reviewed_at = kept
+    return level
+
+
 def _run_risk_scan(tenant_id=None) -> dict:
     """Train the grade, dropout and fee-default models and write scores into StudentRisk.
 
@@ -155,6 +175,7 @@ def _run_risk_scan(tenant_id=None) -> dict:
     set) so schools don't share a "default" model or see each other's students. Used by the
     manual "Run AI Risk Scan" admin action and by the nightly scheduled scan (services/analytics/tasks.py).
     """
+    reviews = review_snapshot(tenant_id)          # people's recorded reviews survive the rebuild below
     # 1. Train Random Forest model and predict performance
     train_msg = train_and_save_model(tenant_id=tenant_id)
     perf_results = predict_student_performance(tenant_id=tenant_id)
@@ -181,7 +202,7 @@ def _run_risk_scan(tenant_id=None) -> dict:
             student=student,
             defaults={'risk_level': 'low', 'risk_score': 0.0}
         )
-        previous_level = risk_obj.risk_level
+        previous_level = carry_over_review(risk_obj, reviews.get(student.pk))
         factors = risk_obj.factors or {}
         factors["fee_default_risk"] = predictions["fee_default_risk"]
         factors["dropout_risk"] = predictions["dropout_risk"]
@@ -238,6 +259,14 @@ def train_and_predict(request):
         return _unavailable('AI risk scanning')
     ctx = AIContext.from_request(request)
     tenant_id = str(ctx.tenant.id) if ctx.tenant else None
+    # One scan at a time per school. A second click while the first is still running would collide with it (SQLite in particular
+    # reports "database is locked") and rebuild the same rows twice.
+    from django.core.cache import cache
+
+    lock = f'risk-scan:{tenant_id or "all"}'
+    if not cache.add(lock, 1, timeout=600):
+        return Response({'status': 'busy', 'error': 'A risk scan is already running for this school. Wait for it to finish, then refresh.'},
+                        status=status.HTTP_409_CONFLICT)
     try:
         result = _run_risk_scan(tenant_id)
         return Response({'status': 'success', **result}, status=status.HTTP_200_OK)
@@ -245,6 +274,8 @@ def train_and_predict(request):
         logger.exception("AI model training / risk scan failed")
         return Response({'status': 'error', 'message': 'AI risk scan failed. See server logs.'},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    finally:
+        cache.delete(lock)
 
 @api_view(['GET'])
 @permission_classes([HasAIRole])
