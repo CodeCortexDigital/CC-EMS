@@ -11,7 +11,7 @@ Faker>=23.0
 pytest-django>=4.14.0
 Pillow>=10.0
 redis>=5.0
-django-redis>=5.4
+django-redis>=7.0.0
 celery>=5.3
 pywebpush>=2.0  # web push to the installed app (needs VAPID keys: manage.py generate_vapid_keys)
 
