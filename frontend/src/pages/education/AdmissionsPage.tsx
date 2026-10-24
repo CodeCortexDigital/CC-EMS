@@ -37,7 +37,7 @@ export default function AdmissionsPage() {
   const publicUrl = settings ? `${window.location.origin}/apply/${settings.public_slug}` : '';
 
   return (
-    <div className="space-y-4 p-4 max-w-7xl mx-auto text-slate-800">
+    <div className="space-y-3 p-3 max-w-7xl mx-auto text-slate-800">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">Admissions</h1>

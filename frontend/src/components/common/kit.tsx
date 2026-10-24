@@ -31,9 +31,9 @@ export function Empty({ children }: { children: ReactNode }) {
 
 export function PageHead({ title, hint, children }: { title: string; hint?: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end gap-3 mb-5">
+    <div className="flex flex-wrap items-end gap-3 mb-3">
       <div className="mr-auto">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h1>
         {hint && <p className="mt-0.5 text-sm text-slate-500 max-w-2xl">{hint}</p>}
       </div>
       {children}
@@ -74,10 +74,10 @@ export const errorText = (e: any, fallback: string): string => {
 /** Tabs inside a page (no router): a row of pills. */
 export function Tabs<T extends string>({ value, onChange, tabs }: { value: T; onChange: (v: T) => void; tabs: Array<[T, string]> }) {
   return (
-    <div className="flex gap-1 mb-5 border-b border-slate-200 overflow-x-auto" role="tablist">
+    <div className="flex gap-1 mb-3 border-b border-slate-200 overflow-x-auto" role="tablist">
       {tabs.map(([key, label]) => (
         <button key={key} role="tab" aria-selected={value === key} onClick={() => onChange(key)}
-          className={`-mb-px shrink-0 px-3.5 py-2.5 text-sm border-b-2 transition-colors ${value === key ? 'module-tab-active font-semibold' : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300 font-medium'}`}>
+          className={`-mb-px shrink-0 px-3 py-2 text-[13px] border-b-2 transition-colors ${value === key ? 'module-tab-active font-semibold' : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300 font-medium'}`}>
           {label}
         </button>
       ))}

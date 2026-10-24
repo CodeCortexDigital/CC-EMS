@@ -97,7 +97,7 @@ export function Layout({ children }: LayoutProps) {
           onMobileMenuToggle={toggleMobileSidebar}
         />
         <SubscriptionBanner />
-        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-4 outline-none">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-3 outline-none">
           {children || <Outlet />}
         </main>
       </div>
