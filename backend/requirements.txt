@@ -36,4 +36,4 @@ firebase-admin>=6.5
 google-auth>=2.30
 segno>=1.6  # QR codes on library labels (pure Python)
 openpyxl>=3.1,<4  # reading Excel files for data import
-reportlab>=4.0  # PDF exports: invoices and finance reports
+reportlab>=5.0.1  # PDF exports: invoices and finance reports
