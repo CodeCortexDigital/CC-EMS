@@ -166,7 +166,7 @@ export default function InstituteProfile() {
 
             <div className="p-6 space-y-5">
               <div>
-                <label className="block text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2">INSTITUTE LOGO</label>
+                <label className="block text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-2">Institute logo</label>
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 rounded-xl border border-slate-200 bg-blue-50 flex items-center justify-center text-center p-2 overflow-hidden">
                     {draft.logoUrl ? (

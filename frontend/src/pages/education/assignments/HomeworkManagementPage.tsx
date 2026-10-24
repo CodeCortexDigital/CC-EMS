@@ -306,9 +306,9 @@ export default function HomeworkManagementPage() {
   };
 
   return (
-    <div className="space-y-6 bg-slate-50 min-h-screen p-4 text-slate-800 pb-12">
+    <div className="space-y-3 pb-4 text-slate-800">
       {/* Top Header & Breadcrumb */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-4 rounded-xl border border-slate-100 shadow-xs">
+      <div className="flex items-center justify-between py-0.5">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
           <span className="text-slate-855 font-extrabold text-sm border-r border-slate-200 pr-3.5 mr-1 hover:underline cursor-pointer" onClick={() => navigate(isStudent ? '/student' : '/dashboard')}>Homework</span>
           <Home className="w-4 h-4 text-slate-400" />
@@ -332,7 +332,7 @@ export default function HomeworkManagementPage() {
             <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 items-end">
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">HOMEWORK DATE</label>
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Homework date</label>
                   {filterDate && (
                     <button
                       type="button"
@@ -353,7 +353,7 @@ export default function HomeworkManagementPage() {
 
               {!isStudent && (
                 <div>
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">CLASS</label>
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Class</label>
                   <select
                     value={filterClass}
                     onChange={(e) => setFilterClass(e.target.value)}
@@ -366,7 +366,7 @@ export default function HomeworkManagementPage() {
               )}
 
               <div>
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">TEACHER</label>
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Teacher</label>
                 <select
                   value={filterTeacher}
                   onChange={(e) => setFilterTeacher(e.target.value)}

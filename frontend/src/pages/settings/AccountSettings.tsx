@@ -347,7 +347,7 @@ export default function AccountSettings() {
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">CURRENCY</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Currency</label>
                 {/* The currency is a school setting now (server-side), not per browser. */}
                 <p className="h-10 flex items-center text-xs font-semibold text-slate-700">
                   {schoolLocale.currency_name} ({schoolLocale.currency} · {schoolLocale.currency_symbol})

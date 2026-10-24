@@ -1253,7 +1253,7 @@ export default function GenerateFeesInvoicePage() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">FINE AFTER DUE DATE</label>
+                  <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">Fine after due date</label>
                   <input
                     type="number"
                     value={fine}
@@ -1281,7 +1281,7 @@ export default function GenerateFeesInvoicePage() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">PREVIOUS BALANCE</label>
+                  <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">Previous balance</label>
                   <div className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-amber-600 flex items-center">
                     {cur()} {previousBalance.toLocaleString()}
                   </div>

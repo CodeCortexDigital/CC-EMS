@@ -467,7 +467,7 @@ export default function AddStudentPage() {
                 <Input placeholder="Name of Student" value={formData.student_name} onChange={(e) => handleChange('student_name', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">PICTURE</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Picture</label>
                 <div className="flex items-center gap-2 border border-slate-200 rounded-xl p-1.5 bg-white">
                   <input type="file" accept="image/*" onChange={handleImageChange} className="text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200" />
                 </div>
@@ -559,7 +559,7 @@ export default function AddStudentPage() {
                 <Input placeholder="In %" value={formData.discount_in_fee} onChange={(e) => handleChange('discount_in_fee', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">MOBILE FOR SMS/WHATSAPP</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Mobile for SMS/WhatsApp</label>
                 <Input placeholder="e.g +44xxxxxxxxxx" value={formData.mobile_sms} onChange={(e) => handleChange('mobile_sms', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
             </div>
@@ -571,11 +571,11 @@ export default function AddStudentPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">DATE OF BIRTH</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Date of birth</label>
                 <Input type="date" value={formData.date_of_birth} onChange={(e) => handleChange('date_of_birth', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">GENDER</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Gender</label>
                 <select value={formData.gender} onChange={(e) => handleChange('gender', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs">
                   <option value="">Gender</option>
                   <option value="male">Male</option>
@@ -588,7 +588,7 @@ export default function AddStudentPage() {
                 <Input placeholder="Any Identification Mark?" value={formData.identification_mark} onChange={(e) => handleChange('identification_mark', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">BLOOD GROUP</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Blood group</label>
                  <select value={formData.blood_group} onChange={(e) => handleChange('blood_group', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs">
                    <option value="">Blood Group</option>
                    <option value="A+">A+</option>
@@ -606,7 +606,7 @@ export default function AddStudentPage() {
                 <Input placeholder="Disease If Any?" value={formData.disease} onChange={(e) => handleChange('disease', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">ADDRESS</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Address</label>
                 <Input placeholder="Address" value={formData.address} onChange={(e) => handleChange('address', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
             </div>
@@ -623,15 +623,15 @@ export default function AddStudentPage() {
                 </div>
               )}
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">PREVIOUS SCHOOL</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Previous school</label>
                 <Input placeholder="Previous School" value={formData.previous_school} onChange={(e) => handleChange('previous_school', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">PREVIOUS ID / BOARD ROLL NO</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Previous ID / board roll no</label>
                 <Input placeholder="Previous ID / Board Roll No" value={formData.previous_id} onChange={(e) => handleChange('previous_id', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">ANY ADDITIONAL NOTE</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Any additional note</label>
                 <Input placeholder="Any Additional Note" value={formData.additional_note} onChange={(e) => handleChange('additional_note', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
             </div>
@@ -639,7 +639,7 @@ export default function AddStudentPage() {
             <div className="space-y-4">
               {!isHidden('orphan_student') && (
                 <div>
-                  <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">ORPHAN STUDENT</label>
+                  <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Orphan student</label>
                   <select value={formData.orphan_student} onChange={(e) => handleChange('orphan_student', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs">
                     <option value="">Select</option><option value="No">No</option><option value="Yes">Yes</option>
                   </select>
@@ -654,19 +654,19 @@ export default function AddStudentPage() {
                 </div>
               )}
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">RELIGION</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Religion</label>
                 <select value={formData.religion} onChange={(e) => handleChange('religion', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs">
                   <option value="">Religion</option><option value="Islam">Islam</option><option value="Christianity">Christianity</option>
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">SELECT FAMILY</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Select family</label>
                 <select value={formData.select_family} onChange={(e) => handleChange('select_family', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs">
                   <option value="">Select</option>
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">TOTAL SIBLINGS</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Total siblings</label>
                 <Input placeholder="Total Siblings" value={formData.total_siblings} onChange={(e) => handleChange('total_siblings', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div className="pt-2">
@@ -682,18 +682,18 @@ export default function AddStudentPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">FATHER NAME</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Father name</label>
                 <Input placeholder="Father Name" value={formData.father_name} onChange={(e) => handleChange('father_name', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">EDUCATION</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Education</label>
                 <Input placeholder="Education" value={formData.father_education} onChange={(e) => handleChange('father_education', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">FATHER NATIONAL ID</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Father national ID</label>
                 <Input placeholder="Father National ID" value={formData.father_national_id} onChange={(e) => handleChange('father_national_id', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
                 {siblingMatches.length > 0 && (
                   <div className="mt-2 rounded-xl border border-purple-100 bg-purple-50/60 px-3 py-2">
@@ -707,22 +707,22 @@ export default function AddStudentPage() {
                 )}
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">MOBILE NO</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Mobile no</label>
                 <Input placeholder="Mobile No" value={formData.father_mobile} onChange={(e) => handleChange('father_mobile', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">OCCUPATION</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Occupation</label>
                 <Input placeholder="Occupation" value={formData.father_occupation} onChange={(e) => handleChange('father_occupation', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">PROFESSION</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Profession</label>
                 <Input placeholder="Profession" value={formData.father_profession} onChange={(e) => handleChange('father_profession', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">INCOME</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Income</label>
                 <Input placeholder="Income" value={formData.father_income} onChange={(e) => handleChange('father_income', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
             </div>
@@ -733,37 +733,37 @@ export default function AddStudentPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">MOTHER NAME</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Mother name</label>
                 <Input placeholder="Mother Name" value={formData.mother_name} onChange={(e) => handleChange('mother_name', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">EDUCATION</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Education</label>
                 <Input placeholder="Education" value={formData.mother_education} onChange={(e) => handleChange('mother_education', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">MOTHER NATIONAL ID</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Mother national ID</label>
                 <Input placeholder="Mother National ID" value={formData.mother_national_id} onChange={(e) => handleChange('mother_national_id', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">MOBILE NO</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Mobile no</label>
                 <Input placeholder="Mobile No" value={formData.mother_mobile} onChange={(e) => handleChange('mother_mobile', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">OCCUPATION</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Occupation</label>
                 <Input placeholder="Occupation" value={formData.mother_occupation} onChange={(e) => handleChange('mother_occupation', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">PROFESSION</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Profession</label>
                 <Input placeholder="Profession" value={formData.mother_profession} onChange={(e) => handleChange('mother_profession', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">INCOME</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Income</label>
                 <Input placeholder="Income" value={formData.mother_income} onChange={(e) => handleChange('mother_income', e.target.value)} className="text-xs h-11 rounded-xl border-slate-200" />
               </div>
             </div>

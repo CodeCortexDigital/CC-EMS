@@ -217,7 +217,7 @@ export default function AddTeacherPage() {
   return (
     <div className="space-y-6 bg-slate-50 min-h-screen p-2 text-slate-800">
       {/* Breadcrumb Header Bar */}
-      <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs">
+      <div className="flex items-center justify-between py-0.5">
         <div className="flex items-center gap-2 text-xs font-semibold text-purple-700">
           <button onClick={() => navigate('/education/teachers')} className="hover:underline flex items-center gap-1">
             <ArrowLeft className="w-3.5 h-3.5" /> Employees
@@ -252,7 +252,7 @@ export default function AddTeacherPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">MOBILE NO FOR SMS/WHATSAPP</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Mobile no for SMS/WhatsApp</label>
               <Input 
                 value={formData.phone} 
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -280,13 +280,13 @@ export default function AddTeacherPage() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">SUBJECTS THEY TEACH</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Subjects they teach</label>
               <SubjectPicker value={subjectIds} onChange={setSubjectIds} />
               <p className="text-[10px] text-slate-400 mt-1">The timetable and substitute cover only give lessons to teachers qualified for the subject.</p>
             </div>
 
             <div className="flex flex-col items-center justify-center space-y-2 border border-slate-100 rounded-xl p-3 bg-slate-50">
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase">PICTURE</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase">Picture</label>
               <div className="relative w-16 h-16 rounded-full overflow-hidden border border-slate-200 bg-white shadow-2xs flex items-center justify-center">
                 {profilePicturePreview ? (
                   <img 
@@ -353,7 +353,7 @@ export default function AddTeacherPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">FATHER / HUSBAND NAME</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Father / husband name</label>
               <Input 
                 value={formData.fatherName} 
                 onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
@@ -363,7 +363,7 @@ export default function AddTeacherPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">GENDER</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Gender</label>
               <select 
                 value={formData.gender} 
                 onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
@@ -377,7 +377,7 @@ export default function AddTeacherPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">EXPERIENCE</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Experience</label>
               <Input 
                 value={formData.experience} 
                 onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
@@ -387,7 +387,7 @@ export default function AddTeacherPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">NATIONAL ID</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">National ID</label>
               <Input 
                 value={formData.nationalId} 
                 onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
@@ -397,7 +397,7 @@ export default function AddTeacherPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">RELIGION</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Religion</label>
               <select 
                 value={formData.religion} 
                 onChange={(e) => setFormData({ ...formData, religion: e.target.value })}
@@ -414,7 +414,7 @@ export default function AddTeacherPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">EMAIL ADDRESS</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Email address</label>
               <Input 
                 type="email"
                 value={formData.email} 
@@ -425,7 +425,7 @@ export default function AddTeacherPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">EDUCATION</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Education</label>
               <Input 
                 value={formData.education} 
                 onChange={(e) => setFormData({ ...formData, education: e.target.value })}
@@ -435,7 +435,7 @@ export default function AddTeacherPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">BLOOD GROUP</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Blood group</label>
               <select 
                 value={formData.bloodGroup} 
                 onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
@@ -454,7 +454,7 @@ export default function AddTeacherPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">DATE OF BIRTH</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Date of birth</label>
               <Input 
                 type="date"
                 value={formData.dateOfBirth} 
@@ -464,7 +464,7 @@ export default function AddTeacherPage() {
             </div>
 
             <div className="md:col-span-3">
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">HOME ADDRESS</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Home address</label>
               <textarea 
                 value={formData.homeAddress} 
                 onChange={(e) => setFormData({ ...formData, homeAddress: e.target.value })}

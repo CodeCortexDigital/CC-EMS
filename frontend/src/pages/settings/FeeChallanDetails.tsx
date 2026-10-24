@@ -203,7 +203,7 @@ export default function FeeChallanDetails() {
         </div>
 
         <div>
-          <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1">INSTRUCTIONS</label>
+          <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1">Instructions</label>
           <textarea rows={3} placeholder="Write Instructions" value={instructions} onChange={(e) => setInstructions(e.target.value)} className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500" />
         </div>
 

@@ -450,7 +450,7 @@ export default function TeacherMarkAttendance() {
 
   if (loadingClasses) {
     return (
-      <div className="space-y-6 bg-slate-50 min-h-screen p-4">
+      <div className="space-y-3 pb-4">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200">
             <h1 className="text-xl font-bold text-slate-800">Mark Student Attendance</h1>
@@ -464,7 +464,7 @@ export default function TeacherMarkAttendance() {
   }
 
   return (
-    <div className="space-y-6 bg-slate-50 min-h-screen p-4 pb-12">
+    <div className="space-y-3 pb-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6">

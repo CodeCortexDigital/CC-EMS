@@ -249,7 +249,7 @@ export default function ActiveInactivePage() {
   return (
     <div className="space-y-4 bg-slate-50 min-h-screen p-4 text-slate-800 pb-12">
       {/* Breadcrumb Header */}
-      <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs">
+      <div className="flex items-center justify-between py-0.5">
         <div className="flex items-center gap-2 text-xs font-semibold text-purple-700">
           <span className="cursor-pointer hover:underline" onClick={() => navigate('/education/students')}>Students</span>
           <span>&gt;</span>
@@ -278,7 +278,7 @@ export default function ActiveInactivePage() {
           onClick={() => setStatusFilter('all')}
           className={`text-left bg-white p-4 rounded-xl border transition-all duration-200 cursor-pointer shadow-xs hover:-translate-y-0.5 ${
             statusFilter === 'all'
-              ? 'border-purple-300 ring-2 ring-purple-600 shadow-md bg-purple-50/20 scale-[1.02]'
+              ? 'border-purple-400 ring-1 ring-purple-400 shadow-sm'
               : 'border-slate-100 hover:border-slate-200 hover:shadow-md'
           }`}
         >
@@ -300,7 +300,7 @@ export default function ActiveInactivePage() {
           onClick={() => setStatusFilter('active')}
           className={`text-left bg-white p-4 rounded-xl border transition-all duration-200 cursor-pointer shadow-xs hover:-translate-y-0.5 ${
             statusFilter === 'active'
-              ? 'border-emerald-300 ring-2 ring-emerald-600 shadow-md bg-emerald-50/20 scale-[1.02]'
+              ? 'border-emerald-400 ring-1 ring-emerald-400 shadow-sm'
               : 'border-slate-100 hover:border-slate-200 hover:shadow-md'
           }`}
         >
@@ -322,7 +322,7 @@ export default function ActiveInactivePage() {
           onClick={() => setStatusFilter('inactive')}
           className={`text-left bg-white p-4 rounded-xl border transition-all duration-200 cursor-pointer shadow-xs hover:-translate-y-0.5 ${
             statusFilter === 'inactive'
-              ? 'border-rose-300 ring-2 ring-rose-600 shadow-md bg-rose-50/20 scale-[1.02]'
+              ? 'border-rose-400 ring-1 ring-rose-400 shadow-sm'
               : 'border-slate-100 hover:border-slate-200 hover:shadow-md'
           }`}
         >
@@ -344,7 +344,7 @@ export default function ActiveInactivePage() {
       <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">SEARCH STUDENT</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Search student</label>
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
               <Input 
@@ -357,7 +357,7 @@ export default function ActiveInactivePage() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">FILTER BY CLASS</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Filter by class</label>
             <select 
               value={selectedClass} 
               onChange={(e) => setSelectedClass(e.target.value)}
@@ -380,7 +380,7 @@ export default function ActiveInactivePage() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">SORT ORDER</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Sort order</label>
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleSortOrder}

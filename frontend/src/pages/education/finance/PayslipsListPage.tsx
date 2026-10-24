@@ -302,7 +302,7 @@ export default function PayslipsListPage() {
             <DollarSign className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-slate-800 tracking-tight">Salary List (clist)</h1>
+            <h1 className="text-xl font-black text-slate-800 tracking-tight">Salary List</h1>
             <p className="text-xs font-semibold text-slate-400">View, search, and disburse employee salary payslips and payment status</p>
           </div>
         </div>
@@ -330,7 +330,7 @@ export default function PayslipsListPage() {
           onClick={() => setStatusFilter('all')}
           className={`text-left bg-white p-4 rounded-2xl border transition-all duration-200 cursor-pointer shadow-3xs hover:-translate-y-0.5 ${
             statusFilter === 'all'
-              ? 'border-purple-300 ring-2 ring-purple-600 shadow-md bg-purple-50/20 scale-[1.02]'
+              ? 'border-purple-400 ring-1 ring-purple-400 shadow-sm'
               : 'border-slate-150 hover:border-slate-300 hover:shadow-sm'
           }`}
         >
@@ -351,7 +351,7 @@ export default function PayslipsListPage() {
           onClick={() => setStatusFilter('paid')}
           className={`text-left bg-white p-4 rounded-2xl border transition-all duration-200 cursor-pointer shadow-3xs hover:-translate-y-0.5 ${
             statusFilter === 'paid'
-              ? 'border-emerald-300 ring-2 ring-emerald-600 shadow-md bg-emerald-50/20 scale-[1.02]'
+              ? 'border-emerald-400 ring-1 ring-emerald-400 shadow-sm'
               : 'border-slate-150 hover:border-slate-300 hover:shadow-sm'
           }`}
         >
@@ -372,7 +372,7 @@ export default function PayslipsListPage() {
           onClick={() => setStatusFilter('partial')}
           className={`text-left bg-white p-4 rounded-2xl border transition-all duration-200 cursor-pointer shadow-3xs hover:-translate-y-0.5 ${
             statusFilter === 'partial'
-              ? 'border-blue-300 ring-2 ring-blue-600 shadow-md bg-blue-50/20 scale-[1.02]'
+              ? 'border-blue-400 ring-1 ring-blue-400 shadow-sm'
               : 'border-slate-150 hover:border-slate-300 hover:shadow-sm'
           }`}
         >
@@ -414,7 +414,7 @@ export default function PayslipsListPage() {
           onClick={() => setStatusFilter('unpaid')}
           className={`text-left bg-white p-4 rounded-2xl border transition-all duration-200 cursor-pointer shadow-3xs hover:-translate-y-0.5 ${
             statusFilter === 'unpaid'
-              ? 'border-rose-300 ring-2 ring-rose-600 shadow-md bg-rose-50/20 scale-[1.02]'
+              ? 'border-rose-400 ring-1 ring-rose-400 shadow-sm'
               : 'border-slate-150 hover:border-slate-300 hover:shadow-sm'
           }`}
         >

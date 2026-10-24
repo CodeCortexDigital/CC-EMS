@@ -167,9 +167,9 @@ export default function TeachersManagement() {
   };
 
   return (
-    <div className="space-y-6 bg-slate-50 min-h-screen p-4 text-slate-800">
+    <div className="space-y-3 pb-4 text-slate-800">
       {/* Breadcrumb Header Bar */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-100 shadow-xs">
+      <div className="flex items-center justify-between py-0.5">
         <div className="flex items-center gap-2 text-xs font-semibold text-purple-700">
           <Users className="w-4 h-4" />
           <span>Employees</span>
@@ -203,7 +203,7 @@ export default function TeachersManagement() {
           }}
           className={`text-left bg-white p-4 rounded-xl border transition-all duration-200 cursor-pointer shadow-xs hover:-translate-y-0.5 ${
             statusFilter === 'all' && !selectedRole
-              ? 'border-purple-300 ring-2 ring-purple-600 shadow-md bg-purple-50/20 scale-[1.02]'
+              ? 'border-purple-400 ring-1 ring-purple-400 shadow-sm'
               : 'border-slate-100 hover:border-slate-200 hover:shadow-md'
           }`}
         >
@@ -225,7 +225,7 @@ export default function TeachersManagement() {
           onClick={() => setStatusFilter('active')}
           className={`text-left bg-white p-4 rounded-xl border transition-all duration-200 cursor-pointer shadow-xs hover:-translate-y-0.5 ${
             statusFilter === 'active'
-              ? 'border-emerald-300 ring-2 ring-emerald-600 shadow-md bg-emerald-50/20 scale-[1.02]'
+              ? 'border-emerald-400 ring-1 ring-emerald-400 shadow-sm'
               : 'border-slate-100 hover:border-slate-200 hover:shadow-md'
           }`}
         >
@@ -247,7 +247,7 @@ export default function TeachersManagement() {
           onClick={() => setStatusFilter('inactive')}
           className={`text-left bg-white p-4 rounded-xl border transition-all duration-200 cursor-pointer shadow-xs hover:-translate-y-0.5 ${
             statusFilter === 'inactive'
-              ? 'border-rose-300 ring-2 ring-rose-600 shadow-md bg-rose-50/20 scale-[1.02]'
+              ? 'border-rose-400 ring-1 ring-rose-400 shadow-sm'
               : 'border-slate-100 hover:border-slate-200 hover:shadow-md'
           }`}
         >
@@ -290,7 +290,7 @@ export default function TeachersManagement() {
       <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">SEARCH EMPLOYEE</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Search employee</label>
             <Input 
               placeholder="Type name, ID, phone..." 
               value={searchTerm} 
@@ -300,7 +300,7 @@ export default function TeachersManagement() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">FILTER BY ROLE</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Filter by role</label>
             <select 
               value={selectedRole} 
               onChange={(e) => setSelectedRole(e.target.value)}
@@ -314,7 +314,7 @@ export default function TeachersManagement() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">STATUS</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Status</label>
             <select 
               value={statusFilter} 
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
@@ -327,7 +327,7 @@ export default function TeachersManagement() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">SORT ORDER</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Sort order</label>
             <button
               onClick={toggleSortOrder}
               className="flex items-center gap-2 px-3 py-2 h-11 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors w-full"

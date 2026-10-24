@@ -378,7 +378,7 @@ export default function AcademicsPage() {
   }
 
   return (
-    <div className="space-y-6 bg-slate-50 min-h-screen p-4 text-slate-800">
+    <div className="space-y-3 pb-4 text-slate-800">
       {/* Header */}
       <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-100 shadow-xs">
         <div className="flex items-center gap-2 text-xs font-semibold text-purple-700">

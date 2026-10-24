@@ -1073,7 +1073,7 @@ export default function CollectFeesPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                       <div>
-                        <label htmlFor="form-fee-month" className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">FEES MONTH</label>
+                        <label htmlFor="form-fee-month" className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">Fees month</label>
                         <input id="form-fee-month" type="text" value={getInvoiceFeeMonth(activeInvoice)} disabled className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-555 focus:outline-none" />
                       </div>
                       <div>

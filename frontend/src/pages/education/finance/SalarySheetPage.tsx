@@ -150,7 +150,7 @@ export default function SalarySheetPage() {
       `}} />
 
       {/* Top Breadcrumb Bar - Hidden on print */}
-      <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs print:hidden">
+      <div className="flex items-center justify-between py-0.5 print:hidden">
         <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
           <Landmark className="w-4 h-4 text-purple-750" />
           <span className="cursor-pointer hover:underline" onClick={() => navigate('/education/finance')}>Salary</span>
@@ -169,7 +169,7 @@ export default function SalarySheetPage() {
       <div className="bg-white p-6 rounded-2xl border border-slate-150 shadow-sm space-y-4 print:hidden">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">SALARY MONTH</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">Salary month</label>
             <input
               type="text"
               value={salaryMonth}
@@ -180,7 +180,7 @@ export default function SalarySheetPage() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">SEARCH EMPLOYEE</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">Search employee</label>
             <div className="relative flex items-center">
               <Search className="absolute left-3.5 w-4 h-4 text-slate-450" />
               <input

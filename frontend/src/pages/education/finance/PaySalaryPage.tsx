@@ -201,7 +201,7 @@ export default function PaySalaryPage() {
       `}} />
 
       {/* Top Breadcrumb Bar */}
-      <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs print:hidden">
+      <div className="flex items-center justify-between py-0.5 print:hidden">
         <div className="flex items-center gap-2 text-xs font-semibold text-[#5C53CD]">
           <CreditCard className="w-4 h-4 text-[#5C53CD]" />
           <span className="cursor-pointer hover:underline" onClick={() => navigate('/education/finance')}>Salary</span>
@@ -407,7 +407,7 @@ export default function PaySalaryPage() {
                     </div>
 
                     <div>
-                      <label className="block text-[9px] font-black tracking-wider text-slate-400 uppercase mb-2">BONUS</label>
+                      <label className="block text-[9px] font-black tracking-wider text-slate-400 uppercase mb-2">Bonus</label>
                       <input
                         type="number"
                         value={salaryBonus || ''}
@@ -417,7 +417,7 @@ export default function PaySalaryPage() {
                     </div>
 
                     <div>
-                      <label className="block text-[9px] font-black tracking-wider text-slate-400 uppercase mb-2">DEDUCTION</label>
+                      <label className="block text-[9px] font-black tracking-wider text-slate-400 uppercase mb-2">Deduction</label>
                       <input
                         type="number"
                         value={salaryDeduction || ''}

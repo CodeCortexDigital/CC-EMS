@@ -407,7 +407,7 @@ export default function ExamsPage() {
   }
 
   return (
-    <div className="space-y-6 bg-slate-50 min-h-screen p-4 text-slate-800 pb-12">
+    <div className="space-y-3 pb-4 text-slate-800">
       {/* Top Breadcrumb Navigation */}
       <div className="flex items-center gap-2 text-xs font-bold text-slate-400 bg-white p-4 rounded-xl border border-slate-100 shadow-xs">
         <span className="text-slate-850 font-extrabold text-sm border-r border-slate-200 pr-3.5 mr-1 hover:underline cursor-pointer" onClick={() => navigate(isStudent ? '/student' : '/dashboard')}>Exams</span>

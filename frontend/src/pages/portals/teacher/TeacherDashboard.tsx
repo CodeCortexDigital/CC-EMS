@@ -283,9 +283,9 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="space-y-6 bg-slate-50 min-h-screen p-4 text-slate-800 pb-12">
+    <div className="space-y-3 pb-4 text-slate-800">
       {/* Top Breadcrumb Bar */}
-      <div className="flex items-center justify-between text-xs font-bold bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex items-center justify-between py-0.5">
         <div className="flex items-center gap-2.5">
           <span
             className="text-indigo-700 font-black text-sm tracking-tight cursor-pointer hover:text-indigo-900 transition-colors"

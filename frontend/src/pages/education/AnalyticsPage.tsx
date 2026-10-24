@@ -420,7 +420,7 @@ setTeacherPerformance(rawTeachers);
     const classStrength = studentsList.filter(s => s.class_name === selectedStudent.class_name).length || 9;
 
     return (
-      <div className="space-y-6 bg-slate-50 min-h-screen p-4 text-slate-800 pb-12">
+      <div className="space-y-3 pb-4 text-slate-800">
         {/* Top Control Bar */}
         <div className="flex items-center justify-between text-xs font-bold text-slate-400 bg-white p-4 rounded-xl border border-slate-100 shadow-xs print:hidden">
           <button
@@ -757,7 +757,7 @@ setTeacherPerformance(rawTeachers);
     };
 
     return (
-      <div className="space-y-6 bg-slate-50 min-h-screen p-4 text-slate-800 pb-12">
+      <div className="space-y-3 pb-4 text-slate-800">
         {/* Top Control Bar */}
         <div className="flex items-center justify-between text-xs font-bold text-slate-400 bg-white p-4 rounded-xl border border-slate-100 shadow-xs print:hidden">
           <div className="flex items-center gap-2">

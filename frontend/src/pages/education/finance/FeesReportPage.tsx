@@ -198,7 +198,7 @@ export default function FeesReportPage() {
       `}} />
 
       {/* Top Breadcrumb Bar - Hidden on Print */}
-      <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs print:hidden no-print">
+      <div className="flex items-center justify-between py-0.5 print:hidden no-print">
         <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
           <Landmark className="w-4 h-4 text-purple-750" />
           <span className="cursor-pointer hover:underline" onClick={() => navigate('/education/finance')}>Fees</span>
@@ -221,7 +221,7 @@ export default function FeesReportPage() {
           <h3 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider">Report Filters</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">FEES MONTH</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">Fees month</label>
               <div className="relative">
                 <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
@@ -238,7 +238,7 @@ export default function FeesReportPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">CLASS</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">Class</label>
               <select
                 value={filterClass}
                 onChange={(e) => setFilterClass(e.target.value)}
@@ -252,7 +252,7 @@ export default function FeesReportPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">PAYMENT STATUS</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">Payment status</label>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}

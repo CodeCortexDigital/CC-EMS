@@ -108,7 +108,7 @@ export default function ClassDetailPage() {
       <div className="flex flex-col gap-4 p-4 h-[calc(100vh-170px)] overflow-hidden bg-slate-50 text-slate-800">
         <div className="flex-shrink-0 space-y-4 top-section">
         {/* Breadcrumb + actions */}
-        <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs">
+        <div className="flex items-center justify-between py-0.5">
           <div className="flex items-center gap-2 text-xs font-semibold text-purple-700">
             <GraduationCap className="w-4 h-4" />
             <span className="cursor-pointer hover:underline" onClick={() => navigate('/education/academics')}>Academics</span>

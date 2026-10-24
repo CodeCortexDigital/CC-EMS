@@ -343,7 +343,7 @@ export default function StudentsListPage() {
           onClick={() => setStatusFilter('active')}
           className={`text-left bg-white p-4 rounded-xl border transition-all duration-200 cursor-pointer shadow-xs hover:-translate-y-0.5 ${
             statusFilter === 'active'
-              ? 'border-emerald-300 ring-2 ring-emerald-600 shadow-md bg-emerald-50/20 scale-[1.02]'
+              ? 'border-emerald-400 ring-1 ring-emerald-400 shadow-sm'
               : 'border-slate-100 hover:border-slate-200 hover:shadow-md'
           }`}
         >
@@ -367,7 +367,7 @@ export default function StudentsListPage() {
           onClick={() => setStatusFilter('inactive')}
           className={`text-left bg-white p-4 rounded-xl border transition-all duration-200 cursor-pointer shadow-xs hover:-translate-y-0.5 ${
             statusFilter === 'inactive'
-              ? 'border-rose-300 ring-2 ring-rose-600 shadow-md bg-rose-50/20 scale-[1.02]'
+              ? 'border-rose-400 ring-1 ring-rose-400 shadow-sm'
               : 'border-slate-100 hover:border-slate-200 hover:shadow-md'
           }`}
         >
@@ -394,7 +394,7 @@ export default function StudentsListPage() {
           }}
           className={`text-left bg-white p-4 rounded-xl border transition-all duration-200 cursor-pointer shadow-xs hover:-translate-y-0.5 ${
             selectedClass
-              ? 'border-blue-300 ring-2 ring-blue-600 shadow-md bg-blue-50/20 scale-[1.02]'
+              ? 'border-blue-400 ring-1 ring-blue-400 shadow-sm'
               : 'border-slate-100 hover:border-slate-200 hover:shadow-md'
           }`}
         >

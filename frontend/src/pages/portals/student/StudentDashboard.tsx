@@ -210,9 +210,9 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="space-y-6 bg-slate-50 min-h-screen p-4 text-slate-800 pb-12">
+    <div className="space-y-3 pb-4 text-slate-800">
       {/* Top Breadcrumb Bar */}
-      <div className="flex items-center justify-between text-xs font-bold text-slate-400 bg-white p-4 rounded-xl border border-slate-100 shadow-xs">
+      <div className="flex items-center justify-between py-0.5">
         <div className="flex items-center gap-2">
           <span className="text-slate-855 font-extrabold text-sm border-r border-slate-200 pr-3.5 mr-1 hover:underline cursor-pointer" onClick={() => navigate(isParent ? '/parent' : '/student')}>{isParent ? 'Parent Portal' : 'Student Portal'}</span>
           <span>Dashboard</span>

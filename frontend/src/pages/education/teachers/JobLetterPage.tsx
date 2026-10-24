@@ -107,7 +107,7 @@ export default function JobLetterPage() {
       {/* 1. INTERACTIVE LAYOUT (Hidden on Print) */}
       <div className="print:hidden space-y-6">
         {/* Breadcrumb Header Bar */}
-        <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs">
+        <div className="flex items-center justify-between py-0.5">
           <div className="flex items-center gap-2 text-xs font-semibold text-purple-700">
             <button onClick={() => navigate('/education/teachers')} className="hover:underline flex items-center gap-1">
               <ArrowLeft className="w-3.5 h-3.5" /> Employees

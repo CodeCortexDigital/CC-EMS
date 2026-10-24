@@ -318,7 +318,7 @@ export default function AdmissionLetterPage() {
     <div className="space-y-6 bg-slate-50 min-h-screen p-2 text-slate-800 pb-12 print:bg-white print:p-0">
       
       {/* Breadcrumb Header — Hidden on Print */}
-      <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs print:hidden">
+      <div className="flex items-center justify-between py-0.5 print:hidden">
         <div className="flex items-center gap-2 text-xs font-semibold text-purple-700">
           <button onClick={() => navigate(isStudent ? '/student' : '/education/students')} className="hover:underline flex items-center gap-1">
             <ArrowLeft className="w-3.5 h-3.5" /> {isStudent ? 'Dashboard' : 'Students'}

@@ -290,19 +290,15 @@ export default function TimetableManagement() {
   }
 
   return (
-    <div className="space-y-6 bg-slate-50 min-h-screen p-4 text-slate-800 pb-12">
-      {/* Top Header Section */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Timetable & Scheduling Hub</h1>
-          <p className="text-xs text-slate-400 font-semibold">Central administration module for classes, working days, periods, and conflict resolutions.</p>
-        </div>
-        
+    <div className="space-y-3 text-slate-800 pb-4">
+      {/* Toolbar */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-slate-500">Classes, working days, periods and conflict checks in one place.</p>
         <div className="flex flex-wrap gap-2">
           {/* Conflict Checker Query Button */}
           <Button
             onClick={() => { setShowConflictModal(true); handleRunConflictAudit(); }}
-            className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs h-9.5 rounded-xl flex items-center gap-1.5 shadow-2xs"
+            className="bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs h-8 rounded-lg flex items-center gap-1.5 shadow-2xs"
           >
             <ShieldAlert className="w-4 h-4" /> Conflict Query Checker
           </Button>
@@ -310,7 +306,7 @@ export default function TimetableManagement() {
           {/* Duplication Checker Button */}
           <Button
             onClick={() => { setShowDuplicateModal(true); handleRunDuplicationCheck(); }}
-            className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-9.5 rounded-xl flex items-center gap-1.5 shadow-2xs"
+            className="bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs h-8 rounded-lg flex items-center gap-1.5 shadow-2xs"
           >
             <Copy className="w-4 h-4" /> Check Duplication
           </Button>
@@ -318,7 +314,7 @@ export default function TimetableManagement() {
           {isAdmin && (
             <Button 
               onClick={() => navigate('/education/timetable/editor')}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs h-9.5 rounded-xl flex items-center gap-1.5 shadow-2xs"
+              className="bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs h-8 rounded-lg flex items-center gap-1.5 shadow-2xs"
             >
               <Plus className="w-4 h-4" /> Create Timetable Schedule
             </Button>
@@ -327,26 +323,26 @@ export default function TimetableManagement() {
       </div>
 
       {/* Grid Dashboard Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border border-slate-150 shadow-3xs bg-white rounded-2xl overflow-hidden">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-650 flex items-center justify-center shrink-0">
-              <Clock className="w-6 h-6" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="border border-slate-150 shadow-3xs bg-white rounded-xl overflow-hidden">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-650 flex items-center justify-center shrink-0">
+              <Clock className="w-[18px] h-[18px]" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-800 leading-tight">{timetableEntries.length}</p>
+              <p className="text-xl font-semibold text-slate-900 leading-tight">{timetableEntries.length}</p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Scheduled Periods</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-150 shadow-3xs bg-white rounded-2xl overflow-hidden">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-650 flex items-center justify-center shrink-0">
-              <Users className="w-6 h-6" />
+        <Card className="border border-slate-150 shadow-3xs bg-white rounded-xl overflow-hidden">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-650 flex items-center justify-center shrink-0">
+              <Users className="w-[18px] h-[18px]" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-800 leading-tight">
+              <p className="text-xl font-semibold text-slate-900 leading-tight">
                 {Array.from(new Set(timetableEntries.map(e => e.class_name))).length}
               </p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Classes</p>
@@ -354,25 +350,25 @@ export default function TimetableManagement() {
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-150 shadow-3xs bg-white rounded-2xl overflow-hidden">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-655 flex items-center justify-center shrink-0">
-              <Layers className="w-6 h-6" />
+        <Card className="border border-slate-150 shadow-3xs bg-white rounded-xl overflow-hidden">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-655 flex items-center justify-center shrink-0">
+              <Layers className="w-[18px] h-[18px]" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-800 leading-tight">{classrooms.length}</p>
+              <p className="text-xl font-semibold text-slate-900 leading-tight">{classrooms.length}</p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Classrooms & Labs</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-150 shadow-3xs bg-white rounded-2xl overflow-hidden">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-650 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-6 h-6" />
+        <Card className="border border-slate-150 shadow-3xs bg-white rounded-xl overflow-hidden">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-650 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-[18px] h-[18px]" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-800 leading-tight">100%</p>
+              <p className="text-xl font-semibold text-slate-900 leading-tight">100%</p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Clash-Free Optimised</p>
             </div>
           </CardContent>
@@ -383,7 +379,7 @@ export default function TimetableManagement() {
       {/* MASTER SCHEDULE PREVIEW PANEL                                 */}
       {/* ============================================================ */}
       {localEntries.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Master Schedule Overview</h2>
@@ -397,7 +393,7 @@ export default function TimetableManagement() {
 
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             {/* Preview Controls */}
-            <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-purple-50 flex flex-wrap items-center gap-3">
+            <div className="px-3 py-2 border-b border-slate-100 bg-slate-50 flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-purple-600" />
                 <span className="text-xs font-black text-slate-700">Timetable Preview</span>

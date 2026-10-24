@@ -142,7 +142,7 @@ export default function SalaryPaidSlipPage() {
       `}} />
 
       {/* Top Breadcrumb Bar - Hidden on print */}
-      <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs print:hidden">
+      <div className="flex items-center justify-between py-0.5 print:hidden">
         <div className="flex items-center gap-2 text-xs font-semibold text-[#5C53CD]">
           <CreditCard className="w-4 h-4 text-[#5C53CD]" />
           <span className="cursor-pointer hover:underline" onClick={() => navigate('/education/finance')}>Salary</span>

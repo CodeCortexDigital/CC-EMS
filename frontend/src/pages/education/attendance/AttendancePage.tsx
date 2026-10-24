@@ -1125,7 +1125,7 @@ export default function AttendancePage() {
         <TabsContent value="students" className="space-y-6">
           
           {/* Top Breadcrumb Bar */}
-          <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs print:hidden">
+          <div className="flex items-center justify-between py-0.5 print:hidden">
             <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
               <span className="text-slate-500 font-bold">Attendance</span>
               <span>|</span>
@@ -1497,7 +1497,7 @@ export default function AttendancePage() {
         <TabsContent value="teachers" className="space-y-6">
           
           {/* Top Breadcrumb Bar */}
-          <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs print:hidden">
+          <div className="flex items-center justify-between py-0.5 print:hidden">
             <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
               <span className="text-slate-500 font-bold">Attendance</span>
               <span>|</span>
@@ -1804,7 +1804,7 @@ export default function AttendancePage() {
         <TabsContent value="class-report" className="space-y-6">
           
           {/* Top Breadcrumb Bar */}
-          <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs print:hidden">
+          <div className="flex items-center justify-between py-0.5 print:hidden">
             <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
               <span className="text-slate-500 font-bold">Attendance</span>
               <span>|</span>
@@ -1976,7 +1976,7 @@ export default function AttendancePage() {
           </div>
 
           {/* Top Breadcrumb Bar */}
-          <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs print:hidden">
+          <div className="flex items-center justify-between py-0.5 print:hidden">
             <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
               <span className="text-slate-500 font-bold">Attendance</span>
               <span>|</span>
@@ -2142,7 +2142,7 @@ export default function AttendancePage() {
           </div>
 
           {/* Top Breadcrumb Bar */}
-          <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs print:hidden">
+          <div className="flex items-center justify-between py-0.5 print:hidden">
             <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
               <span className="text-slate-500 font-bold">Attendance</span>
               <span>|</span>

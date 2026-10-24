@@ -135,7 +135,7 @@ export default function DeleteFeesPage() {
     <div className="space-y-6 bg-slate-50 min-h-screen p-2 text-slate-800 pb-12">
       
       {/* Top Breadcrumb Bar */}
-      <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs">
+      <div className="flex items-center justify-between py-0.5">
         <div className="flex items-center gap-2 text-xs font-semibold text-purple-750">
           <Landmark className="w-4 h-4 text-purple-750" />
           <span className="cursor-pointer hover:underline" onClick={() => navigate('/education/finance')}>Fees</span>
@@ -159,7 +159,7 @@ export default function DeleteFeesPage() {
       <div className="bg-white p-6 rounded-2xl border border-slate-150 shadow-sm space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">FEES MONTH</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">Fees month</label>
             <input
               type="text"
               value={feeMonth}
@@ -173,7 +173,7 @@ export default function DeleteFeesPage() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">CLASS</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">Class</label>
             <select
               value={filterClass}
               onChange={(e) => {

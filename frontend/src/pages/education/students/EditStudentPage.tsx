@@ -593,7 +593,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Picture Column */}
             <div className="md:col-span-1 flex flex-col items-center justify-center space-y-3 border-r border-slate-100 pr-2">
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase">PICTURE</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase">Picture</label>
               <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-slate-100 bg-slate-100 shadow-2xs">
                 {profilePicturePreview || formData.profile_picture ? (
                   <img 
@@ -649,7 +649,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">REGISTRATION NO</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Registration no</label>
                 <input 
                   type="text" 
                   value={formData.registration_no} 
@@ -703,7 +703,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">DISCOUNT IN FEE</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Discount in fee</label>
                 <input 
                   type="text" 
                   value={formData.discount_in_fee} 
@@ -714,7 +714,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">MOBILE NO. FOR SMS/WHATSAPP</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Mobile no. for SMS/WhatsApp</label>
                 <input 
                   type="text" 
                   placeholder="e.g +44xxxxxxxxxx" 
@@ -733,12 +733,12 @@ const handleSubmit = async (e: React.FormEvent) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* ... (same as before) ... */}
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">DATE OF BIRTH</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Date of birth</label>
               <input type="date" value={formData.date_of_birth} onChange={(e) => handleChange('date_of_birth', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">GENDER</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Gender</label>
               <select value={formData.gender} onChange={(e) => handleChange('gender', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs">
                 <option value="">Select Gender</option>
                 <option value="male">Male</option>
@@ -748,12 +748,12 @@ const handleSubmit = async (e: React.FormEvent) => {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">IDENTIFICATION MARK</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Identification mark</label>
               <input type="text" value={formData.identification_mark} onChange={(e) => handleChange('identification_mark', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="e.g. Mole on left cheek" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">BLOOD GROUP</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Blood group</label>
               <select value={formData.blood_group} onChange={(e) => handleChange('blood_group', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs">
                 <option value="">Select Blood Group</option>
                 <option value="A+">A+</option>
@@ -768,17 +768,17 @@ const handleSubmit = async (e: React.FormEvent) => {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">DISEASE / MEDICAL CONDITION</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Disease / medical condition</label>
               <input type="text" value={formData.disease} onChange={(e) => handleChange('disease', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Any allergies or conditions" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">ADDRESS</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Address</label>
               <input type="text" value={formData.address} onChange={(e) => handleChange('address', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Full address" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">BIRTH FORM ID</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Birth form ID</label>
               <input type="text" value={formData.birth_form_id} onChange={(e) => handleChange('birth_form_id', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Birth certificate number" />
             </div>
 
@@ -790,23 +790,23 @@ const handleSubmit = async (e: React.FormEvent) => {
             )}
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">PREVIOUS SCHOOL</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Previous school</label>
               <input type="text" value={formData.previous_school} onChange={(e) => handleChange('previous_school', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Last school attended" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">PREVIOUS STUDENT ID</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Previous student ID</label>
               <input type="text" value={formData.previous_id} onChange={(e) => handleChange('previous_id', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Previous school student ID" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">ADDITIONAL NOTE</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Additional note</label>
               <input type="text" value={formData.additional_note} onChange={(e) => handleChange('additional_note', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Any additional notes" />
             </div>
 
             {!isHidden('orphan_student') && (
               <div>
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">ORPHAN STUDENT</label>
+                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Orphan student</label>
                 <select value={formData.orphan_student} onChange={(e) => handleChange('orphan_student', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs">
                   <option value="">Select</option>
                   <option value="yes">Yes</option>
@@ -823,17 +823,17 @@ const handleSubmit = async (e: React.FormEvent) => {
             )}
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">RELIGION</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Religion</label>
               <input type="text" value={formData.religion} onChange={(e) => handleChange('religion', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Religion" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">FAMILY TYPE</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Family type</label>
               <input type="text" value={formData.select_family} onChange={(e) => handleChange('select_family', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="e.g. Nuclear, Joint" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">TOTAL SIBLINGS</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Total siblings</label>
               <input type="number" value={formData.total_siblings} onChange={(e) => handleChange('total_siblings', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Number of siblings" min="0" />
             </div>
           </div>
@@ -843,37 +843,37 @@ const handleSubmit = async (e: React.FormEvent) => {
         {renderSection('Father / Guardian Information', 3, 'fatherInfo',
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">FATHER'S NAME</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Father's name</label>
               <input type="text" value={formData.father_name} onChange={(e) => handleChange('father_name', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Father's full name" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">NATIONAL ID</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">National ID</label>
               <input type="text" value={formData.father_national_id} onChange={(e) => handleChange('father_national_id', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="NID number" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">OCCUPATION</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Occupation</label>
               <input type="text" value={formData.father_occupation} onChange={(e) => handleChange('father_occupation', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Occupation" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">EDUCATION</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Education</label>
               <input type="text" value={formData.father_education} onChange={(e) => handleChange('father_education', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Highest education" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">MOBILE NUMBER</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Mobile number</label>
               <input type="text" value={formData.father_mobile} onChange={(e) => handleChange('father_mobile', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Father's mobile" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">PROFESSION</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Profession</label>
               <input type="text" value={formData.father_profession} onChange={(e) => handleChange('father_profession', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Profession" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">ANNUAL INCOME</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Annual income</label>
               <input type="text" value={formData.father_income} onChange={(e) => handleChange('father_income', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Annual income" />
             </div>
           </div>
@@ -883,37 +883,37 @@ const handleSubmit = async (e: React.FormEvent) => {
         {renderSection('Mother Information', 4, 'motherInfo',
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">MOTHER'S NAME</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Mother's name</label>
               <input type="text" value={formData.mother_name} onChange={(e) => handleChange('mother_name', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Mother's full name" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">NATIONAL ID</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">National ID</label>
               <input type="text" value={formData.mother_national_id} onChange={(e) => handleChange('mother_national_id', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="NID number" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">OCCUPATION</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Occupation</label>
               <input type="text" value={formData.mother_occupation} onChange={(e) => handleChange('mother_occupation', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Occupation" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">EDUCATION</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Education</label>
               <input type="text" value={formData.mother_education} onChange={(e) => handleChange('mother_education', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Highest education" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">MOBILE NUMBER</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Mobile number</label>
               <input type="text" value={formData.mother_mobile} onChange={(e) => handleChange('mother_mobile', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Mother's mobile" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">PROFESSION</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Profession</label>
               <input type="text" value={formData.mother_profession} onChange={(e) => handleChange('mother_profession', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Profession" />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">ANNUAL INCOME</label>
+              <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Annual income</label>
               <input type="text" value={formData.mother_income} onChange={(e) => handleChange('mother_income', e.target.value)} className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs" placeholder="Annual income" />
             </div>
           </div>

@@ -66,7 +66,7 @@ export default function AddIncomePage() {
   return (
     <div className="space-y-6 bg-slate-50 min-h-screen p-2 text-slate-800 pb-12">
       {/* Top Breadcrumb Bar */}
-      <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs">
+      <div className="flex items-center justify-between py-0.5">
         <div className="flex items-center gap-2 text-xs font-semibold text-purple-700">
           <Wallet className="w-4 h-4 text-purple-700" />
           <span className="cursor-pointer hover:underline" onClick={() => navigate('/education/finance')}>Accounts</span>
