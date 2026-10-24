@@ -186,6 +186,7 @@ The full answers, with the code and tests behind each, are in **[docs/CLIENT_REA
 - **Retention and deletion.** Each school sets how long each kind of record is kept (Settings > Security), including AI chat history and decided AI requests, with a preview before anything is removed. From a **privacy request** the office can **download a copy of one student's data** and **erase it** (a preview, then the student ID typed to confirm, then audited). Marks, attendance and invoices stay without a name.
 - **A person reviews AI risk flags.** Scores are labelled advice only; each high or critical flag waits for a person to confirm it, ask for more information or dismiss it with a reason, and the decision is recorded (Reports > AI Predictive Analytics). Nothing is decided or sent by a score alone.
 - **Not claimed:** an independent audit, certification, or "GDPR compliance". The document lists what is still open.
+- **More:** how the system fits together, with diagrams, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); the school-isolation scenarios and known exclusions are in [docs/TENANT_ISOLATION_TEST_SUMMARY.md](docs/TENANT_ISOLATION_TEST_SUMMARY.md).
 
 ## Multiple schools
 
