@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Inbox } from 'lucide-react'
 import { Button } from './Button'
 import {
   Table,
@@ -100,7 +100,10 @@ export function DataTable<T extends { id?: number }>({
             {paginatedData.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  {emptyMessage}
+                  <div className="empty-state">
+                    <span className="empty-state-icon"><Inbox className="w-5 h-5" /></span>
+                    <span className="text-sm font-medium">{emptyMessage}</span>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

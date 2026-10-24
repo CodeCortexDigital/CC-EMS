@@ -501,7 +501,7 @@ export default function DashboardPage() {
       <div className="max-w-[1600px] mx-auto space-y-6 p-4 md:p-6">
 
         {/* Page header */}
-        <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <div className="ui-card aurora relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-6 py-5">
           {/* Subtle floating school-themed accents — signature touch, kept quiet */}
           <GraduationCap
             className="dash-float pointer-events-none absolute -top-2 right-24 w-9 h-9 text-indigo-200/70 hidden md:block"

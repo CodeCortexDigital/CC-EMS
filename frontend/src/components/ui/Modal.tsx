@@ -52,12 +52,12 @@ export function Modal({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
       <div
         className={cn(
-          'w-full rounded-lg bg-white shadow-lg animate-in fade-in zoom-in-95',
+          'modal-panel w-full rounded-2xl bg-white max-h-[90vh] overflow-y-auto',
           sizeClasses[size]
         )}
       >

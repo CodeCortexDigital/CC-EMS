@@ -13,6 +13,13 @@ import AcceptanceGate from '@/components/privacy/AcceptanceGate';
 import TwoStepGate from '@/components/security/TwoStepGate';
 import { usePlanStore } from '@/store/planStore';
 import GuidedTour from '@/components/tour/GuidedTour';
+import { useLocation } from 'react-router-dom';
+
+/** Thin accent bar that sweeps across the top on every route change. */
+function RouteProgress() {
+  const { pathname } = useLocation();
+  return <div key={pathname} className="route-progress" aria-hidden="true" />;
+}
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -64,6 +71,8 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex h-screen bg-slate-50">
+      <a href="#main-content" className="skip-link">Skip to content</a>
+      <RouteProgress />
       {/* Sidebar - Desktop */}
       <div className="hidden md:block">
         <Sidebar />
@@ -88,7 +97,7 @@ export function Layout({ children }: LayoutProps) {
           onMobileMenuToggle={toggleMobileSidebar}
         />
         <SubscriptionBanner />
-        <main className="flex-1 overflow-y-auto p-4">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-4 outline-none">
           {children || <Outlet />}
         </main>
       </div>
