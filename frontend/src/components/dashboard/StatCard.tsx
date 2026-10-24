@@ -46,8 +46,8 @@ export default function StatCard({
     <div
       onClick={handleClick}
       className={`
-        group ${color} text-white p-5 rounded-2xl shadow-sm flex flex-col h-full relative overflow-hidden
-        ${isClickable ? 'cursor-pointer hover:shadow-lg transition-shadow duration-200' : ''}
+        group sheen ${color} text-white p-5 rounded-2xl shadow-md flex flex-col h-full relative overflow-hidden
+        ${isClickable ? 'cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300' : ''}
       `}
       role={isClickable ? 'button' : undefined}
       tabIndex={isClickable ? 0 : undefined}

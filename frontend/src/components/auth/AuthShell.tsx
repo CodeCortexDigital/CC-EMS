@@ -109,11 +109,12 @@ export default function AuthShell({ children, wide = false }: { children: ReactN
   const setUserLanguage = useLocaleStore((s) => s.setUserLanguage);
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-[var(--dk-page)]">
       <style>{STYLES}</style>
       <aside className="hidden lg:flex lg:w-[46%] xl:w-1/2 bg-brand-gradient relative overflow-hidden flex-col justify-between gap-8 p-10 xl:p-14">
-        <div className="absolute -top-24 -end-24 w-96 h-96 rounded-full bg-white/10" />
-        <div className="absolute -bottom-32 -start-20 w-[28rem] h-[28rem] rounded-full bg-white/5" />
+        <div className="absolute inset-0 bg-dots opacity-60" aria-hidden="true" />
+        <div className="absolute -top-24 -end-24 w-96 h-96 rounded-full bg-white/10 blur-sm" />
+        <div className="absolute -bottom-32 -start-20 w-[28rem] h-[28rem] rounded-full bg-cyan-300/10 blur-2xl" />
 
         <div className="relative flex items-center gap-3">
           <span className="w-11 h-11 rounded-xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center">
@@ -165,7 +166,8 @@ export default function AuthShell({ children, wide = false }: { children: ReactN
             buttonClassName="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-slate-600 hover:bg-slate-50"
           />
         </div>
-        <div className={`w-full ${wide ? 'max-w-[520px]' : 'max-w-[420px]'}`}>
+        <div className="pointer-events-none absolute inset-0 aurora opacity-60" aria-hidden="true" />
+        <div className={`auth-rise relative w-full rounded-3xl border border-white/70 bg-white/80 p-6 sm:p-8 shadow-[0_24px_60px_-20px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5 ${wide ? 'max-w-[540px]' : 'max-w-[440px]'}`}>
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <span className="w-10 h-10 rounded-xl bg-brand flex items-center justify-center shadow-sm">
               <GraduationCap className="w-5 h-5" />
