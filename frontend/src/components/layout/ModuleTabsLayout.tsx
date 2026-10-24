@@ -54,9 +54,10 @@ export default function ModuleTabsLayout({ tabs, scopeClass, children, matchNest
 
   return (
     <div className={`${scopeClass} min-h-full`}>
-      {/* Top Tab Bar */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sticky top-0 z-10">
-        <div className="flex flex-wrap gap-2">
+      {/* Section header: the page name, then the section's pages as underline tabs (they scroll sideways when there are many) */}
+      <div className="module-header bg-white border-b border-slate-200 px-4 sm:px-6 pt-4 sticky top-0 z-10">
+        <h2 className="text-xl font-semibold tracking-tight text-slate-900">{regionLabel(activeTab.label)}</h2>
+        <nav aria-label="Section pages" className="module-tabs mt-3 -mb-px flex gap-1 overflow-x-auto">
           {visibleTabs.map((t) => {
             const Icon = t.icon;
             const active = isActive(t, location.pathname, location.search, nestedBase);
@@ -66,26 +67,16 @@ export default function ModuleTabsLayout({ tabs, scopeClass, children, matchNest
                 key={t.id}
                 onClick={() => navigate(t.path)}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs transition-colors border ${
-                  active
-                    ? 'bg-brand border-transparent shadow-sm font-bold'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200 font-semibold'
+                className={`module-tab flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-sm border-b-2 transition-colors ${
+                  active ? 'module-tab-active font-semibold' : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300 font-medium'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-slate-400'}`} />
+                <Icon className={`w-4 h-4 ${active ? '' : 'text-slate-400'}`} />
                 {regionLabel(t.label)}
               </button>
             );
           })}
-        </div>
-      </div>
-
-      {/* Themed sub-header */}
-      <div className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-slate-200 bg-brand-soft">
-        <div className="w-9 h-9 rounded-lg bg-brand flex items-center justify-center shadow-sm">
-          <activeTab.icon className="w-4 h-4" />
-        </div>
-        <h2 className="text-lg font-bold text-brand">{regionLabel(activeTab.label)}</h2>
+        </nav>
       </div>
 
       {/* Content */}

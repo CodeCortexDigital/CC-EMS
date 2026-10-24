@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import SetupChecklist from '@/components/dashboard/SetupChecklist';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Briefcase, DollarSign, TrendingUp, BookOpen, CreditCard, Calendar, UserPlus, FileText, GraduationCap, PenTool, Sparkles } from 'lucide-react';
+import { Users, Briefcase, DollarSign, TrendingUp, BookOpen, CreditCard, Calendar, UserPlus, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import studentService from '@/services/student.service';
 import teacherService from '@/services/teacher.service';
@@ -501,31 +501,12 @@ export default function DashboardPage() {
       <div className="max-w-[1600px] mx-auto space-y-6 p-4 md:p-6">
 
         {/* Page header */}
-        <div className="ui-card aurora relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-6 py-5">
-          {/* Subtle floating school-themed accents — signature touch, kept quiet */}
-          <GraduationCap
-            className="dash-float pointer-events-none absolute -top-2 right-24 w-9 h-9 text-indigo-200/70 hidden md:block"
-            style={{ animationDelay: '0.2s', ['--float-rot' as any]: '-8deg' }}
-          />
-          <BookOpen
-            className="dash-float pointer-events-none absolute top-6 right-6 w-7 h-7 text-indigo-200/60 hidden md:block"
-            style={{ animationDelay: '1s', ['--float-rot' as any]: '6deg' }}
-          />
-          <PenTool
-            className="dash-float pointer-events-none absolute bottom-2 right-40 w-6 h-6 text-indigo-200/60 hidden lg:block"
-            style={{ animationDelay: '1.8s', ['--float-rot' as any]: '10deg' }}
-          />
-
-          <div className="relative flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-900">
-                {greeting}
-                <Sparkles className="w-4 h-4 text-brand" />
-              </h1>
-              <p className="text-sm text-slate-500">{t('dashboard.subtitle', { date: todayLabel })}</p>
-            </div>
-            <LiveDataBadge connected={wsConnected} />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{greeting}</h1>
+            <p className="mt-0.5 text-sm text-slate-500">{t('dashboard.subtitle', { date: todayLabel })}</p>
           </div>
+          <LiveDataBadge connected={wsConnected} />
         </div>
 
         {/* Getting started (new schools only; hides when setup is complete) */}

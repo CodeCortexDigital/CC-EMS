@@ -879,7 +879,7 @@ export function Sidebar({ isMobile = false, onClose }: { isMobile?: boolean; onC
                   onClick={() => toggleGroup(sec.group, open)}
                   aria-expanded={open}
                   aria-controls={`nav-group-${sec.group}`}
-                  className={`w-full flex items-center justify-between px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${isDarkSidebar ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
+                  className={`w-full flex items-center justify-between px-3 pt-4 pb-1 text-xs font-semibold transition-colors ${isDarkSidebar ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
                 >
                   <span>{groupLabel}</span>
                   {!searchQuery && <ChevronRight className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />}

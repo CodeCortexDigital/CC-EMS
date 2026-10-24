@@ -7,7 +7,8 @@ interface StatCardProps {
   title: string;
   value: string | number;
   icon: React.ReactNode;
-  color: string;
+  /** Kept for existing callers. The card now uses the school's accent colour instead of a gradient per card. */
+  color?: string;
   suffix?: string;
   subValue?: string | number;
   currency?: string;
@@ -21,7 +22,6 @@ export default function StatCard({
   title,
   value,
   icon,
-  color,
   suffix,
   subValue,
   currency,
@@ -45,41 +45,32 @@ export default function StatCard({
   return (
     <div
       onClick={handleClick}
-      className={`
-        group sheen ${color} text-white p-5 rounded-2xl shadow-md flex flex-col h-full relative overflow-hidden
-        ${isClickable ? 'cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300' : ''}
-      `}
+      className={`stat-card group flex flex-col h-full p-5 ${isClickable ? 'stat-card-link' : ''}`}
       role={isClickable ? 'button' : undefined}
       tabIndex={isClickable ? 0 : undefined}
       aria-label={isClickable ? `${title}: ${fullValue || value}. Open details` : undefined}
       onKeyDown={isClickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); } : undefined}
     >
-      <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
-      <div className="absolute -bottom-10 -left-8 w-28 h-28 rounded-full bg-white/5" />
-
-      <div className="relative z-10 flex items-start justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-white/80">{title}</p>
-        <span className="shrink-0 w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-medium text-slate-500">{title}</p>
+        <span className="stat-card-icon shrink-0 w-9 h-9 rounded-lg flex items-center justify-center [&>svg]:w-[18px] [&>svg]:h-[18px]">
           {icon}
         </span>
       </div>
 
-      <p
-        className="relative z-10 mt-1 text-[1.75rem] leading-tight font-extrabold tracking-tight tabular-nums break-words"
-        title={fullValue}
-      >
+      <p className="mt-2 text-3xl leading-tight font-semibold tracking-tight tabular-nums text-slate-900 break-words" title={fullValue}>
         {value}
       </p>
 
       {(suffix || subValue !== undefined) && (
-        <p className="relative z-10 mt-1 text-xs text-white/75 truncate" title={String(subValue ?? '')}>
-          <span className="font-semibold text-white/90">{suffix || t('dashboard.thisMonth')}:</span>{' '}
+        <p className="mt-1 text-xs text-slate-500 truncate" title={String(subValue ?? '')}>
+          <span className="font-medium text-slate-600">{suffix || t('dashboard.thisMonth')}:</span>{' '}
           {currency ? `${currency} ` : ''}{subValue ?? value}
         </p>
       )}
 
       {isClickable && (
-        <div className="relative z-10 mt-auto pt-3 text-[11px] font-medium text-white/60 group-hover:text-white flex items-center gap-0.5 transition-colors">
+        <div className="stat-card-more mt-auto pt-3 text-xs font-medium flex items-center gap-0.5">
           {t('dashboard.viewDetails')}
           <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 rtl:rotate-180" />
         </div>

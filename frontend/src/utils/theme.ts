@@ -25,10 +25,10 @@ export const DEFAULT_THEME = {
   themeMode: 'light' as ThemeMode,
   accentColor: 'indigo',
   radius: '0.5rem',
-  fontFamily: 'roboto',
+  fontFamily: 'inter',
   placement: 'LTR',
-  sidebarBg: 'Dark',
-  headerBg: 'Brand',
+  sidebarBg: 'Light',
+  headerBg: 'White',
 };
 
 export type ThemeSettings = typeof DEFAULT_THEME;

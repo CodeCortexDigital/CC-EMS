@@ -1,0 +1,114 @@
+/* ============================================================
+   MODERN LOOK
+   Calm neutral surfaces, one accent colour (the school's, from Settings -> Theme),
+   sentence-case labels, roomy tables and underline tabs. Loaded after index.css so it
+   refines what pages already use; nothing here changes how a page works.
+   ============================================================ */
+
+:root {
+  --line: #e5e7eb;
+  --line-soft: #eef0f3;
+  --ink: #0f172a;
+  --ink-muted: #64748b;
+}
+
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+body { font-feature-settings: 'cv11', 'ss01'; }
+
+h1, h2, h3 { letter-spacing: -0.012em; }
+
+/* ---- Labels: sentence case instead of small shouting capitals (table headings keep a quiet small style) ---- */
+main .uppercase,
+aside .uppercase,
+[role="dialog"] .uppercase { text-transform: none; }
+main .tracking-wider,
+main .tracking-widest,
+main .tracking-wide,
+aside .tracking-wider,
+[role="dialog"] .tracking-wider { letter-spacing: 0; }
+main th.uppercase,
+main thead .uppercase { text-transform: none; letter-spacing: 0; }
+
+/* ---- Buttons: solid accent, no gradient or glow ---- */
+.ui-btn-primary { background-image: none; background-color: var(--app-accent); box-shadow: var(--shadow-xs); }
+.ui-btn-primary:hover:not(:disabled) { background-color: var(--app-accent-strong); box-shadow: var(--shadow-sm); filter: none; }
+.bg-brand-gradient { background-image: none; background-color: var(--app-accent-strong); }
+main button.uppercase, main a.uppercase { font-weight: 600; }
+
+/* ---- Stat cards on the dashboard ---- */
+.stat-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 0.875rem;
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.stat-card-link { cursor: pointer; }
+.stat-card-link:hover { box-shadow: var(--shadow-md); border-color: rgb(var(--app-accent-rgb) / 0.4); transform: translateY(-1px); }
+.stat-card-link:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 2px; }
+.stat-card-icon { background: var(--app-accent-light); color: var(--app-accent-text); }
+.stat-card-more { color: var(--app-accent-text); opacity: 0.85; }
+.stat-card-link:hover .stat-card-more { opacity: 1; }
+.dark .stat-card { background: var(--dk-surface); border-color: var(--dk-border); }
+.dark .stat-card .text-slate-900 { color: #f1f5f9; }
+
+/* ---- Section tabs (underline) ---- */
+.module-tabs { scrollbar-width: none; }
+.module-tabs::-webkit-scrollbar { display: none; }
+.module-tab-active { color: var(--app-accent-text); border-color: var(--app-accent); }
+
+/* ---- Cards and panels ---- */
+.ui-card, .dashboard-scope .ui-card { border-color: var(--line); box-shadow: var(--shadow-xs); }
+.ui-card:hover { box-shadow: var(--shadow-sm); }
+
+/* ---- Tables: quiet header, light row lines, more air ---- */
+main table { border-collapse: separate; border-spacing: 0; }
+main table thead th {
+  background: #f8fafc;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  border-bottom: 1px solid var(--line);
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+main table tbody td { border-bottom: 1px solid var(--line-soft); padding-top: 0.8rem; padding-bottom: 0.8rem; vertical-align: middle; }
+main table tbody tr:last-child td { border-bottom: 0; }
+.dark main table thead th { background: rgb(255 255 255 / 0.04); border-bottom-color: var(--dk-border); }
+.dark main table tbody td { border-bottom-color: rgb(255 255 255 / 0.06); }
+
+/* ---- Inputs ---- */
+main input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+main select,
+main textarea { border-radius: 0.5rem; }
+main input:not([type='checkbox']):not([type='radio']):focus,
+main select:focus,
+main textarea:focus { outline: none; border-color: var(--app-accent); box-shadow: 0 0 0 3px rgb(var(--app-accent-rgb) / 0.15); }
+
+/* ---- Quieter motion: pages fade in, nothing slides or floats ---- */
+@keyframes modernPageIn { from { opacity: 0; } to { opacity: 1; } }
+main > *:first-child, .page-enter { animation: modernPageIn 0.25s ease-out both; }
+.dash-float { animation: none; }
+.aurora::before, .aurora::after { display: none; }
+
+/* ---- Type: Inter throughout, medium weights, no extra tracking ---- */
+h1, h2, h3, h4, h5, h6, .font-display, .font-heading, .brand { font-weight: 600; letter-spacing: -0.011em; }
+button, .btn, .tab-label, th { letter-spacing: 0; }
+.sidebar-nav, .sidebar-nav a, .sidebar-nav button { font-family: var(--font-sans, 'Inter', system-ui, sans-serif); font-size: 0.875rem; font-weight: 500; letter-spacing: 0; }
+/* Very small print is hard to read: nothing in the working area goes below 12px */
+main .text-\[10px\], main .text-\[11px\], aside .text-\[10px\], aside .text-\[11px\] { font-size: 0.75rem; line-height: 1.1rem; }
+
+/* ---- Headings in the working area are plain dark text; the accent colour is for actions and the current page ---- */
+:is(.students-scope, .settings-scope, .employees-scope, .finance-scope, .salary-scope, .attendance-scope, .timetable-scope, .behaviour-scope, .exam-scope, .subjects-scope, .communication-scope, .certificates-scope, .reports-scope, .academic-setup-scope, .dashboard-scope) :is(h1, h2, h3) {
+  color: var(--ink) !important;
+  font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
+}
+.dark :is(.students-scope, .settings-scope, .employees-scope, .finance-scope, .salary-scope, .attendance-scope, .timetable-scope, .behaviour-scope, .exam-scope, .subjects-scope, .communication-scope, .certificates-scope, .reports-scope, .academic-setup-scope, .dashboard-scope) :is(h1, h2, h3) {
+  color: #f1f5f9 !important;
+}
+
+/* Heavier-than-bold text looks shouty; keep it bold */
+main .font-black { font-weight: 700; }
+main .font-extrabold { font-weight: 700; }

@@ -898,9 +898,9 @@ export default function InvoicesPage() {
                             <button
                               onClick={() => handleInitiateReceive(inv)}
                               title="Receive Fee Payment Now"
-                              className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all shadow-3xs cursor-pointer flex items-center gap-1"
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium whitespace-nowrap transition-all shadow-3xs cursor-pointer flex items-center gap-1.5"
                             >
-                              <CheckCircle2 className="w-3 h-3" /> Receive Now
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Receive payment
                             </button>
                           )}
                           {inv.status !== 'cancelled' && (

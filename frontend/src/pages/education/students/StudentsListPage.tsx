@@ -305,15 +305,8 @@ export default function StudentsListPage() {
   return (
     <div className="flex flex-col h-screen overflow-hidden gap-4 p-2 bg-slate-50 text-slate-800">
       <div className="flex-shrink-0 space-y-4 top-section">
-      {/* Top Breadcrumb Bar */}
-      <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-100 shadow-xs">
-        <div className="flex items-center gap-2 text-xs font-semibold text-purple-700">
-          <GraduationCap className="w-4 h-4 text-purple-700" />
-          <span className="cursor-pointer hover:underline" onClick={() => navigate('/dashboard')}>Students</span>
-          <span>&gt;</span>
-          <span className="text-slate-500">All Students</span>
-        </div>
-
+      {/* Toolbar */}
+      <div className="flex items-center justify-end">
         <div className="flex gap-2">
           <button onClick={fetchStudentsAndClasses} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer">
             <RefreshCw className="w-3.5 h-3.5" /> Reload
@@ -328,7 +321,7 @@ export default function StudentsListPage() {
           onClick={() => setStatusFilter('all')}
           className={`text-left bg-white p-4 rounded-xl border transition-all duration-200 cursor-pointer shadow-xs hover:-translate-y-0.5 ${
             statusFilter === 'all'
-              ? 'border-purple-300 ring-2 ring-purple-600 shadow-md bg-purple-50/20 scale-[1.02]'
+              ? 'border-[var(--app-accent)] ring-1 ring-[var(--app-accent)] shadow-sm'
               : 'border-slate-100 hover:border-slate-200 hover:shadow-md'
           }`}
         >
@@ -445,10 +438,10 @@ export default function StudentsListPage() {
       )}
 
       {/* Filter Bar Container */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">SEARCH STUDENT</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Search student</label>
             <Input 
               placeholder="Type student name or reg number..." 
               value={searchTerm} 
@@ -458,7 +451,7 @@ export default function StudentsListPage() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">FILTER BY CLASS</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Filter by class</label>
             <select 
               value={selectedClass} 
               onChange={(e) => setSelectedClass(e.target.value)}
@@ -481,7 +474,7 @@ export default function StudentsListPage() {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">SORT ORDER</label>
+            <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">Sort order</label>
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleSortOrder}

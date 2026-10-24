@@ -83,7 +83,7 @@ To stop, run **`stop-demo.bat`** (or close the two server windows); **`restart-d
 6. **Student → assistant:** *"My attendance"*. Then ask *"finance summary"*: students can't see school-wide data.
 7. **Admin → Daily Briefs:** press **Prepare it now** on the morning brief, read the draft, edit if you like and **Approve**; try **Headlines** and **Mark as read**. **Reports → Planning** shows next year's enrolment forecast and score trends.
 8. **Admin → Interventions:** students who need support, opened by the absence ladder or by staff.
-9. **Any role → moon icon (top right):** switch to dark mode. **Settings → Theme** changes the accent colour, header and sidebar style, fonts and corner roundness for the whole app.
+9. **Any role → moon icon (top right):** switch to dark mode. **Settings → Theme** changes the accent colour, header and sidebar style, fonts and corner roundness for the whole app. The default look is light: a white header, a light sidebar, white cards and the Inter font. The dark sidebar and coloured header are still there as options.
 
 **Portal logins for students, parents and staff.** Adding a student or employee creates their portal account on the server with its own random password (for example `kqmz-4827`). Usernames are the IDs people already have:
 
@@ -99,7 +99,9 @@ Admins see the logins under **Students → Portal Logins** and **Employees → P
 
 > Ports 8009 and 5179 are used so the demo doesn't clash with other local dev servers on 8000/5173.
 
-**Theming (for developers).** One accent colour drives the header, active navigation, primary buttons, page titles and focus rings. `frontend/src/utils/theme.ts` reads Settings → Theme and sets the `--app-accent-*` CSS variables; use the `bg-brand`, `bg-brand-soft` and `text-brand` classes for new UI rather than a fixed colour. Dark mode sets `html.dark`, and `src/styles/dark-theme.css` remaps the common light utilities (`bg-white`, `text-slate-800`, `bg-emerald-50`, and so on), so existing pages work in dark mode without `dark:` variants. That file is generated: edit `frontend/scripts/gen-dark-theme.cjs` and run `node scripts/gen-dark-theme.cjs`.
+**Theming (for developers).** One accent colour drives the header, active navigation, primary buttons, page titles and focus rings. `frontend/src/utils/theme.ts` reads Settings → Theme and sets the `--app-accent-*` CSS variables; use the `bg-brand`, `bg-brand-soft` and `text-brand` classes for new UI rather than a fixed colour. Dark mode sets `html.dark`, and `src/styles/dark-theme.css` remaps the common light utilities (`bg-white`, `text-slate-800`, `bg-emerald-50`, and so on), so existing pages work in dark mode without `dark:` variants. That file is generated: edit `frontend/scripts/gen-dark-theme.cjs` and run `node scripts/gen-dark-theme.cjs`.
+
+**Look and feel.** The defaults are a light sidebar, a white header and Inter (`DEFAULT_THEME` in `frontend/src/utils/theme.ts`; people who saved their own theme keep it). `frontend/src/styles/modern.css` is loaded last and sets the shared look: sentence-case labels, quiet table headings, underline tabs, solid accent buttons, neutral headings and a 12px floor for small print. Shared building blocks follow it: `StatCard` (white card with an accent icon chip, no gradients), `ModuleTabsLayout` (page title plus underline tabs that scroll sideways) and `components/common/kit.tsx` (buttons, cards, tabs, pills and page heads use the accent colour). Page code should use these rather than fixed colours, so a page restyles when the theme does.
 
 ## Timetable and teaching rules
 
@@ -417,7 +419,7 @@ Two items sometimes proposed for this list are **already built**, not planned: d
 - [ ] Gradebook, library and similar modules are not in the pack; very large packs (over about 5,000 new students) take several minutes because creating a student sets up their family records.
 #### Multiple schools: limits to know
 
-- [ ] Student IDs, employee IDs and user emails must be unique across all schools, because they are login usernames. A second school that types an ID another school already uses gets "already exists". Each school should use its own prefix (the school code, e.g. `GVS-001`).
+- [x] Student IDs and employee IDs are login usernames, so they must be unique across all schools. Each school's own three-letter code is now put in front automatically (`GVS-STU0001`, `GVS-EMP-0001`) and each school numbers from 1 on its own, so two schools can both start at 0001. A number that is already used is refused with a clear message instead of being silently changed (`backend/services/core/tenants/identifiers.py`). IDs that already exist are left as they are. User emails are still unique across all schools.
 - [ ] Parent accounts are matched by phone number (`parent.<phone>@school.edu`). A parent with children in two different schools shares one account; it opens the school of the child linked first, every time, and never shows the two schools together. There is no school switcher yet.
 - [ ] Billing and plans for schools are not built yet (the platform page only lists, suspends and re-activates schools).
 - [x] The 24 one-off generator scripts that used to sit in `backend/` (some reset everyone to shared default passwords) are removed. Demo and sample data now come from `seed_demo` and the sample data pack in `sample-data/`.
