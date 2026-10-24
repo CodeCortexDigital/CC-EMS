@@ -112,3 +112,6 @@ main .text-\[10px\], main .text-\[11px\], aside .text-\[10px\], aside .text-\[11
 /* Heavier-than-bold text looks shouty; keep it bold */
 main .font-black { font-weight: 700; }
 main .font-extrabold { font-weight: 700; }
+
+/* The invisible copy of the tabs used to measure them draws its text from CSS, so the words are not in the page twice */
+.measure-label::after { content: attr(data-label); }

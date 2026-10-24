@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import OverflowTabs from '@/components/common/OverflowTabs';
 
 export interface ModuleTab {
   id: string;
@@ -54,30 +55,16 @@ export default function ModuleTabsLayout({ tabs, scopeClass, children, matchNest
 
   return (
     <div className={`${scopeClass} min-h-full`}>
-      {/* Section header: the page name, then the section's pages as underline tabs (they scroll sideways when there are many) */}
-      <div className="module-header bg-white border-b border-slate-200 px-3 sm:px-5 sticky top-0 z-10 flex items-end gap-4">
+      {/* Section header: the page name, then the section's pages as underline tabs (any that do not fit go under a More menu) */}
+      <div className="module-header bg-white border-b border-slate-200 px-3 sm:px-5 sticky top-0 z-30 flex items-end gap-4">
         <h2 className="shrink-0 self-center pr-4 border-r border-slate-200 text-base font-semibold tracking-tight text-slate-900 hidden md:block">{regionLabel(activeTab.label)}</h2>
         <h2 className="sr-only md:hidden">{regionLabel(activeTab.label)}</h2>
-        <nav aria-label="Section pages" className="module-tabs -mb-px flex gap-0.5 overflow-x-auto min-w-0">
-          {visibleTabs.map((t) => {
-            const Icon = t.icon;
-            const active = isActive(t, location.pathname, location.search, nestedBase);
-
-            return (
-              <button
-                key={t.id}
-                onClick={() => navigate(t.path)}
-                aria-current={active ? 'page' : undefined}
-                className={`module-tab flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-[13px] border-b-2 transition-colors ${
-                  active ? 'module-tab-active font-semibold' : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300 font-medium'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${active ? '' : 'text-slate-400'}`} />
-                {regionLabel(t.label)}
-              </button>
-            );
-          })}
-        </nav>
+        <OverflowTabs
+          ariaLabel="Section pages"
+          items={visibleTabs.map((t) => ({ id: t.id, label: regionLabel(t.label), icon: t.icon }))}
+          activeId={visibleTabs.find((t) => isActive(t, location.pathname, location.search, nestedBase))?.id ?? ''}
+          onSelect={(id) => { const t = visibleTabs.find((x) => x.id === id); if (t) navigate(t.path); }}
+        />
       </div>
 
       {/* Content */}

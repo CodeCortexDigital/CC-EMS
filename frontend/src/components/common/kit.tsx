@@ -2,6 +2,7 @@
 // Same look as the Staff & HR pages.
 import { Loader2 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import OverflowTabs from './OverflowTabs';
 
 export const input = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white';
 export const card = 'bg-white rounded-xl border border-slate-200 shadow-sm p-5';
@@ -71,16 +72,11 @@ export const errorText = (e: any, fallback: string): string => {
   return fallback;
 };
 
-/** Tabs inside a page (no router): a row of pills. */
+/** Tabs inside a page (no router): underline tabs; any that do not fit go into a "More" menu. */
 export function Tabs<T extends string>({ value, onChange, tabs }: { value: T; onChange: (v: T) => void; tabs: Array<[T, string]> }) {
   return (
-    <div className="flex gap-1 mb-3 border-b border-slate-200 overflow-x-auto" role="tablist">
-      {tabs.map(([key, label]) => (
-        <button key={key} role="tab" aria-selected={value === key} onClick={() => onChange(key)}
-          className={`-mb-px shrink-0 px-3 py-2 text-[13px] border-b-2 transition-colors ${value === key ? 'module-tab-active font-semibold' : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300 font-medium'}`}>
-          {label}
-        </button>
-      ))}
+    <div className="flex mb-3 border-b border-slate-200">
+      <OverflowTabs role="tab" ariaLabel="Tabs" items={tabs.map(([id, label]) => ({ id, label }))} activeId={value} onSelect={(id) => onChange(id as T)} />
     </div>
   );
 }
