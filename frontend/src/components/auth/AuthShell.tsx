@@ -167,7 +167,7 @@ export default function AuthShell({ children, wide = false }: { children: ReactN
           />
         </div>
         <div className="pointer-events-none absolute inset-0 aurora opacity-60" aria-hidden="true" />
-        <div className={`auth-rise relative w-full rounded-3xl border border-white/70 bg-white/80 p-6 sm:p-8 shadow-[0_24px_60px_-20px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5 ${wide ? 'max-w-[540px]' : 'max-w-[440px]'}`}>
+        <div className={`auth-rise relative w-full rounded-3xl border border-white/70 bg-white/90 p-6 sm:p-8 shadow-[0_24px_60px_-20px_rgba(15,23,42,0.25)] dark:border-white/10 dark:bg-white/5 ${wide ? 'max-w-[540px]' : 'max-w-[440px]'}`}>
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <span className="w-10 h-10 rounded-xl bg-brand flex items-center justify-center shadow-sm">
               <GraduationCap className="w-5 h-5" />

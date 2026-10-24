@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import { Button } from './Button'
 
@@ -49,7 +50,8 @@ export function Modal({
     xl: 'max-w-xl',
   }
 
-  return (
+  // Portal to <body> so a transformed / filtered ancestor can't trap the fixed overlay.
+  return createPortal(
     <div
       ref={overlayRef}
       className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
@@ -77,6 +79,7 @@ export function Modal({
         <div className="p-4">{children}</div>
         {footer && <div className="border-t p-4">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

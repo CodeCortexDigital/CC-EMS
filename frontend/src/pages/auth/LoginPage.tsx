@@ -3,8 +3,10 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   User, Lock, Eye, EyeOff, ShieldCheck, GraduationCap, Briefcase, AlertCircle, ArrowRight, Loader2, School,
+  HelpCircle, UserPlus, LayoutDashboard, Sparkles,
 } from 'lucide-react';
 import AuthShell, { GoogleMark } from '@/components/auth/AuthShell';
+import { Modal } from '@/components/ui/Modal';
 import schoolService from '@/services/school.service';
 import api from '@/services/api';
 import { useTranslation } from 'react-i18next';
@@ -62,6 +64,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   // Accounts with two-step sign-in: after the password (or Google / Microsoft) they enter a code (P8).
   const [twoStep, setTwoStep] = useState<TwoStepNeeded | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -178,8 +181,19 @@ export default function LoginPage() {
 
   return (
     <AuthShell>
-      <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">{t('auth.signIn')}</h2>
-      <p className="mt-1.5 text-sm text-slate-500">{t('auth.welcome')}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">{t('auth.signIn')}</h2>
+          <p className="mt-1.5 text-sm text-slate-500">{t('auth.welcome')}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setHelpOpen(true)}
+          className="mt-1 flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+        >
+          <HelpCircle className="w-3.5 h-3.5" /> Help
+        </button>
+      </div>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
         {/* Who is signing in */}
@@ -327,6 +341,45 @@ export default function LoginPage() {
         </Link>
       </div>
       <p className="mt-4 text-center text-xs text-slate-500"><Link to="/legal/privacy" className="hover:underline">Privacy notice</Link> · <Link to="/legal/terms" className="hover:underline">Terms of use</Link></p>
+
+      <Modal open={helpOpen} onClose={() => setHelpOpen(false)} title="How to try CC-EMS" size="lg">
+        <div className="space-y-5 text-sm text-slate-700">
+          <div className="flex gap-3">
+            <UserPlus className="w-5 h-5 shrink-0 text-brand" />
+            <div>
+              <p className="font-semibold text-slate-800">1. Create your own school (recommended)</p>
+              <p className="mt-1 text-slate-500">
+                Click <Link to="/signup" onClick={() => setHelpOpen(false)} className="font-semibold text-brand hover:underline">Create your school</Link> below,
+                or use "Continue with Google". You'll become that school's admin instantly, with a fresh, empty
+                account — no data to worry about, nothing shared with anyone else.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <LayoutDashboard className="w-5 h-5 shrink-0 text-brand" />
+            <div>
+              <p className="font-semibold text-slate-800">2. Explore as admin</p>
+              <p className="mt-1 text-slate-500">
+                Add a class, a teacher and a few students from the setup checklist on your dashboard. From there you
+                can try attendance, fees, exams, timetables, and the other modules in the sidebar.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Sparkles className="w-5 h-5 shrink-0 text-brand" />
+            <div>
+              <p className="font-semibold text-slate-800">3. Try the AI assistant</p>
+              <p className="mt-1 text-slate-500">
+                The purple button in the bottom-right corner of the dashboard answers questions about your school's
+                own data — try "How many students are absent today?" once you've added some.
+              </p>
+            </div>
+          </div>
+          <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
+            Questions about anything you see? Reply to the email this link came with and we'll help directly.
+          </p>
+        </div>
+      </Modal>
     </AuthShell>
   );
 }
