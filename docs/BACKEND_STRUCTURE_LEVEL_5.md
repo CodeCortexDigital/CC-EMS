@@ -38,8 +38,6 @@ erp_core/
 ├── dashboard_signals.py
 ├── kernel.py
 ├── settings.py
-├── settings_fixed.py
-├── settings_minimal.py
 ├── signals.py
 ├── urls.py
 └── wsgi.py
