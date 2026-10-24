@@ -160,3 +160,94 @@ textarea:focus {
   .ui-card-interactive:hover { transform: none; }
   .sheen::after { display: none; }
 }
+
+/* ============================================================
+   APP SHELL (applies to every page)
+   ============================================================ */
+
+/* Header: soft depth + hairline so content scrolls cleanly beneath it */
+header.app-header {
+  box-shadow: 0 1px 0 rgb(15 23 42 / 0.06), 0 6px 16px -10px rgb(15 23 42 / 0.25);
+  position: relative;
+}
+
+/* Sidebar: active route gets an accent bar, icons nudge on hover */
+.sidebar-nav a[aria-current='page'] { position: relative; }
+.sidebar-nav a[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -8px;
+  top: 22%;
+  bottom: 22%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--app-accent);
+  box-shadow: 0 0 10px rgb(var(--app-accent-rgb) / 0.6);
+}
+.sidebar-nav a svg, .sidebar-nav button svg { transition: transform 0.2s var(--ease-out-expo); }
+.sidebar-nav a:hover svg, .sidebar-nav button:hover svg { transform: scale(1.12); }
+
+/* Main canvas: subtle depth instead of flat grey */
+main#main-content {
+  background-image:
+    radial-gradient(60rem 28rem at 100% -10%, rgb(var(--app-accent-rgb) / 0.06), transparent 60%),
+    radial-gradient(40rem 24rem at -10% 110%, rgb(6 182 212 / 0.05), transparent 60%);
+  background-repeat: no-repeat;
+  scroll-behavior: smooth;
+}
+@media (min-width: 1024px) { main#main-content { padding: 1.25rem 1.5rem; } }
+
+/* Skip link for keyboard / screen-reader users */
+.skip-link {
+  position: fixed; top: 8px; inset-inline-start: 8px; z-index: 100;
+  padding: 0.5rem 0.9rem; border-radius: 0.5rem;
+  background: var(--app-accent-strong); color: #fff; font-weight: 600; font-size: 0.8rem;
+  transform: translateY(-200%); transition: transform 0.2s ease;
+}
+.skip-link:focus { transform: none; }
+
+/* Route-change progress bar */
+@keyframes polishProgress { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+.route-progress {
+  position: fixed; top: 0; inset-inline: 0; height: 2px; z-index: 90; overflow: hidden; pointer-events: none;
+}
+.route-progress::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, var(--app-accent), #06b6d4);
+  animation: polishProgress 0.8s var(--ease-out-expo) both;
+}
+
+/* Modals */
+@keyframes polishModalIn { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes polishFade { from { opacity: 0; } to { opacity: 1; } }
+.modal-overlay { animation: polishFade 0.2s ease both; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.modal-panel { animation: polishModalIn 0.28s var(--ease-out-expo) both; box-shadow: var(--shadow-lg); }
+.dark .modal-panel { background-color: var(--dk-surface); color: var(--dk-text); border: 1px solid var(--dk-border); }
+.dark .modal-panel h2 { color: var(--dk-text); }
+
+/* Empty states */
+.empty-state { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 2rem 1rem; text-align: center; color: hsl(var(--muted-foreground)); }
+.empty-state-icon {
+  width: 3rem; height: 3rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center;
+  background: rgb(var(--app-accent-rgb) / 0.1); color: var(--app-accent-text);
+}
+
+/* Tables: rounded frame, calmer header */
+.table-wrapper, div:has(> table) { border-radius: 0.75rem; }
+table thead th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: hsl(var(--muted-foreground)); }
+
+/* Touch targets + small screens */
+@media (max-width: 640px) {
+  button, [role='button'], a.btn { min-height: 40px; }
+  table { font-size: 0.8rem; }
+  .table-wrapper { max-height: none; }
+}
+
+@media print {
+  header.app-header, aside, .skip-link, .route-progress { display: none !important; }
+  main#main-content { background: none; padding: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay, .modal-panel, .route-progress::after { animation: none; }
+  main#main-content { scroll-behavior: auto; }
+}

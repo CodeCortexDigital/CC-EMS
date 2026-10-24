@@ -115,7 +115,7 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
   const initials = displayName.split(/\s+/).map((p: string) => p[0]).join('').slice(0, 2).toUpperCase();
 
   return (
-    <header className={`${HEADER_STYLES[headerStyle] || HEADER_STYLES.Brand} h-14 px-3 sm:px-4 flex items-center justify-between shadow-sm z-30 transition-colors`}>
+    <header className={`app-header ${HEADER_STYLES[headerStyle] || HEADER_STYLES.Brand} h-14 px-3 sm:px-4 flex items-center justify-between shadow-sm z-30 transition-colors`}>
       {/* Left: menu, brand, sidebar/fullscreen */}
       <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
         <button onClick={onMobileMenuToggle} className={`md:hidden ${iconBtn}`} aria-label="Open menu">
