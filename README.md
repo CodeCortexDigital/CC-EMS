@@ -226,6 +226,13 @@ Planned, not built. Full briefs with sizes are in [docs/Future Plan.md](docs/Fut
 
 - [ ] **Live bus tracking** (Campus services > Transport). Today transport covers fleet, routes, stops, riders, daily trips, boarding events, family notices, monthly fees and reports, but it has no live location. Plan, about 5 days: (1) the driver's phone sends GPS from a web page and the server keeps only the latest position, (2) a live map and ETA for the office and for families, (3) a once-per-trip "bus is about 10 minutes away" alert, also pushed to phones, (4) a screen to set stop and school coordinates by clicking the map, (5) privacy, offline handling, tests and a labelled demo trip. The ETA, stale-location and alert-once logic can be taken from the SecureCampus project's `bus_eta` service. A native driver app is not planned.
 - [ ] **Library phone-camera scanning for librarians** (the library lock, return check and notices are built; this part is not).
+- [ ] **Stronger controls on what the AI assistant may do** (execution-time governance). Today the assistant can only ask; an administrator approves; only registered actions run once, with the approver's and asker's permissions checked again and every step audited. Planned on top of that, about 2 to 3 days in total, built only when a client asks:
+  1. A tamper-evident trail: each decision record is chained to the previous one by a hash, so an edited or removed record shows up.
+  2. An evidence export: one file per request with who asked, the exact arguments, who approved and when, the checks that ran, and the result.
+  3. Separation of duties: for sensitive actions, a different person must approve than the one who asked (set per school). Today an administrator can approve their own request.
+  4. Approval tied to the exact action: a fingerprint of the arguments is stored when the request is made and re-checked when it runs.
+  5. A per-school switch that pauses every AI action at once.
+  6. Approval policy set by each school: who may approve each action, and whether two approvals are needed.
 
 ## Quick Start
 

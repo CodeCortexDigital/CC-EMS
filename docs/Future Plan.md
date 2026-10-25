@@ -181,6 +181,14 @@ Build in this order. Items marked ✔ at the end of Part D are already built and
   4. *Stop coordinates and the school's location (about 1 day).* Click the map to set each stop (the stop latitude and longitude fields exist but no screen sets them). This is needed before the ETA and the alert can work.
   5. *Hardening (about 1 day).* No location history (or 24 hours at most), phones going offline, tests, README and a Help article, and a clearly labelled simulated trip for demos.
   Reuse from the SecureCampus project (`securecampus/bus_eta/app/geo.py` and `service.py`): the ETA methods, the stale-location check, the once-per-trip alert rule and the "write only when changed" rule. Both are Python. Not built there either: a test on a real moving bus. Out of scope for now: a native driver app (the web page can be paused by the phone when the screen locks).
+* **Stronger controls on AI actions, "execution-time governance" (Extend). PENDING, planned.** Built already: the assistant can only ask; an administrator approves or rejects; only actions registered in code can run, once; the approver's role, the school, the request's age and the asker's permission are checked again at approval; everything is audited (`services/ai/actions.py`, `governance_api.py`). About 2-3 days in total for the following, only when a client asks:
+  1. *Tamper-evident trail.* Chain each decision record to the previous one with a hash; a check screen or command reports any record that was changed or removed.
+  2. *Evidence export.* One JSON or PDF file per request: who asked and in which chat, the exact arguments, who approved and when, the checks run, the result.
+  3. *Separation of duties.* A school setting that, for chosen actions, requires an approver other than the asker (today an administrator can approve their own request, which suits a one-administrator school).
+  4. *Approval bound to the exact action.* Store a hash of the arguments at request time and compare it when the action runs; refuse if it differs.
+  5. *Kill switch.* A per-school setting that pauses all AI actions at once and says so in the approvals screen.
+  6. *Policy by school.* Who may approve each action, and an optional second approval for the sensitive ones.
+  Not planned: adopting an outside protocol. A published specification would be needed first. Any new action is added the same way as the two existing ones (check, run, audit), with tests that try it from a second school.
 * **Multi-campus (Built in a different shape).** Today each school is separate and the platform console manages many schools. Clarify with the client whether they mean several buildings sharing one roster before any work; that would be 10-15 days plus a design review.
 
 ### D2. Already built: do not rebuild
