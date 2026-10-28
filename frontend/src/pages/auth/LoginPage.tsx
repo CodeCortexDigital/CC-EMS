@@ -5,7 +5,8 @@ import {
   User, Lock, Eye, EyeOff, ShieldCheck, GraduationCap, Briefcase, AlertCircle, ArrowRight, Loader2, School,
   HelpCircle, UserPlus, LayoutDashboard, Sparkles,
 } from 'lucide-react';
-import AuthShell, { GoogleMark } from '@/components/auth/AuthShell';
+import { GoogleMark } from '@/components/auth/AuthShell';
+import LoginFrame, { SERIF } from '@/components/auth/LoginFrame';
 import { Modal } from '@/components/ui/Modal';
 import schoolService from '@/services/school.service';
 import api from '@/services/api';
@@ -65,6 +66,7 @@ export default function LoginPage() {
   // Accounts with two-step sign-in: after the password (or Google / Microsoft) they enter a code (P8).
   const [twoStep, setTwoStep] = useState<TwoStepNeeded | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     try {
@@ -82,8 +84,12 @@ export default function LoginPage() {
     schoolService.signupConfig().then((c) => setGoogleEnabled(c.google_sign_in)).catch(() => setGoogleEnabled(false));
   }, []);
 
-  const goToPortal = (authUser: any) =>
-    navigate(authUser?.portal_path || (authUser?.role === 'student' ? '/student' : '/dashboard'));
+  // A calm full-page message while the first page loads, then on to the portal.
+  const goToPortal = (authUser: any) => {
+    const target = authUser?.portal_path || (authUser?.role === 'student' ? '/student' : '/dashboard');
+    setRedirecting(true);
+    window.setTimeout(() => navigate(target), 1800);
+  };
 
   // Coming back from "Sign in with Microsoft": swap the one-time code for a session, or show why it failed.
   useEffect(() => {
@@ -166,129 +172,97 @@ export default function LoginPage() {
   };
 
   const { placeholder, hint } = HINTS[role];
+  const consoleLabel = role === 'admin' ? 'Admin console' : role === 'employee' ? 'Staff console' : 'Family portal';
+  const inputBase = 'h-16 w-full rounded-2xl border-2 border-[#dfe9e6] bg-[#f5faf8] px-5 text-[17px] text-slate-900 placeholder:text-[#a2b3ae] outline-none transition focus:border-[var(--app-accent)] focus:ring-4 focus:ring-[color:rgb(var(--app-accent-rgb)/0.1)] dark:border-slate-700 dark:bg-slate-800 dark:text-white';
+
+  // After a good sign-in: a calm full-page message while the first page loads.
+  if (redirecting) {
+    return (
+      <div role="status" className="flex min-h-screen flex-col items-center justify-center gap-5 bg-[#eef4f4] dark:bg-slate-950">
+        <span className="h-16 w-16 animate-spin rounded-full border-4 border-[color:rgb(var(--app-accent-rgb)/0.2)] border-t-[var(--app-accent)]" />
+        <p className="text-xl font-semibold text-[var(--app-accent-strong)] dark:text-[var(--app-accent-text)]">Please wait while we are loading your login profile…</p>
+      </div>
+    );
+  }
 
   if (twoStep) {
     return (
-      <AuthShell>
+      <LoginFrame console={consoleLabel}>
         <TwoStepCodeForm
           email={twoStep.email}
           onSubmit={async (code) => goToPortal(await completeTwoStep(twoStep.challenge, code))}
           onRestart={() => { setTwoStep(null); setPassword(''); }}
         />
-      </AuthShell>
+      </LoginFrame>
     );
   }
 
   return (
-    <AuthShell>
+    <LoginFrame console={consoleLabel}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">{t('auth.signIn')}</h2>
-          <p className="mt-1.5 text-sm text-slate-500">{t('auth.welcome')}</p>
+          <h2 className={`${SERIF} text-[2rem] font-normal leading-tight text-slate-900 dark:text-white`}>{t('auth.signIn')}</h2>
+          <p className="mt-1 text-[15px] text-[#8aa39d]">{t('auth.welcome')}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setHelpOpen(true)}
-          className="mt-1 flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-        >
-          <HelpCircle className="w-3.5 h-3.5" /> Help
+        <button type="button" onClick={() => setHelpOpen(true)}
+          className="mt-1 flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+          <HelpCircle className="h-3.5 w-3.5" /> Help
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
-        {/* Who is signing in */}
-        <div role="radiogroup" aria-label={t('auth.iAm')} className="grid grid-cols-[1fr_1fr_1.5fr] gap-1 p-1 rounded-xl bg-slate-100">
-          {ROLES.map(({ id, label, icon: Icon }) => {
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
+        {/* Who is signing in: one switch, three doors (the server decides the portal) */}
+        <div role="radiogroup" aria-label={t('auth.iAm')} className="grid grid-cols-[1fr_1fr_1.4fr] gap-1 rounded-full border border-[#dbe7e3] bg-[#f5faf8] p-1 dark:border-slate-700 dark:bg-slate-800">
+          {ROLES.map(({ id, label }) => {
             const active = role === id;
             return (
-              <button
-                key={id}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => { setRole(id); setError(''); }}
-                className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs sm:text-[13px] font-semibold transition-all ${
-                  active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-brand' : ''}`} />
-                <span className="whitespace-nowrap">{t(label)}</span>
+              <button key={id} type="button" role="radio" aria-checked={active} onClick={() => { setRole(id); setError(''); }}
+                className={`whitespace-nowrap rounded-full px-3 py-2.5 text-[15px] font-semibold transition-all ${active ? 'bg-[var(--app-accent)] text-white shadow-sm' : 'text-[#4b6b66] hover:text-slate-900 dark:text-slate-300'}`}>
+                {t(label)}
               </button>
             );
           })}
         </div>
 
         {error && (
-          <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>{error}</span>
+          <div role="alert" className="flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span>
           </div>
         )}
 
         <div>
-          <label htmlFor="login-username" className="block text-sm font-semibold text-slate-700 mb-1.5">{t('auth.username')}</label>
-          <div className="relative">
-            <User className="pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              id="login-username"
-              type="text"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              placeholder={placeholder}
-              autoComplete="username"
-              autoCapitalize="none"
-              spellCheck={false}
-              aria-describedby="login-username-hint"
-              className="auth-input ps-10 pe-3"
-            />
-          </div>
-          <p id="login-username-hint" className="mt-1.5 text-xs text-slate-500">{t(hint)}</p>
+          <label htmlFor="login-username" className="sr-only">{t('auth.username')}</label>
+          <input id="login-username" type="text" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder={placeholder}
+            autoComplete="username" autoCapitalize="none" spellCheck={false} aria-describedby="login-username-hint" className={inputBase} />
+          <p id="login-username-hint" className="mt-1.5 px-1 text-xs text-[#8aa39d]">{t(hint)}</p>
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label htmlFor="login-password" className="block text-sm font-semibold text-slate-700">{t('auth.password')}</label>
-            <Link to="/forgot-password" className="text-xs font-semibold text-brand hover:underline">{t('auth.forgotPassword')}</Link>
-          </div>
-          <div className="relative">
-            <Lock className="pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              id="login-password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t('auth.passwordPlaceholder')}
-              autoComplete="current-password"
-              className="auth-input ps-10 pe-11"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              className="absolute end-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-              aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
+        <div className="relative">
+          <label htmlFor="login-password" className="sr-only">{t('auth.password')}</label>
+          <input id="login-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
+            placeholder={t('auth.passwordPlaceholder')} autoComplete="current-password" className={`${inputBase} pe-14`} />
+          <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+            className="absolute end-3 top-4 rounded-lg p-2 text-slate-400 hover:text-slate-700">
+            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+          </button>
         </div>
 
-        <label className="flex items-center gap-2.5 text-sm text-slate-600 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
-            className="w-4 h-4 rounded border-slate-300 accent-[color:var(--app-accent)]"
-          />
+        <label className="flex cursor-pointer select-none items-center gap-2.5 text-[15px] text-slate-600 dark:text-slate-300">
+          <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="h-5 w-5 rounded border-slate-300 accent-[color:var(--app-accent)]" />
           {t('auth.remember')}
         </label>
 
-        <button type="submit" disabled={loading} className="auth-primary-btn">
-          {loading ? (<><Loader2 className="w-4 h-4 animate-spin" /> {t('auth.signingIn')}</>) : (<>{t('auth.signIn')} <ArrowRight className="w-4 h-4 rtl:rotate-180" /></>)}
-        </button>
+        <div className="flex flex-wrap items-center gap-5 pt-1">
+          <button type="submit" disabled={loading}
+            className="inline-flex h-14 min-w-[168px] items-center justify-center gap-2 rounded-2xl bg-[var(--app-accent)] px-8 text-[17px] font-semibold text-white shadow-[0_10px_24px_-12px_rgba(11,110,102,.8)] transition hover:bg-[var(--app-accent-strong)] disabled:opacity-60">
+            {loading ? (<><Loader2 className="h-4 w-4 animate-spin" /> {t('auth.signingIn')}</>) : 'Login'}
+          </button>
+          <Link to="/forgot-password" className="text-[17px] text-[#4b6b66] hover:underline dark:text-slate-300">{t('auth.forgotPassword')}</Link>
+        </div>
       </form>
 
       {SHOW_DEMO_LOGINS && (
-        <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900" aria-label="Demo accounts">
+        <div className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900" aria-label="Demo accounts">
           <p className="mb-2 font-semibold">Demo school (sample data). Click an account to fill it in:</p>
           <ul className="space-y-1">
             {DEMO_LOGINS.map((a) => (
@@ -308,44 +282,43 @@ export default function LoginPage() {
       </div>
       <div className="space-y-2">
         {googleEnabled && (
-          <button type="button" onClick={handleGoogle} disabled={googleLoading} className="auth-secondary-btn">
-            {googleLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GoogleMark />}
+          <button type="button" onClick={handleGoogle} disabled={googleLoading} className="auth-secondary-btn !rounded-2xl">
+            {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleMark />}
             {t('auth.continueGoogle')}
           </button>
         )}
         {!msOpen ? (
-          <button type="button" onClick={() => handleMicrosoft()} disabled={msLoading} className="auth-secondary-btn">
-            {msLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MicrosoftMark />}
+          <button type="button" onClick={() => handleMicrosoft()} disabled={msLoading} className="auth-secondary-btn !rounded-2xl">
+            {msLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MicrosoftMark />}
             {t('auth.continueMicrosoft')}
           </button>
         ) : (
           <form onSubmit={handleMicrosoft} className="flex gap-2">
             <input type="email" autoFocus required aria-label={t('auth.microsoftEmail')} placeholder={t('auth.microsoftEmail')} value={msEmail}
-              onChange={(e) => setMsEmail(e.target.value)} className="flex-1 rounded-xl border border-slate-300 px-3 py-2.5 text-sm" />
-            <button type="submit" disabled={msLoading} className="auth-secondary-btn !w-auto px-4">
-              {msLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MicrosoftMark />} {t('auth.microsoftContinue')}
+              onChange={(e) => setMsEmail(e.target.value)} className="flex-1 rounded-2xl border border-slate-300 px-3 py-2.5 text-sm" />
+            <button type="submit" disabled={msLoading} className="auth-secondary-btn !w-auto !rounded-2xl px-4">
+              {msLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MicrosoftMark />} {t('auth.microsoftContinue')}
             </button>
           </form>
         )}
       </div>
 
-      <div className="mt-8 rounded-xl border border-slate-200 bg-white p-4 text-sm">
-        <p className="flex items-center gap-2 font-semibold text-slate-800">
-          <School className="w-4 h-4 text-brand" /> {t('auth.runningSchool')}
-        </p>
-        <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-          {t('auth.runningSchoolText')}
-        </p>
-        <Link to="/signup" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline">
-          {t('auth.createSchool')} <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm dark:border-slate-700 dark:bg-slate-900">
+        <p className="flex items-center gap-2 font-semibold text-slate-800 dark:text-white"><School className="h-4 w-4 text-[var(--app-accent)]" /> {t('auth.runningSchool')}</p>
+        <p className="mt-1 text-xs leading-relaxed text-slate-500">{t('auth.runningSchoolText')}</p>
+        <Link to="/signup" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[var(--app-accent)] hover:underline">
+          {t('auth.createSchool')} <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" />
         </Link>
       </div>
-      <p className="mt-4 text-center text-xs text-slate-500"><Link to="/legal/privacy" className="hover:underline">Privacy notice</Link> · <Link to="/legal/terms" className="hover:underline">Terms of use</Link></p>
+      <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#8aa39d]">
+        <Lock className="h-3 w-3" /> Encrypted connection · every sign-in is logged
+      </p>
+      <p className="mt-2 text-center text-xs text-slate-500"><Link to="/legal/privacy" className="hover:underline">Privacy notice</Link> · <Link to="/legal/terms" className="hover:underline">Terms of use</Link></p>
 
       <Modal open={helpOpen} onClose={() => setHelpOpen(false)} title="How to try CC-EMS" size="lg">
         <div className="space-y-5 text-sm text-slate-700">
           <div className="flex gap-3">
-            <UserPlus className="w-5 h-5 shrink-0 text-brand" />
+            <UserPlus className="h-5 w-5 shrink-0 text-brand" />
             <div>
               <p className="font-semibold text-slate-800">1. Create your own school (recommended)</p>
               <p className="mt-1 text-slate-500">
@@ -356,21 +329,21 @@ export default function LoginPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <LayoutDashboard className="w-5 h-5 shrink-0 text-brand" />
+            <LayoutDashboard className="h-5 w-5 shrink-0 text-brand" />
             <div>
               <p className="font-semibold text-slate-800">2. Explore as admin</p>
               <p className="mt-1 text-slate-500">
                 Add a class, a teacher and a few students from the setup checklist on your dashboard. From there you
-                can try attendance, fees, exams, timetables, and the other modules in the sidebar.
+                can try attendance, fees, exams, timetables, and the other modules in the top menu.
               </p>
             </div>
           </div>
           <div className="flex gap-3">
-            <Sparkles className="w-5 h-5 shrink-0 text-brand" />
+            <Sparkles className="h-5 w-5 shrink-0 text-brand" />
             <div>
               <p className="font-semibold text-slate-800">3. Try the AI assistant</p>
               <p className="mt-1 text-slate-500">
-                The purple button in the bottom-right corner of the dashboard answers questions about your school's
+                The button in the bottom-right corner of the dashboard answers questions about your school's
                 own data — try "How many students are absent today?" once you've added some.
               </p>
             </div>
@@ -380,6 +353,6 @@ export default function LoginPage() {
           </p>
         </div>
       </Modal>
-    </AuthShell>
+    </LoginFrame>
   );
 }

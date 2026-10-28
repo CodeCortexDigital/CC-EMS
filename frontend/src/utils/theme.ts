@@ -9,6 +9,7 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 // hex/strong: solid surfaces (buttons, header, active nav). soft: accent text on
 // dark backgrounds. light: tint behind accent text on light backgrounds.
 export const accentMap: Record<string, { hsl: string; hex: string; rgb: string; strong: string; soft: string; light: string }> = {
+  teal: { hsl: '174 82% 24%', hex: '#0b6e66', rgb: '11 110 102', strong: '#095a54', soft: '#5eead4', light: '#e8f6f3' },
   indigo: { hsl: '243 75% 59%', hex: '#4f46e5', rgb: '79 70 229', strong: '#4338ca', soft: '#a5b4fc', light: '#eef2ff' },
   blue: { hsl: '221.2 83.2% 53.3%', hex: '#2563eb', rgb: '37 99 235', strong: '#1d4ed8', soft: '#93c5fd', light: '#eff6ff' },
   green: { hsl: '142.1 76.2% 36.3%', hex: '#16a34a', rgb: '22 163 74', strong: '#15803d', soft: '#86efac', light: '#ecfdf5' },
@@ -21,11 +22,13 @@ export const accentMap: Record<string, { hsl: string; hex: string; rgb: string; 
   navy: { hsl: '215 28% 17%', hex: '#1e293b', rgb: '30 41 59', strong: '#1e293b', soft: '#cbd5e1', light: '#f1f5f9' },
 };
 
+export const SYSTEM_FONTS = "'Segoe UI Variable', 'Segoe UI', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
+
 export const DEFAULT_THEME = {
   themeMode: 'light' as ThemeMode,
-  accentColor: 'indigo',
+  accentColor: 'teal',
   radius: '0.5rem',
-  fontFamily: 'inter',
+  fontFamily: 'system',
   placement: 'LTR',
   sidebarBg: 'Light',
   headerBg: 'White',
@@ -85,6 +88,8 @@ export const applyGlobalTheme = (settings?: ThemeSettings) => {
     roboto: ["'Roboto', sans-serif", "'Mulish', sans-serif"],
     outfit: ["'Outfit', sans-serif", "'Outfit', sans-serif"],
     inter: ["'Inter', sans-serif", "'Inter', sans-serif"],
+    // System fonts only: nothing to download, so the app looks the same offline.
+    system: [SYSTEM_FONTS, SYSTEM_FONTS],
   };
   const [fontSans, fontDisplay] = fonts[t.fontFamily] || fonts.roboto;
   root.style.setProperty('--font-sans', fontSans);

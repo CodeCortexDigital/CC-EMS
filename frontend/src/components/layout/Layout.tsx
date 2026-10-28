@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';  // Default import
+import TopNav from '@/components/layout/TopNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUIStore } from '@/store/uiStore';
 import { initGlobalTheme } from '@/utils/theme';
@@ -31,7 +32,9 @@ export function Layout({ children }: LayoutProps) {
   // One assistant for every portal; its welcome text and suggestions follow the role.
   const assistantMode: ChatMode =
     role === 'teacher' || role === 'parent' || role === 'student' ? role : 'admin';
-  const { sidebarCollapsed } = useUIStore();
+  const { sidebarCollapsed, navLayout } = useUIStore();
+  // Staff roles get the top menu by default (and can switch to the side menu); students and parents keep the compact side menu.
+  const topMenu = navLayout === 'top' && role !== 'student' && role !== 'parent';
   useIdleSignOut();
   const hasAi = usePlanStore((s) => s.has('ai'));
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -70,13 +73,15 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-transparent">
       <a href="#main-content" className="skip-link">Skip to content</a>
       <RouteProgress />
       {/* Sidebar - Desktop */}
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
+      {!topMenu && (
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
+      )}
 
       {/* Sidebar - Mobile */}
       {mobileSidebarOpen && (
@@ -93,9 +98,10 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header 
-          onMobileMenuToggle={toggleMobileSidebar}
-        />
+        <div className="relative z-40 shrink-0">
+          <Header onMobileMenuToggle={toggleMobileSidebar} />
+          {topMenu && <TopNav />}
+        </div>
         <SubscriptionBanner />
         <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-3 outline-none">
           {children || <Outlet />}

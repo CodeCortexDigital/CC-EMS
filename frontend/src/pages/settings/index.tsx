@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Settings, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUIStore } from '@/store/uiStore';
 
 // Import all settings pages
 import InstituteProfile from './InstituteProfile';
@@ -22,13 +23,21 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const { role } = useAuth();
   const isStudent = role === 'student';
+  // With the top menu the sections are in the menu itself, so the page shows only the chosen one.
+  const sectionsInMenu = useUIStore((s) => s.navLayout) === 'top' && role !== 'student' && role !== 'parent';
 
   const activeTab = menuItems.find((t) => isSettingsTabActive(t, location.pathname)) || menuItems[0];
 
   return (
     <div className="settings-scope flex h-full bg-slate-50 min-h-screen flex-col">
+      {sectionsInMenu && (
+        <div className="bg-white border-b border-slate-200 px-6 py-3">
+          <h1 className="flex items-center gap-2 text-xl font-semibold text-slate-900"><activeTab.icon className="w-5 h-5 text-brand" />{activeTab.label}</h1>
+          <p className="text-xs text-slate-500">General settings</p>
+        </div>
+      )}
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
+      {!sectionsInMenu && <div className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -47,17 +56,17 @@ export default function SettingsPage() {
             <span className="text-xs text-slate-400">v2.0</span>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Top Tab Bar */}
-      {!isStudent && (
+      {!isStudent && !sectionsInMenu && (
         <div className="bg-white border-b border-slate-200 px-6 py-3">
           <SettingsSidebar currentPath={location.pathname} />
         </div>
       )}
 
       {/* Themed sub-header */}
-      {!isStudent && (
+      {!isStudent && !sectionsInMenu && (
         <div className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-slate-200 bg-brand-soft">
           <div className="w-9 h-9 rounded-lg bg-brand flex items-center justify-center shadow-sm">
             <activeTab.icon className="w-4 h-4" />

@@ -60,6 +60,7 @@ export default function ThemeLanguage() {
   };
 
   const accentsList = [
+    { id: 'teal', name: 'CodeCortex Teal', hex: '#0b6e66', bg: 'bg-teal-700' },
     { id: 'indigo', name: 'CodeCortex Indigo', hex: '#4f46e5', bg: 'bg-indigo-600' },
     { id: 'blue', name: 'Professional Blue', hex: '#2563eb', bg: 'bg-blue-600' },
     { id: 'green', name: 'Emerald Green', hex: '#16a34a', bg: 'bg-green-600' },
@@ -81,6 +82,7 @@ export default function ThemeLanguage() {
   ];
 
   const fontsList = [
+    { id: 'system', name: 'System', desc: 'Works offline' },
     { id: 'roboto', name: 'Roboto', desc: 'Clean & Standard' },
     { id: 'inter', name: 'Inter', desc: 'Aesthetic & Modern' },
     { id: 'outfit', name: 'Outfit', desc: 'Premium Geometric' },
