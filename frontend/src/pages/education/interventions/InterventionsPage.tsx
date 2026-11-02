@@ -6,7 +6,7 @@ import StudentPicker from '@/components/common/StudentPicker';
 import { btn, btnDanger, btnGhost, card, Empty, errorText, Field, fmtDate, fmtDateTime, input, PageHead, Pill, Spinner, todayStr } from '@/components/common/kit';
 import { useAuth } from '@/hooks/useAuth';
 import type { StudentHit } from '@/services/frontdesk.service';
-import interventions, { Intervention, Owner, SOURCE_LABEL, STATUS_LABEL, Summary } from '@/services/interventions.service';
+import interventions, { Intervention, Owner, SOURCE_LABEL, STATUS_LABEL, Summary, Reach, Outcome, OUTCOME_LABEL } from '@/services/interventions.service';
 
 type View = 'active' | 'mine' | 'overdue' | 'unassigned' | 'closed';
 const VIEWS: Array<[View, string]> = [['active', 'All active'], ['mine', 'Mine'], ['overdue', 'Overdue'], ['unassigned', 'Unassigned'], ['closed', 'Closed']];
@@ -20,6 +20,7 @@ export default function InterventionsPage() {
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState<Intervention[] | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [reach, setReach] = useState<Reach | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
@@ -29,7 +30,8 @@ export default function InterventionsPage() {
     setRows(null);
     interventions.list({ ...f, search: search.trim() || undefined }).then(setRows).catch(() => setRows([]));
     interventions.summary().then(setSummary).catch(() => setSummary(null));
-  }, [view, search]);
+    if (reviewer) interventions.reach().then(setReach).catch(() => setReach(null));
+  }, [view, search, reviewer]);
   useEffect(() => { const t = window.setTimeout(load, 200); return () => window.clearTimeout(t); }, [load]);
 
   const tiles: Array<[string, number | undefined, View | null, string]> = [
@@ -55,6 +57,8 @@ export default function InterventionsPage() {
         </div>
       )}
 
+      {reviewer && reach && <ReachPanel reach={reach} />}
+
       <div className="flex flex-wrap items-center gap-2">
         {VIEWS.filter(([v]) => reviewer || v === 'mine' || v === 'closed' || v === 'overdue').map(([v, l]) => (
           <button key={v} onClick={() => setView(v)} className={`px-3 py-1.5 rounded-full text-xs font-bold border ${view === v ? 'bg-emerald-600 text-white border-emerald-600' : 'border-slate-300 text-slate-700'}`}>{l}</button>
@@ -75,6 +79,7 @@ export default function InterventionsPage() {
                   <Pill tone="slate">{SOURCE_LABEL[i.source]}</Pill>
                   <Pill tone={statusTone(i.status)}>{STATUS_LABEL[i.status]}</Pill>
                   {i.is_overdue && <Pill tone="red">overdue</Pill>}
+                  {i.is_review_due && <Pill tone="amber">review due</Pill>}
                   <span className="text-xs text-slate-500 ml-auto">{i.owner_name ? `Owner: ${i.owner_name}` : 'No owner'}{i.due_date && ` · due ${fmtDate(i.due_date)}`}</span>
                 </div>
               </button>
@@ -86,6 +91,29 @@ export default function InterventionsPage() {
       {adding && <NewDialog onClose={() => setAdding(false)} onDone={() => { setAdding(false); load(); }} />}
       {openId && <DetailDialog id={openId} reviewer={reviewer} onClose={() => setOpenId(null)} onChanged={load} />}
     </div>
+  );
+}
+
+function ReachPanel({ reach }: { reach: Reach }) {
+  const results = (Object.keys(OUTCOME_LABEL) as Outcome[]).filter((k) => reach.results[k] > 0).map((k) => `${reach.results[k]} ${OUTCOME_LABEL[k].toLowerCase()}`);
+  const facts: Array<[string, string]> = [
+    ['Students flagged', String(reach.students_flagged)],
+    ['Students reached', String(reach.students_reached)],
+    ['Sessions delivered', String(reach.sessions_delivered)],
+    ['Days from flag to start', reach.average_days_to_start === null ? '–' : String(reach.average_days_to_start)],
+    ['Reviews due', String(reach.reviews_due)],
+  ];
+  return (
+    <section aria-label="Reach and results" className={`${card} space-y-2`}>
+      <p className="text-sm font-bold">Who the support has reached</p>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        {facts.map(([label, value]) => <div key={label}><p className="text-xl font-black text-slate-900">{value}</p><p className="text-xs text-slate-500">{label}</p></div>)}
+      </div>
+      <p className="text-xs text-slate-500">
+        {reach.closed === 0 ? 'No support has been finished yet, so there are no results to show.'
+          : `Finished: ${reach.closed}${results.length ? ` (${results.join(', ')})` : ''}${reach.closed_without_result ? `. ${reach.closed_without_result} finished without a result recorded.` : '.'}`}
+      </p>
+    </section>
   );
 }
 
@@ -128,6 +156,8 @@ function DetailDialog({ id, reviewer, onClose, onChanged }: { id: string; review
   const [note, setNote] = useState('');
   const [closing, setClosing] = useState<null | 'done' | 'dismissed'>(null);
   const [closeNote, setCloseNote] = useState('');
+  const [outcome, setOutcome] = useState<Outcome | ''>('');
+  const [evidence, setEvidence] = useState('');
 
   const load = useCallback(() => { interventions.get(id).then(setItem).catch(() => onClose()); }, [id, onClose]);
   useEffect(load, [load]);
@@ -154,6 +184,18 @@ function DetailDialog({ id, reviewer, onClose, onChanged }: { id: string; review
         {item.suggested_actions.length > 0 && (
           <div><p className="font-bold mb-1">Suggested next steps</p><ul className="list-disc ml-5 text-slate-700">{item.suggested_actions.map((a) => <li key={a}>{a}</li>)}</ul></div>
         )}
+        <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-50 px-3 py-2 md:grid-cols-4" aria-label="Record of support">
+          <div><p className="text-xs text-slate-500">Support began</p><p className="font-semibold">{item.started_on ? fmtDate(item.started_on) : 'Not started'}</p></div>
+          <div><p className="text-xs text-slate-500">Sessions delivered</p><p className="font-semibold">{item.sessions_delivered}</p></div>
+          <div><p className="text-xs text-slate-500">Result</p><p className="font-semibold">{item.outcome ? OUTCOME_LABEL[item.outcome] : 'Not recorded'}</p></div>
+          <div><p className="text-xs text-slate-500">Review on</p><p className="font-semibold">{item.review_on ? fmtDate(item.review_on) : 'Not set'}</p></div>
+          {item.evidence && <p className="col-span-full"><span className="text-xs text-slate-500">Evidence: </span>{item.evidence}</p>}
+        </div>
+        {reviewer && active && (
+          <div className="grid gap-2 md:grid-cols-4">
+            <Field label="Review on"><input aria-label="Review date" type="date" className={input} value={item.review_on || ''} onChange={(e) => run(() => interventions.update(item.id, { review_on: e.target.value || null }), 'Review date set.')} /></Field>
+          </div>
+        )}
         {reviewer && active && (
           <div className="grid gap-2 md:grid-cols-3">
             <Field label="Owner"><select aria-label="Assign to" className={input} value={item.owner || ''} onChange={(e) => run(() => interventions.update(item.id, { owner: e.target.value || null }), 'Assigned.')}>
@@ -178,6 +220,7 @@ function DetailDialog({ id, reviewer, onClose, onChanged }: { id: string; review
 
         <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-3">
           {canWork && item.status === 'open' && <button className={btnGhost} onClick={() => run(() => interventions.start(item.id), 'Started.')}>Start</button>}
+          {canWork && <button className={btnGhost} onClick={() => run(() => interventions.logSession(item.id), 'Session counted.')}>Log a session</button>}
           {canWork && !closing && <button className={btn} onClick={() => setClosing('done')}>Mark done…</button>}
           {reviewer && active && !closing && <button className={btnGhost} onClick={() => setClosing('dismissed')}>Dismiss…</button>}
           {reviewer && !active && <button className={btnGhost} onClick={() => run(() => interventions.reopen(item.id), 'Reopened.')}>Reopen</button>}
@@ -185,10 +228,18 @@ function DetailDialog({ id, reviewer, onClose, onChanged }: { id: string; review
             <div className="w-full space-y-2">
               <textarea aria-label={closing === 'done' ? 'What was done' : 'Why no action is needed'} className={input} rows={2} value={closeNote} onChange={(e) => setCloseNote(e.target.value)}
                 placeholder={closing === 'done' ? 'What was done?' : 'Why is no action needed?'} />
+              {closing === 'done' && (
+                <div className="grid gap-2 md:grid-cols-2">
+                  <select aria-label="Result" className={input} value={outcome} onChange={(e) => setOutcome(e.target.value as Outcome | '')}>
+                    <option value="">Result (optional)</option>{(Object.keys(OUTCOME_LABEL) as Outcome[]).map((k) => <option key={k} value={k}>{OUTCOME_LABEL[k]}</option>)}
+                  </select>
+                  <input aria-label="Evidence" className={input} placeholder="Evidence, e.g. absences before and after" value={evidence} onChange={(e) => setEvidence(e.target.value)} />
+                </div>
+              )}
               <div className="flex justify-end gap-2">
                 <button className={btnGhost} onClick={() => setClosing(null)}>Cancel</button>
                 <button className={closing === 'done' ? btn : btnDanger} disabled={!closeNote.trim()}
-                  onClick={() => run(() => (closing === 'done' ? interventions.complete(item.id, closeNote) : interventions.dismiss(item.id, closeNote)), closing === 'done' ? 'Marked done.' : 'Dismissed.')}>
+                  onClick={() => run(() => (closing === 'done' ? interventions.complete(item.id, closeNote, { outcome: outcome || undefined, evidence: evidence.trim() || undefined }) : interventions.dismiss(item.id, closeNote)), closing === 'done' ? 'Marked done.' : 'Dismissed.')}>
                   {closing === 'done' ? 'Mark done' : 'Dismiss'}
                 </button>
               </div>

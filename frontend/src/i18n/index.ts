@@ -4,6 +4,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import en from './locales/en.json';
 import { languageByCode } from './languages';
+import { applyPageText } from './pageText';
 
 const loaders = import.meta.glob('./locales/*.json');
 
@@ -28,6 +29,7 @@ export async function applyLanguage(code: string) {
   const lang = languageByCode(code) ? code : 'en';
   await loadLanguage(lang);
   await i18n.changeLanguage(lang);
+  await applyPageText(lang);                  // the wording written straight into pages
   const root = document.documentElement;
   root.lang = lang;
   root.dataset.langDir = languageByCode(lang)?.dir || 'ltr';

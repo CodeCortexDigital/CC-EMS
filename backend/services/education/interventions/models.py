@@ -16,6 +16,7 @@ class Intervention(TenantScopedModel):
     SOURCES = [('absence', 'Attendance'), ('risk', 'Early-warning model'), ('behaviour', 'Behaviour'), ('manual', 'Added by staff')]
     STATUSES = [('open', 'Open'), ('in_progress', 'In progress'), ('done', 'Done'), ('dismissed', 'Dismissed')]
     PRIORITIES = [('normal', 'Normal'), ('high', 'High')]
+    OUTCOMES = [('improved', 'Improved'), ('no_change', 'No change'), ('worse', 'Got worse'), ('not_measured', 'Not measured yet')]
     ACTIVE = ('open', 'in_progress')
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -35,6 +36,12 @@ class Intervention(TenantScopedModel):
     closed_at = models.DateTimeField(null=True, blank=True)
     closed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
     closure_note = models.TextField(blank=True, default='')
+    # The record of what the support did: when it began, how much was delivered, what changed and when it is looked at again.
+    started_on = models.DateField(null=True, blank=True, help_text='The day support actually began (set when it is started)')
+    sessions_delivered = models.PositiveIntegerField(default=0, help_text='Sessions, check-ins or contacts delivered so far')
+    outcome = models.CharField(max_length=12, choices=OUTCOMES, blank=True, default='')
+    evidence = models.TextField(blank=True, default='', help_text='What shows the result, e.g. attendance before and after')
+    review_on = models.DateField(null=True, blank=True, help_text='When the school looks at the result again')
 
     class Meta:
         ordering = ['due_date', '-created_at']
@@ -47,6 +54,10 @@ class Intervention(TenantScopedModel):
     @property
     def is_overdue(self):
         return self.status in self.ACTIVE and self.due_date is not None and self.due_date < timezone.localdate()
+
+    @property
+    def is_review_due(self):
+        return self.status in self.ACTIVE and self.review_on is not None and self.review_on <= timezone.localdate()
 
 
 class InterventionNote(models.Model):

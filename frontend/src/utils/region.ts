@@ -2,6 +2,7 @@
 // Pakistan-only form fields it asks for, and its payment methods. The app's own text is written the Pakistani way;
 // `localizeLabel` swaps those phrases for the school's region (e.g. "Date Sheet" → "Exam Schedule" in the US).
 import { useLocaleStore } from '@/store/localeStore';
+import { refreshPageText, setRegionWording } from '@/i18n/pageText';
 
 export type TermKey =
   | 'challan' | 'date_sheet' | 'award_list' | 'result_card' | 'paid_slips' | 'fee_defaulters' | 'fee_particulars'
@@ -93,3 +94,7 @@ export function installRegionDates() {
     };
   }
 }
+
+// Text written straight into pages follows the school's wording too, not only the pages that call label().
+setRegionWording((text) => localizeLabel(text));
+useLocaleStore.subscribe((state, prev) => { if (state.school.terms !== prev.school.terms) refreshPageText(); });

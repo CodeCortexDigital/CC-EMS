@@ -21,13 +21,16 @@ const patch = api.patch as unknown as ReturnType<typeof vi.fn>;
 const item = (over = {}) => ({
   id: 'i1', student: 's1', student_name: 'Noah Smith', student_number: 'STU1', class_name: 'Grade 4', source: 'absence', title: '5 unexcused absences in 30 days',
   description: 'Noah reached the 5-absence step.', suggested_actions: ['Call the family', 'Agree a plan'], status: 'open', priority: 'normal', owner: null, owner_name: '',
-  due_date: '2026-10-09', is_overdue: false, notes: [], created_at: '2026-10-02T10:00:00Z', closed_at: null, closure_note: '', ...over,
+  due_date: '2026-10-09', is_overdue: false, notes: [], created_at: '2026-10-02T10:00:00Z', closed_at: null, closure_note: '',
+  started_on: null, sessions_delivered: 0, outcome: '', evidence: '', review_on: null, is_review_due: false, ...over,
 });
+const reach = { raised: 5, students_flagged: 4, students_reached: 3, sessions_delivered: 9, average_days_to_start: 2.5, closed: 2, results: { improved: 1, no_change: 1, worse: 0, not_measured: 0 }, closed_without_result: 0, reviews_due: 1 };
 const summary = { open: 3, in_progress: 1, overdue: 2, unassigned: 1, mine: 0, high_priority: 1 };
 
 function mockApi(list = [item()]) {
   get.mockImplementation((url: string) => {
     if (url.endsWith('/summary/')) return Promise.resolve({ data: summary });
+    if (url.endsWith('/reach/')) return Promise.resolve({ data: reach });
     if (url.endsWith('/owners/')) return Promise.resolve({ data: [{ id: 'u-ann', name: 'Ann Teacher', role: 'staff' }] });
     if (url.endsWith('/lookup/')) return Promise.resolve({ data: [{ id: 's1', student_id: 'STU1', name: 'Noah Smith', class_name: 'Grade 4' }] });
     if (/\/interventions\/i1\/$/.test(url)) return Promise.resolve({ data: list[0] });
@@ -38,6 +41,40 @@ function mockApi(list = [item()]) {
 }
 
 beforeEach(() => { vi.clearAllMocks(); cleanup(); auth.role = 'counsellor'; auth.id = 'u-carol'; mockApi(); });
+
+describe('Record of support', () => {
+  it('shows who the support reached and what came of it', async () => {
+    render(<InterventionsPage />);
+    const panel = await screen.findByRole('region', { name: 'Reach and results' });
+    expect(panel.textContent).toContain('Students reached');
+    expect(panel.textContent).toContain('9');
+    expect(panel.textContent).toContain('1 improved, 1 no change');
+  });
+
+  it('shows the start date, sessions, result and review date of one, and logs a session', async () => {
+    mockApi([item({ status: 'in_progress', started_on: '2026-10-05', sessions_delivered: 3, outcome: 'improved', evidence: 'Absences 6 to 1', review_on: '2026-11-01', is_review_due: true })]);
+    render(<InterventionsPage />);
+    fireEvent.click(await screen.findByText('Noah Smith'));
+    const record = await screen.findByLabelText('Record of support');
+    expect(record.textContent).toContain('Sessions delivered3');
+    expect(record.textContent).toContain('Improved');
+    expect(record.textContent).toContain('Absences 6 to 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Log a session' }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/auth/interventions/i1/log_session/'));
+  });
+
+  it('sends the result and evidence when finishing', async () => {
+    mockApi([item({ status: 'in_progress' })]);
+    render(<InterventionsPage />);
+    fireEvent.click(await screen.findByText('Noah Smith'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Mark done…' }));
+    fireEvent.change(screen.getByLabelText('What was done'), { target: { value: 'Met weekly' } });
+    fireEvent.change(screen.getByLabelText('Result'), { target: { value: 'improved' } });
+    fireEvent.change(screen.getByLabelText('Evidence'), { target: { value: 'Absences 6 to 1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/auth/interventions/i1/complete/', { note: 'Met weekly', outcome: 'improved', evidence: 'Absences 6 to 1' }));
+  });
+});
 
 describe('Interventions (counselor)', () => {
   it('shows the numbers, the list, and what each one is for', async () => {

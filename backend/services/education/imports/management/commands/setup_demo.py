@@ -54,6 +54,19 @@ def wipe_everything(say=lambda *_: None):
     say(f'Removed {len(schools)} school(s) and the accounts ({n} records).')
 
 
+def keep_subscription_active(school):
+    """A demo school's free trial must not run out while people are looking at it (a lapsed trial makes the school read-only).
+    Each start puts the demo on an active plan with a year left."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from services.core.billing.models import Subscription
+
+    now = timezone.now()
+    Subscription.objects.filter(school=school).update(status='active', current_period_start=now, current_period_end=now + timedelta(days=365))
+
+
 class Command(BaseCommand):
     help = 'Set up the demo site: the demo accounts and the sample US school only.'
 
@@ -71,8 +84,10 @@ class Command(BaseCommand):
             wipe_everything(self.stdout.write)
         school = School.objects.filter(tenant_code=SCHOOL_CODE).first()
         if school is not None and Student.all_objects.filter(tenant=school).exists():
-            self.stdout.write(self.style.SUCCESS('Demo school is already loaded. Nothing to do.'))
+            keep_subscription_active(school)
+            self.stdout.write(self.style.SUCCESS('Demo school is already loaded. Its plan is kept active.'))
             return
         call_command('seed_sample_users', '--force')
         call_command('seed_demo', '--pack', opts['pack'], '--reset', stdout=self.stdout)
+        keep_subscription_active(School.objects.filter(tenant_code=SCHOOL_CODE).first())
         self.stdout.write(self.style.SUCCESS('Demo site ready. Log in as admin@code.com / Admin@123.'))

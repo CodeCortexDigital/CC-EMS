@@ -48,13 +48,15 @@ class InterventionSerializer(serializers.ModelSerializer):
     class_name = serializers.SerializerMethodField()
     owner_name = serializers.CharField(source='owner.full_name', read_only=True, default='')
     is_overdue = serializers.BooleanField(read_only=True)
+    is_review_due = serializers.BooleanField(read_only=True)
     notes = NoteSerializer(many=True, read_only=True)
 
     class Meta:
         model = Intervention
         fields = ('id', 'student', 'student_name', 'student_number', 'class_name', 'source', 'title', 'description', 'suggested_actions',
-                  'status', 'priority', 'owner', 'owner_name', 'due_date', 'is_overdue', 'notes', 'created_at', 'closed_at', 'closure_note')
-        read_only_fields = ('source', 'suggested_actions', 'status', 'created_at', 'closed_at', 'closure_note')
+                  'status', 'priority', 'owner', 'owner_name', 'due_date', 'is_overdue', 'notes', 'created_at', 'closed_at', 'closure_note',
+                  'started_on', 'sessions_delivered', 'outcome', 'evidence', 'review_on', 'is_review_due')
+        read_only_fields = ('source', 'suggested_actions', 'status', 'created_at', 'closed_at', 'closure_note', 'sessions_delivered')
 
     def get_class_name(self, obj):
         return obj.student.current_class.name if obj.student.current_class_id else ''
@@ -148,6 +150,22 @@ class InterventionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins
         return Response(NoteSerializer(note).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
+    def log_session(self, request, pk=None):
+        """Count one more session, check-in or contact delivered. Starts the support (and its start date) if it had not started."""
+        item = self.get_object()
+        if not self._may_work_on(request, item):
+            return Response({'detail': 'This one is not assigned to you.'}, status=status.HTTP_403_FORBIDDEN)
+        if item.status not in Intervention.ACTIVE:
+            return Response({'error': 'This intervention is closed.'}, status=status.HTTP_400_BAD_REQUEST)
+        if item.status == 'open':
+            item.status = 'in_progress'
+        item.started_on = item.started_on or timezone.localdate()
+        item.sessions_delivered += 1
+        item.save(update_fields=['status', 'started_on', 'sessions_delivered', 'updated_at'])
+        audit_write(request, 'UPDATE', 'interventions/item', item.pk, {'sessions_delivered': item.sessions_delivered})
+        return Response(self.get_serializer(self._fresh(item)).data)
+
+    @action(detail=True, methods=['post'])
     def start(self, request, pk=None):
         item = self.get_object()
         if not self._may_work_on(request, item):
@@ -155,7 +173,8 @@ class InterventionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins
         if item.status != 'open':
             return Response({'error': 'Only an open intervention can be started.'}, status=status.HTTP_400_BAD_REQUEST)
         item.status = 'in_progress'
-        item.save(update_fields=['status', 'updated_at'])
+        item.started_on = item.started_on or timezone.localdate()
+        item.save(update_fields=['status', 'started_on', 'updated_at'])
         audit_write(request, 'UPDATE', 'interventions/item', item.pk, {'status': 'in_progress'})
         return Response(self.get_serializer(self._fresh(item)).data)
 
@@ -167,6 +186,8 @@ class InterventionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins
             return Response({'note': f'Say {label} before closing it.'}, status=status.HTTP_400_BAD_REQUEST)
         with transaction.atomic():
             item.status, item.closure_note, item.closed_at, item.closed_by = to_status, note, timezone.now(), request.user
+            if to_status == 'done':
+                item.started_on = item.started_on or timezone.localdate()
             item.save()
             InterventionNote.objects.create(intervention=item, author=request.user, text=f'{to_status.title()}: {note}')
         audit_write(request, 'UPDATE', 'interventions/item', item.pk, {'status': to_status})
@@ -177,6 +198,14 @@ class InterventionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins
         item = self.get_object()
         if not self._may_work_on(request, item):
             return Response({'detail': 'This one is not assigned to you.'}, status=status.HTTP_403_FORBIDDEN)
+        outcome = str(request.data.get('outcome') or '').strip()
+        if outcome and outcome not in dict(Intervention.OUTCOMES):
+            return Response({'outcome': 'Choose one of the listed results.'}, status=status.HTTP_400_BAD_REQUEST)
+        if outcome:
+            item.outcome = outcome
+        evidence = str(request.data.get('evidence') or '').strip()
+        if evidence:
+            item.evidence = evidence
         return self._close(request, item, 'done', 'what was done')
 
     @action(detail=True, methods=['post'])
@@ -213,6 +242,29 @@ class InterventionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins
             'overdue': active.filter(due_date__lt=today).count(), 'unassigned': active.filter(owner__isnull=True).count(),
             'mine': Intervention.objects.filter(owner=request.user, status__in=Intervention.ACTIVE).count(),
             'high_priority': active.filter(priority='high').count(),
+        })
+
+    @action(detail=False, methods=['get'])
+    def reach(self, request):
+        """Who the school's support has reached and what came of it: students, sessions, results and reviews that are due."""
+        denied = self._reviewers_only(request)
+        if denied:
+            return denied
+        today = timezone.localdate()
+        qs = Intervention.objects.exclude(status='dismissed')
+        started = qs.filter(started_on__isnull=False)
+        done = qs.filter(status='done')
+        waits = [(i.started_on - timezone.localtime(i.created_at).date()).days for i in started.only('started_on', 'created_at')]
+        return Response({
+            'raised': qs.count(),
+            'students_flagged': qs.values('student').distinct().count(),
+            'students_reached': started.values('student').distinct().count(),
+            'sessions_delivered': sum(started.values_list('sessions_delivered', flat=True)),
+            'average_days_to_start': round(sum(waits) / len(waits), 1) if waits else None,
+            'closed': done.count(),
+            'results': {key: done.filter(outcome=key).count() for key, _ in Intervention.OUTCOMES},
+            'closed_without_result': done.filter(outcome='').count(),
+            'reviews_due': qs.filter(status__in=Intervention.ACTIVE, review_on__lte=today).count(),
         })
 
     @action(detail=False, methods=['get'])

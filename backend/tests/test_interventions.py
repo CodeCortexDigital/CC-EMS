@@ -204,3 +204,58 @@ class TestFiltersSummaryAndAudit:
         assert other.post(f'{BASE}/{item.pk}/complete/', {'note': 'x'}, format='json').status_code == 404
         assert other.get(f'{BASE}/summary/').json()['open'] == 0
         assert other.patch(f'{BASE}/{item.pk}/', {'title': 'x'}, format='json').status_code == 404
+
+
+class TestRecordOfSupport:
+    """When support began, how much was delivered, what came of it and when it is looked at again."""
+
+    def test_starting_stamps_the_start_date_and_logging_a_session_counts_it(self, school):
+        item = _open(school['kid'], owner=school['ann'], dedupe_key='a')
+        ann = api(school['ann'])
+        assert ann.get(f'{BASE}/{item.pk}/').json()['started_on'] is None
+        assert ann.post(f'{BASE}/{item.pk}/log_session/').json()['sessions_delivered'] == 1     # logging a session also starts it
+        body = ann.post(f'{BASE}/{item.pk}/log_session/').json()
+        assert (body['status'], body['sessions_delivered'], body['started_on']) == ('in_progress', 2, str(timezone.localdate()))
+        assert ann.patch(f'{BASE}/{item.pk}/', {'sessions_delivered': 99}, format='json').status_code == 403   # only reviewers patch, and the count is read-only
+        assert api(school['admin']).patch(f'{BASE}/{item.pk}/', {'sessions_delivered': 99}, format='json').json()['sessions_delivered'] == 2
+
+    def test_someone_else_cannot_log_a_session_and_a_closed_one_refuses(self, school):
+        item = _open(school['kid'], owner=school['ann'], dedupe_key='a')
+        assert api(school['ben']).post(f'{BASE}/{item.pk}/log_session/').status_code == 404
+        api(school['ann']).post(f'{BASE}/{item.pk}/complete/', {'note': 'Met twice'}, format='json')
+        assert api(school['ann']).post(f'{BASE}/{item.pk}/log_session/').status_code == 400
+
+    def test_finishing_records_the_result_and_the_evidence(self, school):
+        item = _open(school['kid'], owner=school['ann'], dedupe_key='a')
+        c = api(school['ann'])
+        assert c.post(f'{BASE}/{item.pk}/complete/', {'note': 'Done', 'outcome': 'magic'}, format='json').status_code == 400
+        body = c.post(f'{BASE}/{item.pk}/complete/', {'note': 'Met weekly', 'outcome': 'improved', 'evidence': 'Absences 6 to 1 in a month'}, format='json').json()
+        assert (body['status'], body['outcome'], body['evidence']) == ('done', 'improved', 'Absences 6 to 1 in a month')
+        assert body['started_on'] == str(timezone.localdate())
+
+    def test_a_review_date_comes_due_and_only_while_active(self, school):
+        today = timezone.localdate()
+        item = _open(school['kid'], dedupe_key='a')
+        admin = api(school['admin'])
+        assert admin.patch(f'{BASE}/{item.pk}/', {'review_on': str(today + timedelta(days=7))}, format='json').json()['is_review_due'] is False
+        assert admin.patch(f'{BASE}/{item.pk}/', {'review_on': str(today)}, format='json').json()['is_review_due'] is True
+        assert admin.get(f'{BASE}/reach/').json()['reviews_due'] == 1
+        admin.post(f'{BASE}/{item.pk}/dismiss/', {'note': 'Not needed'}, format='json')
+        assert admin.get(f'{BASE}/reach/').json()['reviews_due'] == 0
+
+    def test_the_reach_report_counts_students_sessions_and_results(self, school):
+        a = _open(school['kid'], owner=school['ann'], dedupe_key='a')
+        b = _open(school['kid2'], owner=school['ann'], dedupe_key='b')
+        _open(school['kid2'], dedupe_key='c', title='Not started')
+        ann = api(school['ann'])
+        ann.post(f'{BASE}/{a.pk}/log_session/'); ann.post(f'{BASE}/{a.pk}/log_session/')
+        ann.post(f'{BASE}/{b.pk}/complete/', {'note': 'Done', 'outcome': 'no_change'}, format='json')
+        report = api(school['admin']).get(f'{BASE}/reach/').json()
+        assert (report['raised'], report['students_flagged'], report['students_reached'], report['sessions_delivered']) == (3, 2, 2, 2)
+        assert report['closed'] == 1 and report['results']['no_change'] == 1 and report['closed_without_result'] == 0
+        assert report['average_days_to_start'] == 0
+        assert api(school['ann']).get(f'{BASE}/reach/').status_code == 403
+
+    def test_the_report_never_includes_another_school(self, school):
+        _open(school['kid_b'], dedupe_key='z')
+        assert api(school['admin']).get(f'{BASE}/reach/').json()['raised'] == 0
