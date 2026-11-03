@@ -237,6 +237,18 @@ def _pack_request(request, commit):
     upload = request.FILES.get('file')
     if upload is None:
         return Response({'error': 'Choose a zip pack, or a CSV or Excel file.'}, status=status.HTTP_400_BAD_REQUEST)
+    school = request.tenant
+    if school is None:
+        # Without a school the rows would be saved with no owner and no school could see them.
+        return Response({'error': 'No school is selected for this login, so nothing can be imported. Sign in as a school administrator.'},
+                        status=status.HTTP_409_CONFLICT)
+    if not school.is_active:
+        return Response({'error': f'{school.name} is suspended, so nothing can be imported. Re-activate the school or sign in to another one.'},
+                        status=status.HTTP_409_CONFLICT)
+    if commit and ImportJob.objects.filter(tenant=school, status='running', commit=True,
+                                           created_at__gte=timezone.now() - timezone.timedelta(minutes=45)).exists():
+        return Response({'error': 'An import is already running for this school. Wait for it to finish before starting another.'},
+                        status=status.HTTP_409_CONFLICT)
     mode = _mode(request)
     if mode == 'restore' and not _school_is_empty(request.tenant):
         return Response({'error': 'Restore is for an empty school. This school already has students or staff; use "Add and update" instead.'},

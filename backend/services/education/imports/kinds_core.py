@@ -195,7 +195,8 @@ def _student_update(clean, ctx):
                'family': 'select_family'}
     for key, field in mapping.items():
         if key in given:
-            setattr(s, field, clean[key])
+            # The family column is checked into clean['select_family'], not clean['family'].
+            setattr(s, field, clean['select_family'] if key == 'family' else clean[key])
     if 'class' in given or 'section' in given:
         if clean.get('current_class') is not None:
             s.current_class = clean['current_class']

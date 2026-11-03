@@ -126,6 +126,20 @@ def test_staff_students_and_opening_balances(imp):
 
 
 @pytest.mark.django_db
+def test_updating_an_existing_student_with_a_family_column(imp):
+    office, s = imp['office'], imp['s']
+    with use_tenant(s):
+        g1 = SchoolClass.objects.create(tenant=s, name='Grade 1', code='G1')
+        Section.objects.create(tenant=s, class_ref=g1, name='A')
+    StudentFactory(tenant=s, current_class=g1, student_id='HS-2026009', full_name='Old Pupil', guardian_phone='')
+    body = 'Name,Class,Student number,Family (siblings share the name)\nOld Pupil,Grade 1,HS-2026009,Hill family\n'
+    r = office.post(f'{URL}/students/import/', {'file': csv_file(body), 'mode': 'update'}, format='multipart').json()
+    assert (r['updated'], r['failed']) == (1, 0)
+    with use_tenant(s):
+        assert Student.objects.get(student_id='HS-2026009').select_family == 'Hill family'
+
+
+@pytest.mark.django_db
 def test_bad_files_and_who_may_import(imp):
     office = imp['office']
     r = office.post(f'{URL}/students/preview/', {'file': csv_file('Name,Section\nAli,A\n')}, format='multipart')

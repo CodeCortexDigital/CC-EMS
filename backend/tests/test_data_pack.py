@@ -418,6 +418,30 @@ def test_big_packs_run_as_a_job_with_progress_and_a_result(school, settings):
 
 
 @pytest.mark.django_db
+def test_nothing_is_imported_into_a_suspended_school_or_while_another_import_runs(school):
+    from django.utils import timezone
+
+    from services.education.imports.models import ImportJob
+
+    office, s = school['office'], school['s']
+    ImportJob.objects.create(tenant=s, file_name='earlier.zip', mode='add', commit=True, total_files=5, status='running',
+                             created_by=school['admin'])
+    r = _post(office, 'import', pack_zip())
+    assert r.status_code == 409 and 'already running' in r.json()['error']
+    assert _post(office, 'preview', pack_zip()).status_code == 200      # a preview is still allowed
+    ImportJob.objects.filter(tenant=s).update(status='done', finished_at=timezone.now())
+    s.is_active = False
+    s.save(update_fields=['is_active'])
+    r = _post(office, 'import', pack_zip())
+    assert r.status_code == 403                      # a school's own administrator is turned away at sign-in
+    school['admin'].is_superuser = True              # a platform owner is let through, so the import itself must refuse
+    school['admin'].save(update_fields=['is_superuser'])
+    r = _post(_client(school['admin']), 'import', pack_zip())
+    assert r.status_code == 409 and 'suspended' in r.json()['error']
+    assert all(v == 0 for v in _counts(s).values())
+
+
+@pytest.mark.django_db
 def test_a_job_that_stops_halfway_is_marked_failed(school, settings, monkeypatch):
     settings.IMPORT_JOB_ROWS = 20
     settings.IMPORT_JOBS_INLINE = True
