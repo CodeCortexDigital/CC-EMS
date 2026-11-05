@@ -29,8 +29,10 @@ def get_student_feature_row(student) -> dict:
     Invoice = apps.get_model('education_finance', 'Invoice')
     
     # 1. Attendance Rate
-    att_total = AttendanceRecord.objects.filter(student=student).count()
-    att_present = AttendanceRecord.objects.filter(student=student, status='present').count()
+    # Holidays are not school days. Present, late, early-dismissal and excused days all count as attended: being excused is not a risk sign.
+    day_records = AttendanceRecord.objects.filter(student=student).exclude(status='holiday')
+    att_total = day_records.count()
+    att_present = day_records.filter(status__in=['present', 'late', 'early_dismissal', 'excused']).count()
     att_rate = (att_present / att_total * 100.0) if att_total > 0 else 90.0
     
     # 2. Exam Average

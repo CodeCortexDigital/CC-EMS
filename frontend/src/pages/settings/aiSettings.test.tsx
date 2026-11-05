@@ -8,6 +8,7 @@ vi.mock('@/services/api', () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
+import { toast } from 'sonner';
 import api from '@/services/api';
 import AiSettingsPage from './AiSettingsPage';
 
@@ -16,6 +17,8 @@ const put = api.put as unknown as ReturnType<typeof vi.fn>;
 const post = api.post as unknown as ReturnType<typeof vi.fn>;
 
 const base = {
+  ai_enabled: true,
+  approval: { required: 1, approvers: [] as string[], candidates: [{ id: 'u1', name: 'Head Teacher', email: 'head@a.test', role: 'admin' }, { id: 'u2', name: 'Deputy', email: 'deputy@a.test', role: 'admin' }] },
   provider: { configured: false, name: '', note: 'No AI provider is set up on the server, so features use built-in templates and say so.' },
   contact_details_shared: false,
   features: [
@@ -66,5 +69,49 @@ describe('AI settings', () => {
     expect(screen.getByText(/anthropic/)).toBeTruthy();
     expect(screen.getByText(/masked before text is sent/)).toBeTruthy();
     expect(screen.queryByText(/monthly allowance/)).toBeNull();
+  });
+});
+
+describe('The one switch for all AI', () => {
+  it('turns every AI feature off and says plainly what that means', async () => {
+    put.mockResolvedValue({ data: { ...base, ai_enabled: false } });
+    render(<AiSettingsPage />);
+    fireEvent.click(await screen.findByRole('switch', { name: 'All AI' }));
+    await waitFor(() => expect(put).toHaveBeenCalledWith('/ai/settings/', { ai_enabled: false }));
+    expect(await screen.findByText('AI is switched OFF for your school')).toBeTruthy();
+    expect(screen.getByText(/risk scores and flags are hidden/)).toBeTruthy();
+  });
+
+  it('shows it on by default and can turn it back on', async () => {
+    get.mockResolvedValue({ data: { ...base, ai_enabled: false } });
+    put.mockResolvedValue({ data: base });
+    render(<AiSettingsPage />);
+    fireEvent.click(await screen.findByRole('switch', { name: 'All AI' }));
+    await waitFor(() => expect(put).toHaveBeenCalledWith('/ai/settings/', { ai_enabled: true }));
+    expect(await screen.findByText('AI is on for your school')).toBeTruthy();
+  });
+});
+
+describe('Who approves', () => {
+  it('requires two different people', async () => {
+    put.mockResolvedValue({ data: { ...base, approval: { ...base.approval, required: 2 } } });
+    render(<AiSettingsPage />);
+    fireEvent.change(await screen.findByLabelText('Approvals needed'), { target: { value: '2' } });
+    await waitFor(() => expect(put).toHaveBeenCalledWith('/ai/settings/', { approval: { required: 2, approvers: [] } }));
+  });
+
+  it('names an approver and says who may approve when nobody is named', async () => {
+    put.mockResolvedValue({ data: { ...base, approval: { ...base.approval, approvers: ['u2'] } } });
+    render(<AiSettingsPage />);
+    expect(await screen.findByText(/none named: any administrator/)).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Approver Deputy'));
+    await waitFor(() => expect(put).toHaveBeenCalledWith('/ai/settings/', { approval: { required: 1, approvers: ['u2'] } }));
+  });
+
+  it('shows the error when the rule cannot be met', async () => {
+    put.mockRejectedValue({ response: { data: { error: 'Two approvals need at least two people who can approve.' } } });
+    render(<AiSettingsPage />);
+    fireEvent.change(await screen.findByLabelText('Approvals needed'), { target: { value: '2' } });
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 });

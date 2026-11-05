@@ -10,10 +10,13 @@ from .base import LLMClient, LLMError, LLMTurn, StreamEvent, ToolCall, Usage
 class OpenAIClient(LLMClient):
     provider = "openai"
 
-    def __init__(self, api_key: str, fast_model: str, smart_model: str, timeout: float = 60):
+    def __init__(self, api_key: str, fast_model: str, smart_model: str, timeout: float = 60,
+                 base_url: str | None = None, provider: str | None = None):
         super().__init__(fast_model, smart_model)
         from openai import OpenAI
-        self.client = OpenAI(api_key=api_key, timeout=timeout, max_retries=2)
+        if provider:
+            self.provider = provider        # an OpenAI-compatible service (e.g. Gemini) is recorded under its own name
+        self.client = OpenAI(api_key=api_key, timeout=timeout, max_retries=2, base_url=base_url)
 
     def _request(self, system, messages, tools, tier):
         req = {

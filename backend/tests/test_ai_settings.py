@@ -41,10 +41,11 @@ class TestAccess:
 
 
 class TestOverview:
-    def test_lists_every_feature_switched_on_by_default(self, world):
+    def test_lists_every_feature_switched_on_by_default_except_face_recognition(self, world):
         data = api(world['admin']).get(URL).json()
         assert [f['key'] for f in data['features']] == [k for k, _, _ in FEATURES]
-        assert all(f['enabled'] for f in data['features']) and all(f['label'] and f['description'] for f in data['features'])
+        assert {f['key'] for f in data['features'] if not f['enabled']} == {'ai_face_attendance'}      # biometrics are opt-in
+        assert all(f['label'] and f['description'] for f in data['features'])
         assert data['provider']['configured'] is False and 'templates' in data['provider']['note']
 
     def test_says_which_provider_is_configured(self, world):

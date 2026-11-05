@@ -243,6 +243,37 @@ class TestApprovalGate:
         assert again.status_code == 409 and sender.call_count == 1
         assert AuditLog.objects.filter(resource_type='ai.action.send_fee_reminder', new_data__status='executed').exists()
 
+    def test_nothing_runs_if_the_approval_cannot_be_recorded(self, school, roles):
+        from services.core.audit import chain as audit_chain
+
+        s, admin, accountant, inv, ctx = self._ask(school, roles)
+        call_tool('propose_send_fee_reminder', {'invoice_number': inv.invoice_number}, ctx)
+        req = AIActionRequest.all_objects.get()
+        with mock.patch('services.education.communication.texts.fee_reminder') as sender,                 mock.patch('services.ai.actions.audit_chain.append', side_effect=audit_chain.AuditWriteError('down')):
+            with pytest.raises(audit_chain.AuditWriteError):
+                actions.approve(req, admin, 'admin', s)
+        req.refresh_from_db()
+        assert not sender.called and req.status == 'pending' and req.decided_by is None
+
+    def test_a_request_that_cannot_be_recorded_is_not_stored(self, school, roles):
+        from services.core.audit import chain as audit_chain
+
+        s, admin, accountant, inv, ctx = self._ask(school, roles)
+        with mock.patch('services.ai.actions.audit_chain.append', side_effect=audit_chain.AuditWriteError('down')):
+            out = call_tool('propose_send_fee_reminder', {'invoice_number': inv.invoice_number}, ctx)
+        assert 'could not be recorded' in out['error'] and not AIActionRequest.all_objects.exists()
+
+    def test_the_whole_approval_is_in_the_verified_trail(self, school, roles):
+        from services.core.audit import chain as audit_chain
+
+        s, admin, accountant, inv, ctx = self._ask(school, roles)
+        call_tool('propose_send_fee_reminder', {'invoice_number': inv.invoice_number}, ctx)
+        req = AIActionRequest.all_objects.get()
+        with mock.patch('services.education.communication.texts.fee_reminder', return_value=[object()]):
+            _client(admin).post(f'{BASE}approvals/{req.id}/approve/', {'note': 'Go ahead'}, format='json')
+        steps = list(AuditLog.objects.filter(chain=str(s.pk)).order_by('seq').values_list('new_data__status', flat=True))
+        assert steps == ['requested', 'approved', 'executed'] and audit_chain.verify()['ok']
+
     def test_rejecting_runs_nothing(self, school, roles):
         s, admin, accountant, inv, ctx = self._ask(school, roles)
         call_tool('propose_send_fee_reminder', {'invoice_number': inv.invoice_number}, ctx)

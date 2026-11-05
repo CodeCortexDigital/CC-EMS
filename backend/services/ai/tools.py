@@ -46,6 +46,14 @@ EVERYONE = ("admin", "accountant", "teacher", "student", "parent")
 # Keys stripped from tool results before they are sent to an external LLM
 # unless settings.AI_SHARE_CONTACT_INFO is True.
 CONTACT_KEYS = {"phone", "guardian_phone", "email", "cnic", "address"}
+# Never sent to an external LLM, whatever AI_SHARE_CONTACT_INFO says: US identifiers, birth dates and health details.
+# (The student ID is kept on purpose: the assistant needs it to name a student when it asks for an action.)
+SENSITIVE_KEYS = {
+    "ssn", "social_security", "social_security_number", "tax_id", "date_of_birth", "dob", "birth_date", "birthdate",
+    "health", "health_notes", "medical", "medical_notes", "medical_conditions", "allergies", "medication", "medications",
+    "diagnosis", "disability", "iep", "iep_notes", "immunizations", "nurse_notes",
+}
+_SSN_PATTERN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 
 
 @dataclass
@@ -692,11 +700,17 @@ from . import governed  # noqa: E402,F401  (registers the knowledge search and t
 
 
 def redact_for_llm(result: Any) -> Any:
-    """Strip contact details from tool output before it leaves for an external LLM."""
-    if getattr(settings, "AI_SHARE_CONTACT_INFO", False):
-        return result
-    if isinstance(result, dict):
-        return {k: ("[hidden]" if k in CONTACT_KEYS and v else redact_for_llm(v)) for k, v in result.items()}
-    if isinstance(result, list):
-        return [redact_for_llm(v) for v in result]
-    return result
+    """Strip contact details (unless the school allows them), and always strip US identifiers, birth dates and health details,
+    from tool output before it leaves for an external LLM."""
+    share_contacts = getattr(settings, "AI_SHARE_CONTACT_INFO", False)
+
+    def walk(value):
+        if isinstance(value, dict):
+            return {k: ("[hidden]" if v and (k in SENSITIVE_KEYS or (not share_contacts and k in CONTACT_KEYS)) else walk(v)) for k, v in value.items()}
+        if isinstance(value, list):
+            return [walk(v) for v in value]
+        if isinstance(value, str):
+            return _SSN_PATTERN.sub("[hidden]", value)
+        return value
+
+    return walk(result)

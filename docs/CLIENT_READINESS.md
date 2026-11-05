@@ -42,15 +42,20 @@ periods differ by country; the school sets them with its own adviser.
 | What | How | Evidence |
 |---|---|---|
 | AI output is a draft | Drafts (lesson plans, messages, report comments, briefs) are shown to a person, who edits and sends. Nothing the AI writes is sent automatically. | README "AI Features" |
-| The AI assistant cannot change anything | It can only ask. An asked action is stored as a pending request and runs only after an administrator approves it. Approver and requester roles are checked again at approval. Everything is audited. | `services/ai/actions.py`, `tests/test_governed_ai.py` |
+| The AI assistant cannot change anything | It can only ask. An asked action is stored as a pending request and runs only after approval. The person who asked can never approve their own request; the school can require two different approvers and can name who may approve. Approver and requester roles are checked again at approval. Each step (asked, each approval, result) is written to a hash-chained decision trail in the same transaction as the step, so nothing runs if its record cannot be saved. | `services/ai/actions.py`, `core/audit/chain.py`, `tests/test_governed_ai.py`, `tests/test_dual_approval.py`, `tests/test_audit_chain.py` |
+| One page per decision | A decision record shows what was asked, the provider and model, a fingerprint of the instructions, the data sent to the model (after masking), sources, the controls on at the time, every approval with who and when, and whether the trail still verifies; it can be downloaded. | `ai/governance_api.py::approval_record`, `tests/test_decision_record.py` |
 | AI risk scores need a person | Scores are labelled **advice only**. Each high or critical flag lists the reasons and waits for a person to choose "worth acting on", "need more information" or "not a concern", with a reason; the decision, who and when are recorded and audited. A new scan that moves a student to a different level clears the old review. No decision about a student is made by the score alone. | `analytics/ai_views.py::review_student_risk`, `TestHumanReviewOfAIRiskFlags`, panel on Reports > AI Risk & Review > AI Predictive Analytics |
-| What the AI sees | Daily briefs and their AI summaries use counts only, with no names. Phone numbers, emails and addresses are masked before data goes to an AI provider (switchable). Every AI lookup is audited. | `briefs/metrics.py`, `ai/tools.py` |
+| What the AI sees | Daily briefs and their AI summaries use counts only, with no names. Phone numbers, emails and addresses are masked before data goes to an AI provider (switchable). Social security numbers, birth dates and health details are always masked, whatever the setting. The student ID is sent, because the assistant needs it to name a student. Text a person types is sent as typed. Every AI lookup is audited. | `briefs/metrics.py`, `ai/tools.py`, `tests/test_ai_security.py` |
 | AI answers from the school's own documents | Administrators add policies; the assistant quotes them and names the document. Each document has an audience, enforced on the server, and no school can search another's. | `services/ai/knowledge.py` |
-| Schools can turn AI off | Per school, per feature (the school's AI settings). Without an AI key the app runs in a plain mode. | `services/ai/settings_api.py` |
+| Schools can turn AI off | One switch for all AI at a school (it also stops the risk scoring and hides its flags), plus a switch per feature. Face-recognition attendance is off until a school turns it on. Every change is a recorded decision. Without an AI key the app runs in a plain mode. | `services/ai/settings_api.py`, `services/ai/quota.py`, `tests/test_ai_master_switch.py` |
+| The risk scoring says what it is | A model card in the app states the models, their inputs, the written rules they are fitted to, what is not used, missing-data handling, limits, and each school's latest scan with a first check of flag rates by gender and class. | `analytics/model_card.py`, `analytics/ai_views.py::risk_model_card`, `tests/test_risk_model_card.py` |
 
-**Limits:** the risk models are simple (random forest, logistic regression, XGBoost) and trained on the school's own history; with a small or new school the scores
-are weak. There is no bias or fairness testing yet. The records of a review show a decision was made, not that it was a good one. A risk flag that is high
-still opens a to-do for a counsellor (a task for staff, not an action on the student).
+**Limits:** the risk scores are **not learned from recorded outcomes**. The models (XGBoost, logistic regression, random forest) are fitted to fixed, written scoring
+rules, using the school's own students plus generated example rows, so they reproduce those rules; there are no accuracy figures and no validation against real dropouts or
+defaults. The attendance anomaly check is set to flag about 15% of students by design. Family income and number of siblings were used by an earlier version of the fee
+model and have been removed. The first check of flag rates by group is not a fairness test. The records of a review show a decision was made, not that it was a good one.
+A risk flag that is high still opens a to-do for a counsellor (a task for staff, not an action on the student; it needs no approval). The decision trail is tamper-evident,
+not tamper-proof: someone who rewrites a whole chain and its newest hash together is not caught unless that hash was copied elsewhere. Routine audit rows are not chained.
 
 ## 4. Security basics that are built
 
@@ -86,7 +91,7 @@ over the school's own documents and optional face-recognition attendance, which 
 ## 8. Still open (honest list)
 
 * Retention for the remaining kinds of record (library, transport, visitor and health logs).
-* Bias and fairness checks for the risk models; a model card page inside the app.
+* A real fairness and validation study for the risk models (the app only shows flag rates by gender and class).
 * An independent security review.
 * Single sign-on and district-system imports (only when a client asks).
 * A tested test-restore of a backup on the hosted demo.

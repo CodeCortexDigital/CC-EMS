@@ -190,6 +190,10 @@ def test_ml_endpoints_report_unavailable(admin):
     with mock.patch.object(ai_views, "RISK_ML_AVAILABLE", False), mock.patch.object(ai_views, "FACE_ML_AVAILABLE", False):
         client = _client(admin)
         assert client.post("/api/v1/ai/train-models/", {}, format="json").status_code == 503
+        # Face recognition is off until switched on (biometric data); once on, a server without the packages says it is unavailable.
+        assert client.post("/api/v1/ai/face-attendance/", {}, format="json").status_code == 403
+        from services.core.features.models import FeatureFlag
+        FeatureFlag.objects.create(name="ai_face_attendance", is_enabled=True, rollout_percentage=100)
         assert client.post("/api/v1/ai/face-attendance/", {}, format="json").status_code == 503
 
 

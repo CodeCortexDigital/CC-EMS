@@ -9,7 +9,16 @@ class AuditLogAdmin(admin.ModelAdmin):
     list_display = ('timestamp', 'user', 'action', 'resource_type', 'resource_id')
     list_filter = ('action', 'resource_type', 'timestamp')
     search_fields = ('user__email', 'resource_type')
-    actions = ['export_as_csv', 'delete_old_logs']
+    actions = ['export_as_csv']
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def export_as_csv(self, request, queryset):
         meta = self.model._meta
@@ -26,11 +35,3 @@ class AuditLogAdmin(admin.ModelAdmin):
         return response
 
     export_as_csv.short_description = 'Export selected as CSV'
-
-    def delete_old_logs(self, request, queryset):
-        # For admin convenience: delete selected
-        count = queryset.count()
-        queryset.delete()
-        self.message_user(request, f'Deleted {count} logs')
-
-    delete_old_logs.short_description = 'Delete selected logs'

@@ -14,6 +14,8 @@ urlpatterns = [
     # Governed AI: approvals for what the assistant asks to do, and the school documents it may quote
     path("governance/actions/", governance_api.action_list, name="ai-gov-actions"),
     path("governance/approvals/", governance_api.approval_list, name="ai-gov-approvals"),
+    path("governance/requests/fee-reminder/", governance_api.request_fee_reminder, name="ai-gov-request-fee-reminder"),
+    path("governance/approvals/<uuid:pk>/record/", governance_api.approval_record, name="ai-gov-record"),
     path("governance/approvals/<uuid:pk>/approve/", governance_api.approval_approve, name="ai-gov-approve"),
     path("governance/approvals/<uuid:pk>/reject/", governance_api.approval_reject, name="ai-gov-reject"),
     path("governance/knowledge/", governance_api.knowledge_list, name="ai-gov-knowledge"),

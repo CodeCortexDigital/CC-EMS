@@ -57,3 +57,18 @@ class Recommendation(models.Model):
     
     def __str__(self):
         return f"{self.student.full_name} - {self.title}"
+
+
+class RiskScanRun(models.Model):
+    """One run of the student risk scan: what was used, what came out, and a basic check of who gets flagged.
+    Every score written by the run carries its id (factors['model_run']), so a score can be traced to the model that made it."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey('core_tenants.School', null=True, blank=True, on_delete=models.SET_NULL, related_name='risk_scan_runs')
+    ran_at = models.DateTimeField(auto_now_add=True)
+    ran_by = models.ForeignKey('core_accounts.User', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    students_scored = models.PositiveIntegerField(default=0)
+    details = models.JSONField(default=dict, blank=True)     # training facts, library versions, level counts, data gaps
+    fairness = models.JSONField(default=dict, blank=True)    # flag rates by group (see ai_views.fairness_snapshot)
+
+    class Meta:
+        ordering = ['-ran_at']

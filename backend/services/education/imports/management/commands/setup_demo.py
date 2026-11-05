@@ -56,15 +56,20 @@ def wipe_everything(say=lambda *_: None):
 
 def keep_subscription_active(school):
     """A demo school's free trial must not run out while people are looking at it (a lapsed trial makes the school read-only).
-    Each start puts the demo on an active plan with a year left."""
+    Each start puts the demo on an active plan with a year left. It is the plan that includes the AI assistant, so every demo login (teacher,
+    parent, student) can use it and not only the platform owner's account, which skips plan checks."""
     from datetime import timedelta
 
     from django.utils import timezone
 
-    from services.core.billing.models import Subscription
+    from services.core.billing.models import Plan, Subscription
 
     now = timezone.now()
-    Subscription.objects.filter(school=school).update(status='active', current_period_start=now, current_period_end=now + timedelta(days=365))
+    changes = {'status': 'active', 'current_period_start': now, 'current_period_end': now + timedelta(days=365)}
+    plan = Plan.objects.filter(code='premium').first()
+    if plan is not None:
+        changes['plan'] = plan
+    Subscription.objects.filter(school=school).update(**changes)
 
 
 class Command(BaseCommand):

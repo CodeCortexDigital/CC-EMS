@@ -138,6 +138,12 @@ class AIActionRequest(TenantScopedModel):
     decided_at = models.DateTimeField(null=True, blank=True)
     decision_note = models.CharField(max_length=500, blank=True)
     result = models.JSONField(default=dict, blank=True)
+    # What the request was based on when it was made: provider and model, a fingerprint of the instructions given to the model,
+    # what the person asked, what data was sent (after masking), the sources used and the controls that were on. Its hash is written
+    # into the verified trail, so a changed record is noticed (see actions.basis_hash and the decision record page).
+    record = models.JSONField(default=dict, blank=True)
+    # Each approval given so far: [{user_id, name, at, note}]. The action runs when there are as many as the school requires (1 or 2).
+    approvals = models.JSONField(default=list, blank=True)
     expires_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 

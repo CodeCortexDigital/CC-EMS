@@ -39,6 +39,8 @@ export default function StudentAttendanceSummary({
   }
 
   const rate = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+  // Excused absences and early dismissals are in the total but not in present, late or absent; show them so the figures add up.
+  const excused = Math.max(0, total - present - late - absent);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -64,7 +66,7 @@ export default function StudentAttendanceSummary({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-4 gap-px bg-slate-100 mx-5 rounded-xl overflow-hidden text-center text-[11px] font-bold">
+          <div className={`grid ${excused > 0 ? 'grid-cols-5' : 'grid-cols-4'} gap-px bg-slate-100 mx-5 rounded-xl overflow-hidden text-center text-[11px] font-bold`}>
             <div className="bg-white py-3 text-slate-700">
               <span className="block text-lg font-black text-slate-800">{total}</span>
               Total
@@ -81,6 +83,12 @@ export default function StudentAttendanceSummary({
               <span className="block text-lg font-black text-rose-500">{absent}</span>
               Absent
             </div>
+            {excused > 0 && (
+              <div className="bg-white py-3 text-sky-600">
+                <span className="block text-lg font-black text-sky-600">{excused}</span>
+                Excused
+              </div>
+            )}
           </div>
 
           <div className="px-5 py-3 flex items-center gap-2">

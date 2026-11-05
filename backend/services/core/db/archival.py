@@ -124,7 +124,8 @@ def archive_audit_logs(
     days = older_than_days or getattr(settings, 'DB_ARCHIVE_AUDIT_DAYS', 90)
     cutoff = timezone.now() - timedelta(days=days)
     AuditLog = apps.get_model('audit', 'AuditLog')
-    qs = AuditLog.objects.filter(timestamp__lt=cutoff)
+    # Decision records (hash-chained) stay where they are: moving them would break the chain.
+    qs = AuditLog.objects.filter(timestamp__lt=cutoff, entry_hash='')
     moved = 0
 
     for ids in _batch_ids(qs, BATCH_SIZE):

@@ -233,7 +233,7 @@ export default function LoginPage() {
         <div>
           <label htmlFor="login-username" className="sr-only">{t('auth.username')}</label>
           <input id="login-username" type="text" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder={placeholder}
-            autoComplete="username" autoCapitalize="none" spellCheck={false} aria-describedby="login-username-hint" className={inputBase} />
+            autoComplete="off" autoCapitalize="none" spellCheck={false} aria-describedby="login-username-hint" className={inputBase} />
           <p id="login-username-hint" className="mt-1.5 px-1 text-xs text-[#8aa39d]">{t(hint)}</p>
         </div>
 

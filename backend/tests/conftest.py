@@ -211,6 +211,16 @@ def _fresh_cache():
     yield
 
 
+@pytest.fixture(autouse=True)
+def _no_real_ai_provider(settings):
+    """A developer's backend/.env may hold a real AI key. Tests must never read it or call a provider: a test that wants one sets it itself."""
+    settings.AI_PROVIDER = ''
+    settings.OPENAI_API_KEY = ''
+    settings.ANTHROPIC_API_KEY = ''
+    settings.GEMINI_API_KEY = ''
+    yield
+
+
 @pytest.fixture
 def api_client():
     """Fixture to provide API client."""

@@ -240,3 +240,15 @@ def test_publish_quiz_requires_real_quiz():
     request = APIRequestFactory().post("/x/", {"quiz_id": "00000000-0000-0000-0000-000000000000"}, format="json")
     force_authenticate(request, user=UserFactory(is_superuser=True))
     assert ai_views.publish_quiz(request).status_code == 404
+
+
+def test_us_identifiers_birth_dates_and_health_details_are_always_masked(settings):
+    data = {"students": [{"name": "A", "student_id": "S-1", "ssn": "123-45-6789", "date_of_birth": "2012-04-01", "allergies": "peanuts",
+                          "notes": "Parent gave SSN 987-65-4321 on the form", "phone": "555-0100"}]}
+    for share in (False, True):
+        settings.AI_SHARE_CONTACT_INFO = share
+        row = redact_for_llm(data)["students"][0]
+        assert row["ssn"] == row["date_of_birth"] == row["allergies"] == "[hidden]"
+        assert "987-65-4321" not in row["notes"] and "[hidden]" in row["notes"]
+        assert row["student_id"] == "S-1" and row["name"] == "A"                     # kept: the assistant needs them to refer to a student
+        assert row["phone"] == ("555-0100" if share else "[hidden]")                   # contact details still follow the school's setting

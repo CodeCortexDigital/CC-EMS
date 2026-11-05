@@ -116,9 +116,10 @@ describe('Top menu', () => {
 
   it('switches to the side menu', async () => {
     const { useUIStore } = await import('@/store/uiStore');
+    expect(useUIStore.getState().navLayout).toBe('side');
+    useUIStore.getState().setNavLayout('top');
     renderNav();
     fireEvent.click(screen.getByLabelText('Switch to the side menu'));
     expect(useUIStore.getState().navLayout).toBe('side');
-    useUIStore.getState().setNavLayout('top');
   });
 });

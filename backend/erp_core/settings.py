@@ -600,6 +600,9 @@ AI_PROVIDER = os.environ.get("AI_PROVIDER", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+# Gemini is used through Google's OpenAI-compatible endpoint (AI_PROVIDER=gemini).
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-lite-latest")
 # Override the provider's default models (fast: chat; smart: content generation).
 AI_MODEL_FAST = os.environ.get("AI_MODEL_FAST", "")
 AI_MODEL_SMART = os.environ.get("AI_MODEL_SMART", "")

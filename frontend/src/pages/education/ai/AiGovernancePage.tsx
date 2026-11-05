@@ -8,6 +8,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Empty, Field, PageHead, Pill, Spinner, Tabs, btn, btnDanger, btnGhost, card, errorText, fmtDateTime, input } from '@/components/common/kit';
 import ai, { AUDIENCE_LABEL, STATUS_LABEL, type ApprovalRequest, type Audience, type KnowledgeDoc, type Passage, type RequestStatus } from '@/services/aiGovernance.service';
 
+import DecisionRecordModal from './DecisionRecordModal';
+
 type TabKey = 'approvals' | 'documents';
 const TONE: Record<RequestStatus, 'green' | 'amber' | 'red' | 'blue' | 'slate'> = { pending: 'amber', executed: 'green', failed: 'red', rejected: 'slate', expired: 'slate' };
 
@@ -16,6 +18,7 @@ function Approvals() {
   const [showAll, setShowAll] = useState(false);
   const [note, setNote] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState('');
+  const [openRecord, setOpenRecord] = useState('');
 
   const load = useCallback(async () => {
     try { setRows(await ai.approvals(showAll ? 'all' : 'pending')); } catch (e) { toast.error(errorText(e, 'Could not load the requests.')); setRows([]); }
@@ -51,11 +54,22 @@ function Approvals() {
           <p className="text-sm mt-1">{r.summary}</p>
           <p className="text-xs text-slate-500 mt-1">Asked by {r.requested_by || 'unknown'} ({r.requester_role || 'role unknown'}) on {fmtDateTime(r.created_at)}
             {r.status === 'pending' && <>, expires {fmtDateTime(r.expires_at)}</>}</p>
+          {r.status === 'pending' && (r.approvals_needed ?? 1) > 1 && (
+            <p className="text-xs text-slate-600 mt-1" data-testid="approval-progress">
+              {(r.approvals || []).length} of {r.approvals_needed} approvals given{(r.approvals || []).length > 0 && <> (by {(r.approvals || []).map((a) => a.by).join(', ')})</>}.
+              Two different people must approve before anything is sent.
+            </p>
+          )}
+          {r.status === 'pending' && !r.can_decide && r.why_not && <p className="text-xs text-amber-800 mt-1">{r.why_not}</p>}
           {r.status !== 'pending' && (
             <p className="text-xs text-slate-600 mt-1">
               {r.decided_by ? `Decided by ${r.decided_by} on ${fmtDateTime(r.decided_at)}.` : ''} {r.decision_note && `Note: ${r.decision_note}. `}
               {r.result?.note || r.result?.error || ''}
             </p>
+          )}
+          <button className="mt-2 text-xs font-bold text-indigo-700 hover:underline" onClick={() => setOpenRecord(r.id)}>Decision record</button>
+          {r.can_withdraw && !r.can_decide && (
+            <button className="mt-2 ml-3 text-xs font-bold text-slate-600 hover:underline" disabled={busy === r.id} onClick={() => decide(r, 'reject')}>Withdraw my request</button>
           )}
           {r.can_decide && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -67,6 +81,7 @@ function Approvals() {
           )}
         </div>
       ))}
+      {openRecord && <DecisionRecordModal id={openRecord} onClose={() => setOpenRecord('')} />}
     </section>
   );
 }

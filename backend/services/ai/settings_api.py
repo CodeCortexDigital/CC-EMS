@@ -7,6 +7,7 @@ AI features that send student information to a provider require it (see ``notice
 from __future__ import annotations
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import status
@@ -14,6 +15,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from services.core.audit import chain as audit_chain
 from services.core.features.models import FeatureFlag
 from services.core.tenants.context import use_tenant
 
@@ -21,7 +23,7 @@ from .context import AIContext
 from .llm import get_llm_client
 from .models import AIUsage
 from .permissions import IsAIAdmin
-from .quota import feature_enabled
+from .quota import MASTER_FLAG, OPT_IN_FEATURES, ai_enabled, feature_enabled
 
 # key (the name every AI endpoint checks), label, what it does
 FEATURES = [
@@ -39,6 +41,8 @@ FEATURES = [
     ('ai_message_summary', 'Message summaries', 'Summarises long messages and announcements.'),
     ('ai_translation', 'Translation', 'Translates messages and announcements for families.'),
     ('ai_timetable', 'Timetable suggestions', 'Suggests timetable changes.'),
+    ('ai_face_attendance', 'Face-recognition attendance', 'Off until you turn it on. A face is biometric data, and several US states restrict it for students, so it is not offered to US schools by default.'),
+    ('ai_risk_scan', 'Student risk scoring', 'Scores students for attendance, marks and fee risk, and lists attendance anomalies. Advice for staff; a person reviews every flag.'),
 ]
 FEATURE_KEYS = {k for k, _, _ in FEATURES}
 
@@ -50,6 +54,39 @@ NOTICE_TEXT = (
     'The school is responsible for choosing a provider whose terms meet its own and its district\'s privacy requirements, '
     'and for telling families that AI is used.'
 )
+
+
+def _own_flag(key, ctx) -> bool:
+    """The school's own setting for one switch, whether or not the master switch is on."""
+    from services.core.features.services import evaluate_flag, get_flag_record
+
+    flag = get_flag_record(key, tenant=ctx.tenant)
+    if flag is None:
+        return key not in OPT_IN_FEATURES
+    return evaluate_flag(flag, tenant=ctx.tenant, user=ctx.user)
+
+
+def _approval_candidates(school) -> list[dict]:
+    """People at this school who could be named as approvers: administrators and accountants who are active members."""
+    from services.core.accounts.decorators import get_user_role
+    from services.core.tenants.models import TenantMembership
+
+    seen, out = set(), []
+    for m in TenantMembership.objects.filter(school=school, is_active=True).select_related('user'):
+        u = m.user
+        role = get_user_role(u)
+        if u.pk in seen or not u.is_active or role not in ('admin', 'accountant'):
+            continue
+        seen.add(u.pk)
+        out.append({'id': str(u.pk), 'name': getattr(u, 'full_name', '') or u.email, 'email': u.email, 'role': role})
+    return sorted(out, key=lambda c: c['name'].lower())
+
+
+def _approval_payload(school) -> dict:
+    from .actions import approval_policy
+
+    pol = approval_policy(school)
+    return {'required': pol['required'], 'approvers': pol['approvers'], 'candidates': _approval_candidates(school) if school else []}
 
 
 def notice_accepted(school) -> bool:
@@ -81,12 +118,49 @@ def _payload(request):
     return {
         'provider': {'configured': client is not None, 'name': getattr(client, 'provider', '') if client else '',
                      'note': '' if client else 'No AI provider is set up on the server, so features use built-in templates and say so.'},
+        'ai_enabled': ai_enabled(ctx),
         'contact_details_shared': bool(getattr(settings, 'AI_SHARE_CONTACT_INFO', False)),
-        'features': [{'key': k, 'label': label, 'description': text, 'enabled': feature_enabled(k, ctx)} for k, label, text in FEATURES],
+        'features': [{'key': k, 'label': label, 'description': text, 'enabled': _own_flag(k, ctx)} for k, label, text in FEATURES],
         'usage': _usage(school),
+        'approval': _approval_payload(school),
         'notice': {'version': NOTICE_VERSION, 'text': NOTICE_TEXT, 'accepted': notice_accepted(school),
                    'accepted_at': saved.get('accepted_at'), 'accepted_by': saved.get('accepted_by')},
     }
+
+
+def _validate_approval(school, approval) -> str | None:
+    if school is None:
+        return 'No school selected.'
+    if not isinstance(approval, dict):
+        return 'Say how many approvals are needed and who may approve.'
+    required = approval.get('required', 1)
+    if required not in (1, 2):
+        return 'One or two approvals can be required.'
+    ids = [str(x) for x in (approval.get('approvers') or [])]
+    candidates = {c['id']: c for c in _approval_candidates(school)}
+    if any(i not in candidates for i in ids):
+        return 'Only active administrators and accountants of this school can be named as approvers.'
+    pool = len(ids) if ids else sum(1 for c in candidates.values() if c['role'] == 'admin')
+    if required == 2 and pool < 2:
+        return 'Two approvals need at least two people who can approve. Name more people, or add another administrator.'
+    return None
+
+
+def _save_approval(ctx, user, approval) -> None:
+    """Store the school's approval rule and record the change (inside the caller's transaction)."""
+    from services.core.tenants.models import School
+
+    from .actions import approval_policy
+
+    was = approval_policy(ctx.tenant)
+    now = {'required': approval.get('required', 1), 'approvers': [str(x) for x in (approval.get('approvers') or [])]}
+    with use_tenant(None):
+        fresh = School.objects.select_for_update().get(pk=ctx.tenant.pk)
+        fresh.settings_json = {**(fresh.settings_json or {}), 'ai_approval': now}
+        fresh.save(update_fields=['settings_json'])
+    ctx.tenant.settings_json = fresh.settings_json
+    audit_chain.append(user=user, school=ctx.tenant, action='UPDATE', resource_type='ai.settings.approval',
+                       new_data={'was': was, 'now': now})
 
 
 @api_view(['GET', 'PUT'])
@@ -95,17 +169,40 @@ def ai_settings(request):
     """GET: the settings. PUT {features: {ai_translation: false, ...}}: switch features on or off for this school."""
     if request.method == 'PUT':
         ctx = AIContext.from_request(request)
-        wanted = request.data.get('features')
-        if not isinstance(wanted, dict) or not wanted:
+        data = request.data if isinstance(request.data, dict) else {}
+        wanted = data.get('features')
+        master = data.get('ai_enabled')
+        approval = data.get('approval')
+        if wanted is not None and (not isinstance(wanted, dict) or not wanted):
             return Response({'error': 'Say which features to change.'}, status=status.HTTP_400_BAD_REQUEST)
-        unknown = [k for k in wanted if k not in FEATURE_KEYS]
+        if wanted is None and master is None and approval is None:
+            return Response({'error': 'Say which features to change.'}, status=status.HTTP_400_BAD_REQUEST)
+        if approval is not None:
+            problem = _validate_approval(ctx.tenant, approval)
+            if problem:
+                return Response({'error': problem}, status=status.HTTP_400_BAD_REQUEST)
+        unknown = [k for k in (wanted or {}) if k not in FEATURE_KEYS]
         if unknown:
             return Response({'error': f'Unknown feature: {unknown[0]}'}, status=status.HTTP_400_BAD_REQUEST)
         if ctx.tenant is None:
             return Response({'error': 'No school selected.'}, status=status.HTTP_400_BAD_REQUEST)
-        for key, on in wanted.items():
-            FeatureFlag.objects.update_or_create(name=key, tenant=ctx.tenant, defaults={
-                'is_enabled': bool(on), 'rollout_percentage': 100, 'description': 'Set from AI settings'})
+        changes = dict(wanted or {})
+        if master is not None:
+            changes[MASTER_FLAG] = bool(master)
+        try:
+            # Each change and its record are saved together. A change that cannot be recorded is not made.
+            with transaction.atomic():
+                if approval is not None:
+                    _save_approval(ctx, request.user, approval)
+                for key, on in changes.items():
+                    was = _own_flag(key, ctx)
+                    FeatureFlag.objects.update_or_create(name=key, tenant=ctx.tenant, defaults={
+                        'is_enabled': bool(on), 'rollout_percentage': 100, 'description': 'Set from AI settings'})
+                    audit_chain.append(user=request.user, school=ctx.tenant, action='UPDATE',
+                                       resource_type='ai.settings.master' if key == MASTER_FLAG else 'ai.settings.feature',
+                                       resource_id=None, new_data={'feature': key, 'was_on': bool(was), 'now_on': bool(on)})
+        except audit_chain.AuditWriteError:
+            return Response({'error': 'The change could not be recorded, so it was not made. Try again.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     return Response(_payload(request))
 
 
@@ -118,11 +215,16 @@ def accept_notice(request):
     ctx = AIContext.from_request(request)
     if ctx.tenant is None:
         return Response({'error': 'No school selected.'}, status=status.HTTP_400_BAD_REQUEST)
-    with use_tenant(None):
-        fresh = School.objects.get(pk=ctx.tenant.pk)
-        fresh.settings_json = {**(fresh.settings_json or {}), 'ai_notice': {
-            'version': NOTICE_VERSION, 'accepted_at': timezone.now().isoformat(), 'accepted_by': request.user.email}}
-        fresh.save(update_fields=['settings_json'])
+    try:
+        with transaction.atomic(), use_tenant(None):
+            fresh = School.objects.get(pk=ctx.tenant.pk)
+            fresh.settings_json = {**(fresh.settings_json or {}), 'ai_notice': {
+                'version': NOTICE_VERSION, 'accepted_at': timezone.now().isoformat(), 'accepted_by': request.user.email}}
+            fresh.save(update_fields=['settings_json'])
+            audit_chain.append(user=request.user, school=ctx.tenant, action='UPDATE', resource_type='ai.settings.notice',
+                               new_data={'notice_version': NOTICE_VERSION})
+    except audit_chain.AuditWriteError:
+        return Response({'error': 'The acceptance could not be recorded, so it was not saved. Try again.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     ctx.tenant.settings_json = fresh.settings_json
     return Response(_payload(request))
 
