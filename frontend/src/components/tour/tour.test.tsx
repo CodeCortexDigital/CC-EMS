@@ -9,7 +9,7 @@ vi.mock('@/services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), delet
 
 import api from '@/services/api';
 import { ALL_TOURS, tourFor } from '@/config/tourSteps';
-import { needsTour, startTour } from '@/services/tour.service';
+import { forgetSkip, needsTour, startTour } from '@/services/tour.service';
 import GuidedTour from './GuidedTour';
 
 const get = api.get as unknown as ReturnType<typeof vi.fn>;
@@ -44,10 +44,11 @@ describe('tour steps', () => {
     expect(ALL_TOURS.parent.steps.some((s) => s.href === '/parent/forms')).toBe(true);
   });
 
-  it('shows a tour again only when its version has moved on', () => {
+  it('keeps showing a tour until it has been finished, and again when its version moves on', () => {
     expect(needsTour({}, 'admin', 1)).toBe(true);
     expect(needsTour({ admin: { version: 1, status: 'completed' } }, 'admin', 1)).toBe(false);
-    expect(needsTour({ admin: { version: 1, status: 'skipped' } }, 'admin', 2)).toBe(true);
+    expect(needsTour({ admin: { version: 1, status: 'skipped' } }, 'admin', 1)).toBe(true);      // skipping is not finishing
+    expect(needsTour({ admin: { version: 1, status: 'completed' } }, 'admin', 2)).toBe(true);
   });
 });
 
@@ -55,7 +56,7 @@ function renderTour() {
   return render(<MemoryRouter><GuidedTour /></MemoryRouter>);
 }
 
-beforeEach(() => { vi.clearAllMocks(); cleanup(); auth.role = 'admin'; post.mockResolvedValue({ data: { tours: {} } }); });
+beforeEach(() => { vi.clearAllMocks(); cleanup(); forgetSkip(); auth.role = 'admin'; post.mockResolvedValue({ data: { tours: {} } }); });
 
 describe('GuidedTour', () => {
   it('opens for someone who has never seen it, and remembers when they finish', async () => {
@@ -77,7 +78,20 @@ describe('GuidedTour', () => {
     await waitFor(() => expect(post).toHaveBeenCalledWith('/tour/progress/', { tour: 'admin', version: ALL_TOURS.admin.version, status: 'skipped' }));
   });
 
-  it('stays closed for someone who has already seen it, until they ask to replay it', async () => {
+  it('after a skip it stays closed for the rest of that sign-in and comes back at the next one', async () => {
+    get.mockResolvedValue({ data: { tours: { admin: { version: ALL_TOURS.admin.version, status: 'skipped' } } } });
+    const first = renderTour();
+    fireEvent.click(await screen.findByRole('button', { name: 'Skip the tour' }));
+    first.unmount();
+    renderTour();                                              // the same sign-in, for example after a page reload
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    cleanup();
+    forgetSkip();                                              // a new sign-in
+    renderTour();
+    expect(await screen.findByRole('dialog', { name: 'Guided tour' })).toBeTruthy();
+  });
+
+  it('stays closed for someone who has finished it, until they ask to replay it', async () => {
     get.mockResolvedValue({ data: { tours: { admin: { version: ALL_TOURS.admin.version, status: 'completed' } } } });
     renderTour();
     await waitFor(() => expect(get).toHaveBeenCalled());

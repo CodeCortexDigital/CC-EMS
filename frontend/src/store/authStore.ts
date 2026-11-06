@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '@/services/api';
 import authService from '@/services/auth.service';
+import { forgetSkip } from '@/services/tour.service';
 
 // 'manager', 'hr', 'front_desk', 'nurse' and 'counsellor' are named office roles a school can give to a staff member.
 export type UserRole = 'admin' | 'staff' | 'teacher' | 'parent' | 'student' | 'user' | 'manager' | 'hr' | 'front_desk' | 'nurse' | 'counsellor';
@@ -143,6 +144,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       startSession: ({ access, refresh, user }) => {
+        forgetSkip();                                  // a skipped tour is offered again at every new sign-in
         localStorage.setItem('access_token', access);
         localStorage.setItem('refresh_token', refresh);
         applyAuthHeader(access);
@@ -158,6 +160,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        forgetSkip();
         const refresh = localStorage.getItem('refresh_token') || get().refreshToken;
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');

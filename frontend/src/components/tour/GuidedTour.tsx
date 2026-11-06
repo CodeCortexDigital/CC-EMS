@@ -1,10 +1,11 @@
-// The guided tour: opens once on a person's first sign-in, can be skipped, and can be replayed from Help.
+// The guided tour: opens at every sign-in until the person has been through every step. "Skip" hides it for the rest of that sign-in only;
+// it comes back at the next sign-in. It can also be replayed from Help.
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { tourFor } from '@/config/tourSteps';
-import tourApi, { needsTour, START_TOUR_EVENT } from '@/services/tour.service';
+import tourApi, { needsTour, skippedThisSignIn, skipForThisSignIn, START_TOUR_EVENT } from '@/services/tour.service';
 
 export default function GuidedTour() {
   const { role } = useAuth();
@@ -13,9 +14,9 @@ export default function GuidedTour() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
 
-  // Show it automatically only to someone who has never seen this version.
+  // Show it automatically until this version has been finished (unless it was skipped during this sign-in).
   useEffect(() => {
-    if (!tour) return;
+    if (!tour || skippedThisSignIn(tour.key)) return;
     let cancelled = false;
     tourApi.progress()
       .then((p) => { if (!cancelled && needsTour(p, tour.key, tour.version)) { setStep(0); setOpen(true); } })
@@ -32,7 +33,9 @@ export default function GuidedTour() {
 
   const finish = useCallback((status: 'completed' | 'skipped') => {
     setOpen(false);
-    if (tour) tourApi.record(tour.key, tour.version, status).catch(() => undefined);
+    if (!tour) return;
+    if (status === 'skipped') skipForThisSignIn(tour.key);
+    tourApi.record(tour.key, tour.version, status).catch(() => undefined);
   }, [tour]);
 
   useEffect(() => {

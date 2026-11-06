@@ -28,7 +28,7 @@ take up to a minute.** If you see "timeout", wait a moment and press Sign in aga
 
 ## 1a. The first-time tour, and installing the app
 
-* On your first sign-in a short **tour** shows where things are for your role. Press **Skip** to close it, or use **Take the tour** on **Help & support** to see it again.
+* At each sign-in a short **tour** shows where things are for your role, until you have been through every step and pressed **Finish**. **Skip** closes it for the rest of that sign-in only; it comes back the next time you sign in. Use **Take the tour** on **Help & support** to see it again after finishing.
 * **Install the app.** In **Account Settings**, **App and notifications** lets you install the portal on your phone or computer. On an iPhone or iPad, tap Share, then Add to Home Screen.
 * **Notifications.** Turn them on for a device to get alerts when the app is closed, choose which kinds you want (attendance, finance, exams and so on), send yourself a test, and remove old devices.
 
