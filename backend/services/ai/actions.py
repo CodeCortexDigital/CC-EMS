@@ -144,7 +144,9 @@ def approval_policy(tenant) -> dict:
 
 def _eligible(user, role, spec, tenant) -> bool:
     named = approval_policy(tenant)['approvers']
-    return (str(user.pk) in named) if named else (role in spec.approver_roles)
+    if role not in spec.approver_roles:
+        return False                      # a named person who has since lost the role can no longer approve
+    return (str(user.pk) in named) if named else True
 
 
 def is_approver(user, role, tenant) -> bool:
