@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  BookOpen, Boxes, ChevronRight, GraduationCap, LayoutDashboard, MessageSquare, MoreHorizontal, PanelLeft, Settings, Star, TrendingUp,
+  BookOpen, Boxes, ChevronRight, GraduationCap, LayoutDashboard, MessageSquare, MoreHorizontal, PanelLeft, Settings, ShieldCheck, Star, TrendingUp,
   User, Users, Wallet,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -22,11 +22,11 @@ export interface NavModule { id: string; label: string; description: string; lin
 /** Short names for the bar. Page titles keep the full name. */
 const SHORT: Record<string, string> = {
   home: 'Home', people: 'People', teaching: 'Teaching', academics: 'Academics', billing: 'Billing', communication: 'Comms', services: 'Services',
-  reports: 'Reports', admin: 'Admin', account: 'Account',
+  reports: 'Reports', admin: 'Admin', settings: 'Settings', account: 'Account',
 };
 const FULL: Record<string, string> = {
   home: 'Home', people: 'People', teaching: 'Teaching', academics: 'Academics', billing: 'Billing', communication: 'Communication', services: 'Campus services',
-  reports: 'Reports', admin: 'Administration', account: 'My account',
+  reports: 'Reports', admin: 'Administration', settings: 'Settings', account: 'My account',
 };
 const ABOUT: Record<string, string> = {
   home: 'Your dashboard, the daily brief and what needs your approval.',
@@ -37,12 +37,13 @@ const ABOUT: Record<string, string> = {
   communication: 'Messages, announcements, the calendar and meetings.',
   services: 'Library, transport, inventory and the cafeteria.',
   reports: 'Insights on enrolment, attendance, finance and results.',
-  admin: 'Security, imports, integrations and the school settings.',
+  admin: 'Security and privacy, importing data, integrations and the AI assistant.',
+  settings: 'The school profile, theme, language, your account, plan and help.',
   account: 'Your privacy, help and account settings.',
 };
 const ICON: Record<string, typeof Users> = {
   home: LayoutDashboard, people: Users, teaching: GraduationCap, academics: BookOpen, billing: Wallet, communication: MessageSquare, services: Boxes,
-  reports: TrendingUp, admin: Settings, account: User,
+  reports: TrendingUp, admin: ShieldCheck, settings: Settings, account: User,
 };
 /** Very light panel, a slightly deeper tile, and an accent strong enough for 15px text. */
 const THEMES: Record<string, { panel: string; tile: string; accent: string }> = {
@@ -55,6 +56,7 @@ const THEMES: Record<string, { panel: string; tile: string; accent: string }> = 
   services: { panel: '#e4f5f9', tile: '#c8e8f0', accent: '#0e7490' },
   reports: { panel: '#e5f2fb', tile: '#c9e3f5', accent: '#0369a1' },
   admin: { panel: '#eff2f6', tile: '#dde3eb', accent: '#475569' },
+  settings: { panel: '#eef4f1', tile: '#d9e8e1', accent: '#2f6f5e' },
   account: { panel: '#fdecf0', tile: '#fad4dd', accent: '#be123c' },
   favourites: { panel: '#fff6dc', tile: '#fdeab0', accent: '#b45309' },
   more: { panel: '#eef1f6', tile: '#dde3ec', accent: '#334155' },
@@ -89,7 +91,7 @@ export function useNavModules(): NavModule[] {
   return useMemo(() => buildSections(items).map((sec) => {
     const id = sec.group || 'home';
     const links: NavLinkItem[] = dedupe(sec.items.flatMap((item): NavLinkItem[] => item.id === 'settings' && !item.subItems
-      ? settingsSections.map((s) => ({ key: `${id}:settings:${s.id}`, label: tl(s.label), href: s.path }))     // Settings: one entry per section
+      ? settingsSections.filter((s) => s.id !== 'security').map((s) => ({ key: `${id}:settings:${s.id}`, label: tl(s.label), href: s.path }))     // Settings: one entry per section (Security & privacy stays under Admin)
       : item.subItems
       ? item.subItems.filter((s) => !s.isDivider).map((s) => (s.isLogout
         ? { key: `${id}:logout`, label: 'Log out', onClick: () => { logout(); navigate('/login'); } }

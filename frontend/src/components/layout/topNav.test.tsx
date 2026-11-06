@@ -13,7 +13,9 @@ vi.mock('./useNavItems', () => ({
     { id: 'students', label: 'Students', href: '/education/students', group: 'people', icon: null },
     { id: 'admissions', label: 'Admissions', href: '/education/admissions', group: 'people', icon: null },
     { id: 'timetable', label: 'Timetable', href: '/education/timetable', group: 'academics', icon: null },
-    { id: 'settings', label: 'Settings', href: '/settings', group: 'admin', icon: null },
+    { id: 'security', label: 'Security & privacy', href: '/settings/security', group: 'admin', icon: null },
+    { id: 'import-data', label: 'Import data', href: '/education/import', group: 'admin', icon: null },
+    { id: 'settings', label: 'Settings', href: '/settings', group: 'settings', icon: null },
   ],
 }));
 
@@ -92,11 +94,20 @@ describe('Top menu', () => {
     expect(screen.getByTestId('where').textContent).toBe('/education/timetable');
   });
 
-  it('Settings lists every settings section instead of one entry', () => {
+  it('Settings is its own menu and lists every settings section instead of one entry', () => {
+    renderNav();
+    hover('Settings'); wait(OPEN_DELAY_MS + 5);
+    const panel = screen.getByRole('region');
+    for (const name of ['Profile', 'Theme', 'Language & currency', 'Account', 'Plan & billing']) expect(within(panel).getByText(name)).toBeTruthy();
+    expect(within(panel).queryByText('Security & privacy')).toBeNull();                       // that one stays under Admin
+  });
+
+  it('Admin keeps the school administration and no longer holds the personal and display settings', () => {
     renderNav();
     hover('Admin'); wait(OPEN_DELAY_MS + 5);
     const panel = screen.getByRole('region');
-    for (const name of ['Profile', 'Theme', 'Language & currency', 'Account', 'Plan & billing', 'Security & privacy']) expect(within(panel).getByText(name)).toBeTruthy();
+    for (const name of ['Security & privacy', 'Import data']) expect(within(panel).getByText(name)).toBeTruthy();
+    for (const name of ['Theme', 'Language & currency', 'Plan & billing']) expect(within(panel).queryByText(name)).toBeNull();
   });
 
   it('stars a page, lists it under Favourites, and refuses a ninth with a clear message', () => {

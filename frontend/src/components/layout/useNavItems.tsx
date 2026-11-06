@@ -151,11 +151,11 @@ export function useNavItems(): MenuItem[] {
     { id: 'cafeteria', label: 'Cafeteria', icon: <UtensilsCrossed className="w-4 h-4" />, href: '/education/cafeteria', group: 'services' },
     { id: 'reports', label: 'Reports', icon: <TrendingUp className="w-4 h-4" />, href: isAdmin ? '/education/analytics/insights' : '/education/analytics', group: 'reports' },
     { id: 'security', label: 'Security & privacy', icon: <Lock className="w-4 h-4" />, href: '/settings/security', group: 'admin' },
-    { id: 'help', label: 'Help & support', icon: <LifeBuoy className="w-4 h-4" />, href: '/help', always: true, group: 'admin' },
+    { id: 'help', label: 'Help & support', icon: <LifeBuoy className="w-4 h-4" />, href: '/help', always: true, group: 'settings' },
     { id: 'import-data', label: 'Import data', icon: <FileSpreadsheet className="w-4 h-4" />, href: '/education/import', group: 'admin' },
     { id: 'ai-settings', label: 'AI Assistant', icon: <Sparkles className="w-4 h-4" />, href: '/settings/ai', group: 'admin' },
     { id: 'integrations', label: 'Integrations', icon: <Plug className="w-4 h-4" />, href: '/settings/integrations', group: 'admin' },
-    { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" />, href: '/settings', group: 'admin' },
+    { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" />, href: '/settings', group: 'settings' },
     // Platform owner only: every school on this installation.
     ...(user?.is_superuser
       ? [{ id: 'platform', label: 'All Schools', icon: <Building2 className="w-4 h-4" />, href: '/platform/schools', group: 'admin' }]
