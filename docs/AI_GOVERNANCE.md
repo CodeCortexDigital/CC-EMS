@@ -17,11 +17,21 @@ person asks  ->  assistant proposes  ->  request stored (pending)  ->  approver(
 * **The person who asked can never approve their own request** (they may withdraw it). The school can require **two different approvers** and can **name
   who may approve**; with nobody named, any administrator may. The rule cannot be set to something nobody can meet. `actions.decide_problem`,
   `settings_api._validate_approval`, `tests/test_dual_approval.py`.
-* At approval the asker's role and the request are checked again against today's data, and the request is locked so it runs exactly once.
+* **Two separate checks before anything runs.** (1) Is this still the exact action that was asked for? A SHA-256 of the action, the school and its checked
+  arguments is written into the verified trail when the request is made and compared again at the last approval; a request edited afterwards does not run.
+  (2) Is it still allowed now? The asker's role, the approver's eligibility, expiry and the data (for example the invoice is still open) are checked again.
+  The digest never replaces the second check. `actions.action_digest`, `tests/test_effect_intent.py`.
+* **The intent is saved before the action runs.** The last approval saves one `AIActionEffect` row under a key that can exist once per request, commits, and only then
+  runs the action. The outcome is one of: done, not done (a check stopped it, nothing sent), or **unknown** (it was attempted and the result could not be confirmed, for
+  example a mail server timeout). Unknown is not retried by itself; asking again is a new request and a new decision. We do not claim exactly-once delivery: the email
+  and text paths give no provider idempotency key or delivery lookup, and the text-message duplicate check is look-then-create, not a database constraint.
+* New schools need **two different approvers by default** (the asker never counts); an administrator can name delegates, for example a second in command, or lower it to one.
 * The fee-reminder action sends the same email as the fee office's own button, with the approver recorded as the sender.
 * "Request reminder" in the risk forecasts table creates the same kind of request, so a person's click there does not email a family either.
   `governance_api.request_fee_reminder`, `tests/test_remind_approval.py`.
-* "Counsel" in the same table opens a to-do for staff and notifies them. It is an internal task, not contact with a family, and has no approval step.
+* "Counsel" in the same table now also creates a request (`notify_counsel`); the to-do and the notifications to staff happen only after approval.
+* The **Decision records** tab (administrators) lists every recorded decision for the school: assistant answers (saved together with their record, or not shown),
+  risk-flag reviews, approval steps and AI setting changes. Each opens with its data, hashes and the verify result and downloads as a file.
 
 ## 2. The decision trail
 

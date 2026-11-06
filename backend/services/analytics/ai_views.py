@@ -451,55 +451,28 @@ def review_student_risk(request, student_id):
 @permission_classes([IsAIEducator])
 @requires_feature('ai_risk_scan')
 def notify_dropout_risk(request):
-    """{student_id} -> tell the student's class teachers and school admins about a dropout-risk
-    finding, and log a Recommendation, so a prediction turns into an actual intervention
-    (docs table "AI Attendance Insights": "Early intervention saves students")."""
-    from services.core.accounts.models import TeacherProfile
-    from services.core.tenants.models import TenantMembership
-    from services.core.user_notifications.utils import create_user_notification
+    """{student_id} -> ask for the student's counsellors to be told about a dropout-risk finding. Nothing is sent: it becomes a request
+    for an administrator to approve (with a decision record), like anything else the AI side asks for."""
+    from services.ai import actions
+    from services.analytics import counsel
 
-    StudentRisk = apps.get_model('analytics', 'StudentRisk')
-    Recommendation = apps.get_model('analytics', 'Recommendation')
     Student = apps.get_model('education_students', 'Student')
-
     ctx = AIContext.from_request(request)
     student = Student.objects.filter(pk=request.data.get('student_id'), id__in=_visible_student_ids(ctx)).first()
     if student is None:
         return Response({'error': 'Student not found.'}, status=status.HTTP_404_NOT_FOUND)
-    risk = StudentRisk.objects.filter(student=student).first()
-    dropout_risk = (risk.factors or {}).get('dropout_risk') if risk else None
-    if dropout_risk is None:
+    if counsel.dropout_risk_of(student)[1] is None:
         return Response({'error': 'Run the AI risk scan for this school first.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    message = f"{student.full_name} shows a {dropout_risk:.0f}% dropout risk (attendance, grades and behaviour). Please follow up."
-    rec = Recommendation.objects.create(
-        student=student, recommendation_type='attendance', title='Dropout risk follow-up',
-        description=message, action_items=['Meet with the student', 'Contact the family',
-                                           'Review attendance and recent grades'])
-
-    recipients = {t.user_id: t.user for t in TeacherProfile.objects.filter(
-        assigned_classes=student.current_class_id).select_related('user') if t.user_id}
-    if student.tenant_id:
-        recipients.update({m.user_id: m.user for m in TenantMembership.objects.filter(
-            school_id=student.tenant_id, role='admin').select_related('user')})
-    notified = 0
-    for user in recipients.values():
-        if create_user_notification(user, 'Dropout risk alert', message, 'academic'):
-            notified += 1
-
-    try:  # the same reason as the nightly scan's, so it lands in the counselor queue once
-        from services.education.interventions.engine import open_intervention
-
-        open_intervention(student=student, source='risk', title=f'Dropout risk {dropout_risk:.0f}%', description=message,
-                          actions=['Meet with the student', 'Contact the family', 'Review attendance and recent grades'],
-                          due_days=7, dedupe_key=f'risk:{student.pk}', created_by=request.user, notify=False)
-    except Exception:
-        logger.exception('Could not open an intervention for student %s', student.pk)
-
-    risk.recommendations = (risk.recommendations or []) + [
-        {'action': 'counsel_notified', 'at': timezone.now().isoformat(), 'by': request.user.email, 'notified': notified}]
-    risk.save(update_fields=['recommendations'])
-    return Response({'notified': notified, 'recommendation_id': str(rec.id)})
+    who = getattr(request.user, 'full_name', '') or request.user.email
+    ctx.extra.update({'origin': 'risk forecasts table (a person asked for it)', 'llm_provider': '', 'llm_model': '',
+                      'user_message': f'{who} asked for the counsellors to be told about {student.full_name} from the risk forecasts table.'})
+    out = actions.propose(ctx, 'notify_counsel', {'student_id': student.student_id})
+    if out.get('error'):
+        code = status.HTTP_403_FORBIDDEN if 'not available for your role' in out['error'] else status.HTTP_400_BAD_REQUEST
+        return Response({'error': out['error']}, status=code)
+    return Response({'request_id': out['request_id'], 'summary': out['summary'],
+                     'message': 'Sent for approval. Nobody has been notified yet: an administrator must approve it in AI Approvals.'},
+                    status=status.HTTP_202_ACCEPTED)
 
 
 @api_view(['GET'])

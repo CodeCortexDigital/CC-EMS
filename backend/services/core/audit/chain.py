@@ -21,7 +21,7 @@ from django.db import transaction
 
 from .models import AuditChainHead, AuditLog
 
-PROTECTED_PREFIXES = ('ai.action.', 'analytics.risk.', 'ai.settings.')
+PROTECTED_PREFIXES = ('ai.action.', 'analytics.risk.', 'ai.settings.', 'ai.chat.')
 
 
 class AuditWriteError(Exception):

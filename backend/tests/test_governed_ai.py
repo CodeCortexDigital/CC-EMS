@@ -52,6 +52,9 @@ def roles(monkeypatch):
 @pytest.fixture
 def school(db):
     school, admin = create_school_with_admin(school_name='Alder Academy', admin_email='head@alder.test', admin_name='Head', password='Sturdy-Pass-91x')
+    # New schools need two different approvers by default; these tests are about one approval unless they say otherwise.
+    school.settings_json = {**(school.settings_json or {}), 'ai_approval': {'required': 1, 'approvers': []}}
+    school.save(update_fields=['settings_json'])
     return school, admin
 
 
@@ -272,7 +275,7 @@ class TestApprovalGate:
         with mock.patch('services.education.communication.texts.fee_reminder', return_value=[object()]):
             _client(admin).post(f'{BASE}approvals/{req.id}/approve/', {'note': 'Go ahead'}, format='json')
         steps = list(AuditLog.objects.filter(chain=str(s.pk)).order_by('seq').values_list('new_data__status', flat=True))
-        assert steps == ['requested', 'approved', 'executed'] and audit_chain.verify()['ok']
+        assert steps == ['requested', 'approved', 'running', 'executed'] and audit_chain.verify()['ok']
 
     def test_rejecting_runs_nothing(self, school, roles):
         s, admin, accountant, inv, ctx = self._ask(school, roles)

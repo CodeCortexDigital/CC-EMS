@@ -16,7 +16,7 @@ logger = logging.getLogger("erp.ai")
 
 DEFAULT_MODELS = {
     "openai": {"fast": "gpt-4o-mini", "smart": "gpt-4o-mini"},
-    "anthropic": {"fast": "claude-opus-5", "smart": "claude-opus-5"},
+    "anthropic": {"fast": "claude-sonnet-5-5", "smart": "claude-sonnet-5-5"},
     "gemini": {"fast": "gemini-flash-lite-latest", "smart": "gemini-flash-lite-latest"},
 }
 # Gemini is reached through Google's OpenAI-compatible endpoint, so it uses the OpenAI adapter.

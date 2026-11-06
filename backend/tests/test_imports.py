@@ -182,3 +182,13 @@ def test_onboarding_steps(imp):
     assert not steps['region']['done']
     office.put('/api/v1/tenants/locale/', {'week_start': 1}, format='json')
     assert {s['key']: s for s in office.get('/api/v1/tenants/onboarding/').json()['steps']}['region']['done']
+
+
+@pytest.mark.django_db
+def test_a_school_with_no_students_numbers_new_ones_with_its_own_code(imp):
+    office, s = imp['office'], imp['s']
+    with use_tenant(s):
+        g1 = SchoolClass.objects.create(tenant=s, name='Grade 1', code='G1')
+        Section.objects.create(tenant=s, class_ref=g1, name='A')
+    p = office.post(f'{URL}/students/preview/', {'file': csv_file('Name,Class,Section\nAli Raza,Grade 1,A\nZoya Khan,Grade 1,A\n')}, format='multipart').json()
+    assert [r['note'] for r in p['rows']] == [f'Gets student number {s.tenant_code}-STU0001', f'Gets student number {s.tenant_code}-STU0002']

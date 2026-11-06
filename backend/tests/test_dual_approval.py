@@ -81,7 +81,7 @@ def test_two_approvals_from_two_different_people_before_anything_runs(school, ro
     assert second.json()['status'] == 'executed' and sender.call_count == 1
     assert [a['by'] for a in second.json()['approvals']] and len(second.json()['approvals']) == 2
     steps = [(r.new_data['status'], r.new_data.get('step')) for r in AuditLog.objects.filter(chain=str(s.pk), resource_id=req.id).order_by('seq')]
-    assert steps == [('requested', None), ('approved', 1), ('approved', 2), ('executed', None)] and chain.verify()['ok']
+    assert steps == [('requested', None), ('approved', 1), ('approved', 2), ('running', None), ('executed', None)] and chain.verify()['ok']
     record = _client(admin).get(f'{BASE}approvals/{req.id}/record/').json()
     assert record['basis']['controls']['approvals_required'] == 2 and record['request']['approvals_needed'] == 2
 

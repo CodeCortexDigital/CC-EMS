@@ -214,7 +214,7 @@ def test_factory_selects_provider(settings):
     client = get_llm_client()
     assert client.provider == "openai" and client.model_for("fast") == "gpt-custom"
     settings.AI_PROVIDER = "anthropic"
-    assert get_llm_client().model_for("smart") == "claude-opus-5"
+    assert get_llm_client().model_for("smart") == "claude-sonnet-5-5"
 
 
 # ---------------------------------------------------------------------------

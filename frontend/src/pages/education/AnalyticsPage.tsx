@@ -266,12 +266,11 @@ setTeacherPerformance(rawTeachers);
 
   const notifyCounselor = async (studentId: string | number, studentName: string) => {
     try {
+      // A request, not a notification: an administrator approves it in AI Approvals before anyone is told.
       const res = await api.post('/ai/dropout-risk/notify/', { student_id: studentId });
-      toast.success(res.data?.notified > 0
-        ? `Notified ${res.data.notified} staff member(s) about ${studentName}.`
-        : `Logged a follow-up for ${studentName}, but no class teacher or admin was found to notify.`);
+      toast.success(res.data?.message || `Request about ${studentName} sent for approval.`);
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || `Could not notify staff about ${studentName}.`);
+      toast.error(err?.response?.data?.error || `Could not ask to notify staff about ${studentName}.`);
     }
   };
 

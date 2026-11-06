@@ -270,7 +270,7 @@ def build(seed=2026):
                                         recurring=False, frequency='yearly'))
     fees = {c[0]: c[4] for c in CLASSES}
     inv, rc = 0, 0
-    for month, due, issued, paid_share in (('09', '2026-09-10', '2026-09-01', 0.88), ('10', '2026-10-10', '2026-10-01', 0.5)):
+    for month, due, issued, paid_share in (('09', '2026-09-10', '2026-09-01', 0.88), ('10', '2026-10-10', '2026-10-01', 0.82)):
         for s in students:
             inv += 1
             amount = fees[s['cls']]

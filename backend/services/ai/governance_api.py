@@ -8,6 +8,9 @@
                                       it waits here for an administrator, like anything the assistant asks for
     POST approvals/<id>/approve/      {note?}  approve and run it (approver roles only)
     POST approvals/<id>/reject/       {note?}  reject it (approver roles only)
+    GET  records/?kind=               every recorded decision in the school's trail: assistant answers, risk-flag reviews, approvals, setting
+                                      changes (administrators only)
+    GET  records/<seq>/               one entry with its hashes and whether the trail verifies (?download=1 saves it as a file)
     GET/POST knowledge/               the school's documents the assistant may quote (administrators)
     GET/PATCH/DELETE knowledge/<id>/  one document, with its text
     POST knowledge/search/            {query}  what the assistant would find for a question, as each role would see it
@@ -253,3 +256,82 @@ def knowledge_search(request):
     data = request.data if isinstance(request.data, dict) else {}
     role = data.get('as_role') if data.get('as_role') in knowledge.AUDIENCE_ROLES['everyone'] else ctx.role
     return Response({'as_role': role, 'passages': knowledge.search(str(data.get('query', ''))[:500], role=role, tenant=ctx.tenant)})
+
+
+# --- The school's whole decision trail (assistant answers, risk-flag reviews, approvals, settings) -----------------------------------
+
+RECORD_KINDS = {
+    'answer': ('ai.chat.',), 'risk': ('analytics.risk.',), 'approval': ('ai.action.',), 'settings': ('ai.settings.',),
+}
+KIND_LABELS = {'answer': 'Assistant answer', 'risk': 'Risk flag review', 'approval': 'Approval step', 'settings': 'AI setting change'}
+
+
+def _kind_of(resource_type: str) -> str:
+    for kind, prefixes in RECORD_KINDS.items():
+        if resource_type.startswith(prefixes):
+            return kind
+    return 'other'
+
+
+def _entry_summary(r) -> str:
+    data = r.new_data or {}
+    kind = _kind_of(r.resource_type)
+    if kind == 'answer':
+        asked = ((data.get('basis') or {}).get('asked') or '').strip()
+        return f"Asked: {asked[:120]}" if asked else 'Assistant answer'
+    if kind == 'risk':
+        return f"{(data.get('decision') or '').capitalize()} for a student flagged {data.get('level_at_review', '')}".strip()
+    if kind == 'approval':
+        return f"{r.resource_type.removeprefix('ai.action.').replace('_', ' ')}: {data.get('status', '')}"
+    return r.resource_type.removeprefix('ai.settings.').replace('_', ' ') or 'AI setting changed'
+
+
+def _entry_json(r, detail=False) -> dict:
+    data = r.new_data or {}
+    out = {'seq': r.seq, 'at': r.timestamp, 'kind': _kind_of(r.resource_type), 'kind_label': KIND_LABELS.get(_kind_of(r.resource_type), 'Record'),
+           'by': data.get('actor') or _person(r.user), 'summary': _entry_summary(r),
+           'resource_id': str(r.resource_id or ''), 'resource_type': r.resource_type}
+    if detail:
+        out.update({'data': data, 'previous_data': r.old_data, 'hash': r.entry_hash, 'previous_hash': r.prev_hash})
+    return out
+
+
+@api_view(['GET'])
+@permission_classes([IsAIAdmin])
+def record_list(request):
+    ctx = AIContext.from_request(request)
+    chain_name = str(ctx.tenant.pk) if ctx.tenant else 'platform'
+    rows = AuditLog.objects.filter(chain=chain_name).exclude(entry_hash='').select_related('user').order_by('-seq')
+    kind = request.query_params.get('kind', 'all')
+    if kind in RECORD_KINDS:
+        from django.db.models import Q
+        q = Q()
+        for prefix in RECORD_KINDS[kind]:
+            q |= Q(resource_type__startswith=prefix)
+        rows = rows.filter(q)
+    try:
+        limit = max(1, min(int(request.query_params.get('limit', 100)), 200))
+    except ValueError:
+        limit = 100
+    return Response([_entry_json(r) for r in rows[:limit]])
+
+
+@api_view(['GET'])
+@permission_classes([IsAIAdmin])
+def record_detail(request, seq):
+    ctx = AIContext.from_request(request)
+    chain_name = str(ctx.tenant.pk) if ctx.tenant else 'platform'
+    row = AuditLog.objects.filter(chain=chain_name, seq=seq).exclude(entry_hash='').select_related('user').first()
+    if row is None:
+        return _err('Record not found.', 404)
+    check = audit_chain.verify(chain_name)
+    body = {**_entry_json(row, detail=True),
+            'chain': {'verifies': check['ok'], 'records_checked': check['records'], 'problems': check['problems'],
+                      'newest_hash': check['heads'].get(chain_name, '')},
+            'generated_at': timezone.now(),
+            'note': 'The trail is tamper-evident, not tamper-proof: it shows if a record was changed or removed, and relies on the newest hash being kept outside the database.'}
+    if request.query_params.get('download'):
+        resp = HttpResponse(json.dumps(body, default=str, indent=2, ensure_ascii=False), content_type='application/json')
+        resp['Content-Disposition'] = f'attachment; filename="decision-record-{chain_name[:8]}-{row.seq}.json"'
+        return resp
+    return Response(body)

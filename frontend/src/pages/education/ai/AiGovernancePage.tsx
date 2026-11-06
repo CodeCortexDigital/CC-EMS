@@ -9,9 +9,10 @@ import { Empty, Field, PageHead, Pill, Spinner, Tabs, btn, btnDanger, btnGhost, 
 import ai, { AUDIENCE_LABEL, STATUS_LABEL, type ApprovalRequest, type Audience, type KnowledgeDoc, type Passage, type RequestStatus } from '@/services/aiGovernance.service';
 
 import DecisionRecordModal from './DecisionRecordModal';
+import TrailRecords from './TrailRecords';
 
-type TabKey = 'approvals' | 'documents';
-const TONE: Record<RequestStatus, 'green' | 'amber' | 'red' | 'blue' | 'slate'> = { pending: 'amber', executed: 'green', failed: 'red', rejected: 'slate', expired: 'slate' };
+type TabKey = 'approvals' | 'records' | 'documents';
+const TONE: Record<RequestStatus, 'green' | 'amber' | 'red' | 'blue' | 'slate'> = { pending: 'amber', executed: 'green', failed: 'red', rejected: 'slate', expired: 'slate', running: 'blue', unknown: 'red' };
 
 function Approvals() {
   const [rows, setRows] = useState<ApprovalRequest[] | null>(null);
@@ -204,8 +205,8 @@ export default function AiGovernancePage() {
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <PageHead title="AI approvals and school documents" hint="You stay in control: the assistant only asks, and quotes only what you give it." />
-      <Tabs value={tab} onChange={(v) => setTab(v as TabKey)} tabs={[['approvals', 'Approvals'], ['documents', 'School documents']]} />
-      {tab === 'approvals' ? <Approvals /> : <Documents />}
+      <Tabs value={tab} onChange={(v) => setTab(v as TabKey)} tabs={[['approvals', 'Approvals'], ['records', 'Decision records'], ['documents', 'School documents']]} />
+      {tab === 'approvals' ? <Approvals /> : tab === 'records' ? <TrailRecords /> : <Documents />}
     </div>
   );
 }

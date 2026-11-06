@@ -41,7 +41,7 @@ def test_approving_it_sends_once_and_records_the_approver(school, roles):
         res = _client(admin).post(f'{BASE}approvals/{req.id}/approve/', {'note': 'Yes'}, format='json')
     assert res.status_code == 200 and res.json()['status'] == 'executed' and sender.call_count == 1
     assert sender.call_args.args[0].user == admin                                   # the approver is the one recorded as sending it
-    assert [r.new_data['status'] for r in AuditLog.objects.filter(chain=str(s.pk)).order_by('seq')] == ['requested', 'approved', 'executed']
+    assert [r.new_data['status'] for r in AuditLog.objects.filter(chain=str(s.pk)).order_by('seq')] == ['requested', 'approved', 'running', 'executed']
     assert chain.verify()['ok']
 
 

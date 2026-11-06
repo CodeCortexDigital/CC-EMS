@@ -26,9 +26,10 @@ from django.utils import timezone
 
 from services.core.accounts.decorators import get_user_role
 from services.core.audit import chain as audit_chain
+from services.core.audit.models import AuditLog
 
 from .context import AIContext
-from .models import AIActionRequest
+from .models import AIActionEffect, AIActionRequest
 
 logger = logging.getLogger('erp.ai')
 
@@ -126,7 +127,7 @@ def propose(ctx: AIContext, name: str, arguments: dict) -> dict:
                 tenant=ctx.tenant, action=name, summary=summary[:300], arguments=cleaned, requested_by=ctx.user, requester_role=ctx.role or '',
                 conversation_id=ctx.extra.get('conversation_id'), record=record, expires_at=timezone.now() + REQUEST_LIFETIME)
             _audit(ctx.user, ctx.tenant, name, req.id, 'requested',
-                   {'arguments': cleaned, 'basis_sha256': basis_hash(record), 'provider': record['provider'], 'model': record['model']})
+                   {'arguments': cleaned, 'action_sha256': action_digest(name, ctx.tenant, cleaned), 'basis_sha256': basis_hash(record), 'provider': record['provider'], 'model': record['model']})
     except audit_chain.AuditWriteError:
         logger.exception('AI action %s was not stored because its record could not be written', name)
         return {'error': 'The request could not be recorded, so it was not sent for approval. Try again.'}
@@ -139,7 +140,7 @@ def approval_policy(tenant) -> dict:
     """The school's rule for approving: how many different people must approve (1 or 2), and, if the administrator named them, who may.
     With nobody named, any administrator may approve. The person who asked can never approve their own request."""
     saved = ((getattr(tenant, 'settings_json', None) or {}).get('ai_approval') or {}) if tenant else {}
-    return {'required': 2 if int(saved.get('required') or 1) >= 2 else 1, 'approvers': [str(x) for x in (saved.get('approvers') or [])]}
+    return {'required': 1 if int(saved.get('required') or 2) <= 1 else 2, 'approvers': [str(x) for x in (saved.get('approvers') or [])]}
 
 
 def _eligible(user, role, spec, tenant) -> bool:
@@ -200,8 +201,29 @@ def reject(req: AIActionRequest, user, role, tenant, note: str = '') -> AIAction
     return req
 
 
+def action_digest(name: str, tenant, arguments: dict) -> str:
+    """A fingerprint of exactly what is being approved: the action, the school and its (checked) arguments. It is written into the
+    verified trail when the request is made, and compared again just before anything runs ("is this still the action that was asked
+    for?"). It does not replace the checks against today's data ("is it still allowed now?"); both are made."""
+    plain = json.loads(json.dumps({'action': name, 'school': str(getattr(tenant, 'pk', '') or ''), 'arguments': arguments or {}},
+                                  default=str, ensure_ascii=False))
+    return hashlib.sha256(json.dumps(plain, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')).hexdigest()
+
+
+def _asked_digest(req: AIActionRequest, tenant) -> str:
+    """The digest written into the trail when the request was made ('' for a request made before digests were recorded)."""
+    row = AuditLog.objects.filter(chain=str(tenant.pk) if tenant else 'platform', resource_id=req.id,
+                                  resource_type=f'ai.action.{req.action}').order_by('seq').first()
+    return str(((row.new_data if row else None) or {}).get('action_sha256') or '')
+
+
 def approve(req: AIActionRequest, user, role, tenant, note: str = '') -> AIActionRequest:
-    """Approve and run once. The asker's own permission is checked again, because their role may have changed since."""
+    """Approve and run once.
+
+    Three steps, each saved before the next: (1) the approval is recorded and, on the last one, the intent to run is saved under a key
+    that can exist only once; (2) the action runs, outside that transaction, after the same checks as when it was asked, made against
+    today's data; (3) the outcome is saved: done, not done, or UNKNOWN when the result cannot be confirmed (then it is not retried
+    automatically: asking again is a new decision)."""
     _expire_if_due(req, tenant)
     with transaction.atomic():
         req = _lock(req, tenant)
@@ -220,22 +242,46 @@ def approve(req: AIActionRequest, user, role, tenant, note: str = '') -> AIActio
             req.save(update_fields=['approvals'])                      # waits for the other person; nothing runs yet
             return req
         req.decided_by, req.decided_at, req.decision_note = user, timezone.now(), (note or '')[:500]
+        asked = _asked_digest(req, tenant)
+        problem = None
         if not requester.is_active or requester_role not in spec.request_roles:
-            req.status, req.result = 'failed', {'error': 'The person who asked no longer has permission for this action, so it was not run.'}
-        else:
-            ctx = AIContext(user=requester, role=requester_role, tenant=tenant)
-            try:
-                _, cleaned = spec.check(ctx, req.arguments)           # the same checks as when it was asked, against today's data
-                req.result = spec.run(ctx, cleaned, user) or {}
-                req.status = 'executed'
-            except ActionError as exc:
-                req.status, req.result = 'failed', {'error': str(exc)}
-            except Exception:
-                logger.exception('AI action %s failed', req.action)
-                req.status, req.result = 'failed', {'error': 'The action could not be completed.'}
-        req.save(update_fields=['status', 'decided_by', 'decided_at', 'decision_note', 'result', 'approvals'])
-        _audit(user, tenant, req.action, req.id, req.status, {'result': req.result, 'asked_by': str(req.requested_by_id)})
-    return req
+            problem = 'The person who asked no longer has permission for this action, so it was not run.'
+        elif asked and asked != action_digest(req.action, tenant, req.arguments):
+            problem = 'This request no longer matches what was asked for, so it was not run. Ask for it again.'
+        if problem:
+            req.status, req.result = 'failed', {'error': problem}
+            req.save(update_fields=['status', 'decided_by', 'decided_at', 'decision_note', 'result', 'approvals'])
+            _audit(user, tenant, req.action, req.id, 'failed', {'result': req.result, 'asked_by': str(req.requested_by_id)})
+            return req
+        req.status = 'running'
+        req.save(update_fields=['status', 'decided_by', 'decided_at', 'decision_note', 'approvals'])
+        # The intent, saved before anything is sent. One row per request: a second attempt cannot create another.
+        AIActionEffect.objects.create(request=req, tenant=tenant, effect_key=f'{req.action}:{req.id}', state='dispatching')
+        _audit(user, tenant, req.action, req.id, 'running', {'asked_by': str(req.requested_by_id), 'action_sha256': asked})
+    return _execute(req, tenant, requester, requester_role, spec, user)
+
+
+def _execute(req, tenant, requester, requester_role, spec, approver) -> AIActionRequest:
+    ctx = AIContext(user=requester, role=requester_role, tenant=tenant)
+    try:
+        _, cleaned = spec.check(ctx, req.arguments)                    # the same checks as when it was asked, against today's data
+        result, state, status = spec.run(ctx, cleaned, approver) or {}, 'confirmed', 'executed'
+    except ActionError as exc:
+        result, state, status = {'error': str(exc)}, 'not_done', 'failed'
+    except Exception:
+        logger.exception('AI action %s ended in an unknown state', req.action)
+        result, state, status = ({'error': 'We could not confirm whether this was done. Check before asking again: asking again is a new decision.'},
+                                 'unknown', 'unknown')
+    try:
+        with transaction.atomic():
+            req = _lock(req, tenant)
+            req.status, req.result = status, result
+            req.save(update_fields=['status', 'result'])
+            AIActionEffect.objects.filter(request=req).update(state=state, detail=result, finished_at=timezone.now())
+            _audit(approver, tenant, req.action, req.id, status, {'result': result, 'effect_state': state, 'asked_by': str(req.requested_by_id)})
+    except audit_chain.AuditWriteError:
+        logger.exception('The outcome of AI action %s could not be recorded; it stays "running" until someone checks', req.action)
+    return AIActionRequest.all_objects.get(pk=req.pk)
 
 
 def _lock(req, tenant) -> AIActionRequest:
@@ -320,6 +366,27 @@ def _run_support_case(ctx, args, approver):
     return {'case_id': str(case.id), 'note': f'Support case opened for {student.full_name}.'}
 
 
+def _check_counsel(ctx, args):
+    from services.analytics import counsel
+
+    student = _student_in_scope(ctx, args.get('student_id'))
+    value = counsel.dropout_risk_of(student)[1]
+    if value is None:
+        raise ActionError('The risk scan has not scored this student yet.')
+    return (f'Tell the counsellors about {student.full_name} ({value:.0f}% dropout-risk finding)', {'student_id': student.student_id})
+
+
+def _run_counsel(ctx, args, approver):
+    from services.analytics import counsel
+
+    student = _student_in_scope(ctx, args['student_id'])
+    try:
+        out = counsel.notify(student, approver)
+    except ValueError:
+        raise ActionError('The risk scan has not scored this student yet.')
+    return {**out, 'note': f"Counsellors told about {student.full_name} ({out['notified']} people notified)."}
+
+
 register(ActionSpec(
     name='send_fee_reminder', label='Send a fee reminder',
     description='Ask to send a fee reminder text to the family for ONE unpaid invoice. It is only a request: an administrator must approve it before anything is sent.',
@@ -336,3 +403,10 @@ register(ActionSpec(
                 'description': {'type': 'string', 'description': 'What was noticed and why. Facts only.'},
                 'priority': {'type': 'string', 'description': "'normal' or 'high'."}},
     required=('student_id', 'title'), check=_check_support_case, run=_run_support_case))
+
+register(ActionSpec(
+    name='notify_counsel', label='Tell the counsellors about a risk finding',
+    description="Ask for the class teachers, administrators and the counsellor queue to be told about one student's dropout-risk finding. It is only a request: an administrator must approve it first.",
+    request_roles=('admin', 'teacher'), approver_roles=('admin',),
+    properties={'student_id': {'type': 'string', 'description': "The student's ID."}},
+    required=('student_id',), check=_check_counsel, run=_run_counsel))

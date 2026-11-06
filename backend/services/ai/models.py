@@ -124,7 +124,8 @@ class AIActionRequest(TenantScopedModel):
     """Something the AI assistant wants done. It is only a request: nothing happens until a person with the right role
     approves it, and then only through an action that is registered in code (see actions.py)."""
     STATUSES = [('pending', 'Waiting for approval'), ('executed', 'Approved and done'), ('failed', 'Approved, but it did not work'),
-                ('rejected', 'Rejected'), ('expired', 'Expired')]
+                ('rejected', 'Rejected'), ('expired', 'Expired'), ('running', 'Approved, running now'),
+                ('unknown', 'Approved, result could not be confirmed')]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     action = models.CharField(max_length=60)
@@ -150,3 +151,17 @@ class AIActionRequest(TenantScopedModel):
     class Meta:
         ordering = ['-created_at']
         indexes = [models.Index(fields=['tenant', 'status', '-created_at'])]
+
+
+class AIActionEffect(TenantScopedModel):
+    """The saved intent to carry out one approved request, and what is known about the outcome. One row per request (the key is unique), so a
+    second attempt cannot create another. States: dispatching (saved, not yet finished), confirmed, not_done (stopped by a check, nothing
+    was sent) and unknown (it was attempted and the result could not be confirmed; it is not retried automatically)."""
+    STATES = [('dispatching', 'Running'), ('confirmed', 'Done'), ('not_done', 'Not done'), ('unknown', 'Result not confirmed')]
+
+    request = models.OneToOneField(AIActionRequest, on_delete=models.CASCADE, related_name='effect')
+    effect_key = models.CharField(max_length=120, unique=True)
+    state = models.CharField(max_length=12, choices=STATES, default='dispatching')
+    detail = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)

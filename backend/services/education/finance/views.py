@@ -1400,29 +1400,6 @@ def send_fee_reminder(request, invoice_id):
 
 
 @api_view(['POST'])
-@permission_classes([FinanceStaff])
-def send_student_fee_reminder(request, student_id):
-    """Email the family about their oldest open invoice, given a student id — used by the
-    AI Risk Forecasts table's "Remind" action (docs table "AI Fee Default Prediction"),
-    where a fee-default-risk score is known for a student but no invoice id is on hand."""
-    from .billing import account_for_student
-
-    student = Student.objects.filter(pk=student_id).first()
-    if student is None:
-        return Response({'error': 'Student not found.'}, status=404)
-    invoice = account_for_student(student).open_invoices().first()
-    if invoice is None:
-        return Response({'error': f'{student.full_name} has no open invoices.'}, status=400)
-    try:
-        note = (request.data or {}).get('message')
-        return Response(_send_invoice_reminder(request, invoice, note))
-    except ValueError:
-        return Response({'error': 'No email address for this family. Add one to a guardian marked "Receives invoices".'}, status=400)
-    except Exception as e:
-        return Response({'error': f'Failed to send email: {str(e)}'}, status=500)
-
-
-@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def send_payment_confirmation(request, payment_id):
     """Send payment confirmation email"""

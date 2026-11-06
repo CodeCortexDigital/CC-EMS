@@ -3,7 +3,7 @@ import api from './api';
 
 const base = '/ai/governance';
 
-export type RequestStatus = 'pending' | 'executed' | 'failed' | 'rejected' | 'expired';
+export type RequestStatus = 'pending' | 'executed' | 'failed' | 'rejected' | 'expired' | 'running' | 'unknown';
 export type Audience = 'everyone' | 'staff' | 'admin';
 
 export interface ApprovalRequest {
@@ -32,8 +32,16 @@ export interface DecisionRecord {
   generated_at: string; note: string;
 }
 
+export type TrailKind = 'answer' | 'risk' | 'approval' | 'settings';
+export interface TrailEntry { seq: number; at: string; kind: TrailKind | 'other'; kind_label: string; by: string; summary: string; resource_id: string; resource_type: string }
+export interface TrailEntryDetail extends TrailEntry {
+  data: Record<string, unknown>; previous_data: Record<string, unknown> | null; hash: string; previous_hash: string;
+  chain: { verifies: boolean; records_checked: number; problems: string[]; newest_hash: string }; generated_at: string; note: string;
+}
+
 export const STATUS_LABEL: Record<RequestStatus, string> = {
   pending: 'Waiting for approval', executed: 'Approved and done', failed: 'Approved, but it did not work', rejected: 'Rejected', expired: 'Expired',
+  running: 'Approved, running now', unknown: 'Approved, result not confirmed',
 };
 export const AUDIENCE_LABEL: Record<Audience, string> = { everyone: 'Everyone', staff: 'Staff only', admin: 'Administrators only' };
 
@@ -43,6 +51,9 @@ const ai = {
   async reject(id: string, note = ''): Promise<ApprovalRequest> { return (await api.post(`${base}/approvals/${id}/reject/`, { note })).data; },
   async record(id: string): Promise<DecisionRecord> { return (await api.get(`${base}/approvals/${id}/record/`)).data; },
   async downloadRecord(id: string): Promise<Blob> { return (await api.get(`${base}/approvals/${id}/record/`, { params: { download: 1 }, responseType: 'blob' })).data; },
+  async trail(kind: TrailKind | 'all' = 'all'): Promise<TrailEntry[]> { return (await api.get(`${base}/records/`, { params: { kind } })).data; },
+  async trailEntry(seq: number): Promise<TrailEntryDetail> { return (await api.get(`${base}/records/${seq}/`)).data; },
+  async downloadTrailEntry(seq: number): Promise<Blob> { return (await api.get(`${base}/records/${seq}/`, { params: { download: 1 }, responseType: 'blob' })).data; },
   async documents(): Promise<KnowledgeDoc[]> { return (await api.get(`${base}/knowledge/`)).data; },
   async document(id: string): Promise<KnowledgeDoc> { return (await api.get(`${base}/knowledge/${id}/`)).data; },
   async addDocument(body: { title: string; body: string; audience: Audience }): Promise<KnowledgeDoc> { return (await api.post(`${base}/knowledge/`, body)).data; },

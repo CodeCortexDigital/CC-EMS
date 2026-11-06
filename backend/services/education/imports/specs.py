@@ -99,9 +99,16 @@ def _student_ctx(ctx):
         ctx['seen_ids'], ctx['seen_people'] = set(), set()
         # New numbers follow the school's latest registration number (e.g. DS-2026120 -> DS-2026121).
         latest = Student.objects.order_by('-created_at').values_list('student_id', flat=True).first() if hasattr(Student, 'created_at') else None
-        latest = latest or Student.objects.order_by('-student_id').values_list('student_id', flat=True).first() or 'STU-000'
-        m = re.match(r'^(.*?)(\d+)$', latest)
-        ctx['id_prefix'], ctx['id_width'] = (m.group(1), len(m.group(2))) if m else ('STU-', 3)
+        latest = latest or Student.objects.order_by('-student_id').values_list('student_id', flat=True).first()
+        m = re.match(r'^(.*?)(\d+)$', latest) if latest else None
+        if m:
+            ctx['id_prefix'], ctx['id_width'] = m.group(1), len(m.group(2))
+        else:
+            # A school with no students yet numbers with its own code (GVS-STU0001), the same as the Add Student form, so the numbers of two
+            # schools can never be mistaken for each other.
+            from services.core.tenants.identifiers import school_prefix
+            code = school_prefix()
+            ctx['id_prefix'], ctx['id_width'] = (f'{code}-STU', 4) if code else ('STU-', 3)
         ctx['next_id'] = next_code(ctx['student_ids'], ctx['id_prefix'])
     return ctx
 

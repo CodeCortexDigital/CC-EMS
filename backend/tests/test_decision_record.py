@@ -32,7 +32,7 @@ def test_the_record_holds_the_basis_the_steps_and_a_verified_chain(school, roles
     assert basis['provider'] == 'gemini' and basis['model'] == 'gemini-test' and len(basis['instructions_sha256']) == 64
     assert 'remind the family' in basis['asked'] and basis['controls']['contact_details_shared'] is False
     assert basis['controls']['use_notice_version'] >= 1 and 'monthly_token_cap' in basis['controls']
-    assert [t['status'] for t in body['trail']] == ['requested', 'approved', 'executed']
+    assert [t['status'] for t in body['trail']] == ['requested', 'approved', 'running', 'executed']
     assert body['trail'][0]['by'] == 'amy@alder.test' and body['trail'][1]['by'] == 'head@alder.test'
     assert body['request']['status'] == 'executed' and body['request']['decision_note'] == 'Go ahead'
     assert body['chain']['verifies'] and body['basis_matches_trail']

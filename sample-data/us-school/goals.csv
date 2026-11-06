@@ -1,9 +1,9 @@
 ﻿Employee number *,Goal *,Details,Due,Progress %,Status
-E-008,Run a weekly study club,,2027-03-01,10,open
-E-009,Run a weekly study club,,2027-03-01,25,open
-E-010,Complete the technology integration course,,2027-03-01,40,open
-E-011,Complete the technology integration course,,2027-03-01,25,open
-E-012,Run a weekly study club,,2027-03-01,10,open
-E-013,Pilot project-based units,,2027-03-01,10,open
-E-014,Complete the technology integration course,,2027-03-01,10,open
-E-015,Pilot project-based units,,2027-03-01,25,open
+E-008,Run a weekly study club,,2027-03-01,40,open
+E-009,Complete the technology integration course,,2027-03-01,60,open
+E-010,Pilot project-based units,,2027-03-01,25,open
+E-011,Run a weekly study club,,2027-03-01,25,open
+E-012,Pilot project-based units,,2027-03-01,40,open
+E-013,Pilot project-based units,,2027-03-01,40,open
+E-014,Run a weekly study club,,2027-03-01,25,open
+E-015,Run a weekly study club,,2027-03-01,40,open

@@ -70,6 +70,12 @@ def keep_subscription_active(school):
     if plan is not None:
         changes['plan'] = plan
     Subscription.objects.filter(school=school).update(**changes)
+    # A new school needs two different approvers (and the person who asked never counts). The demo has two administrators, so it starts with
+    # one approval; the presenter can switch to two in AI settings (then a teacher asks and both administrators approve).
+    saved = dict(school.settings_json or {})
+    if 'ai_approval' not in saved:
+        saved['ai_approval'] = {'required': 1, 'approvers': []}
+        type(school).objects.filter(pk=school.pk).update(settings_json=saved)
 
 
 class Command(BaseCommand):

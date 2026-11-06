@@ -19,6 +19,7 @@ DEMO_PASSWORDS = {
     "teacher@code.com": "Teacher@123",
     "parent@code.com": "Parent@123",
     "student@code.com": "Student@123",
+    "deputy@code.com": "Deputy@123",       # a second administrator, so approvals that need two different people can be shown
 }
 
 
@@ -149,9 +150,11 @@ class Command(BaseCommand):
         from services.core.accounts.credentials import issue_credential
 
         User = get_user_model()
+        if not User.objects.filter(email="deputy@code.com").exists():
+            User.objects.create_user(email="deputy@code.com", password="Deputy@123", full_name="Dana Deputy")
         Membership = M("core_tenants", "TenantMembership")
         Teacher, Student = M("education_academics", "Teacher"), M("education_students", "Student")
-        for email, role in (("admin@code.com", "admin"), ("teacher@code.com", "teacher"), ("parent@code.com", "parent"), ("student@code.com", "student")):
+        for email, role in (("admin@code.com", "admin"), ("deputy@code.com", "admin"), ("teacher@code.com", "teacher"), ("parent@code.com", "parent"), ("student@code.com", "student")):
             u = User.objects.filter(email=email).first()
             if u:
                 # Make this school the one the login opens (an older demo school stays available but is no longer the default).

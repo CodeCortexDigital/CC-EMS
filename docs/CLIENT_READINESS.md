@@ -54,7 +54,7 @@ periods differ by country; the school sets them with its own adviser.
 rules, using the school's own students plus generated example rows, so they reproduce those rules; there are no accuracy figures and no validation against real dropouts or
 defaults. The attendance anomaly check is set to flag about 15% of students by design. Family income and number of siblings were used by an earlier version of the fee
 model and have been removed. The first check of flag rates by group is not a fairness test. The records of a review show a decision was made, not that it was a good one.
-A risk flag that is high still opens a to-do for a counsellor (a task for staff, not an action on the student; it needs no approval). The decision trail is tamper-evident,
+Telling the counsellors about a high risk flag is a request that an administrator approves first (two different people by default). The decision trail is tamper-evident,
 not tamper-proof: someone who rewrites a whole chain and its newest hash together is not caught unless that hash was copied elsewhere. Routine audit rows are not chained.
 
 ## 4. Security basics that are built

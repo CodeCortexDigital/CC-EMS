@@ -34,6 +34,7 @@ REVIEWED = {
     'core_privacy.ConsentRecord': 'the privacy screens filter by school',
     'core_privacy.PrivacyRequest': 'the privacy screens filter by request.tenant',
     'core_support.SupportTicket': 'the support screens filter by school',
+    'ai.AIActionEffect': 'reached only through its request, which every AI screen filters by the signed-in school',
     'analytics.RiskScanRun': 'listed only through the risk model card and scan screens, which filter by the signed-in school',
     'behaviour.BehaviourPattern': 'has the school-aware default manager and is read through a student the person may see',
 }
