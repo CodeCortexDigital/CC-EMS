@@ -16,6 +16,7 @@ A full-stack, multi-tenant school/ERP management platform with a **React + TypeS
 - **Student support** — a configurable absence ladder (default 3, 5 and 10 unexcused absences) that warns families and can open **interventions**: a counsellor's to-do list with owners, notes and due dates. Chronic-absenteeism reporting. See [Daily briefs, student support and planning](#daily-briefs-student-support-and-planning).
 - **Daily briefs** — an administrator's morning brief and evening summary: counts only, drafted then approved, kept for about three months, with weekly, fortnightly and monthly roll-ups.
 - **Analytics & AI** — executive dashboard with real-time KPIs, an AI assistant that answers questions from live school data (streaming, chat history, English/Urdu voice), AI drafts for teachers (lesson plans with standards, family messages, rubrics, quizzes, report comments), planning reports (enrolment forecast, score trends, staff signals) and ML risk scoring / anomaly detection. Everything the AI writes is a draft. See [AI Features](#ai-features).
+- **Governed AI** — the assistant can only ask; people approve (two different people by default), the approval is tied to the exact action asked for, and every answer, risk-flag review, approval step and AI setting change is kept in a hash-chained decision trail with a readable record page and a one-switch "All AI" off. See [Governed AI](#governed-ai-school-documents-and-approvals-administrators) and [docs/AI_GOVERNANCE.md](docs/AI_GOVERNANCE.md).
 - **Real-time** — WebSocket KPI/attendance/notification broadcasts.
 - **Multi-tenancy** — tenant resolution via header/subdomain/session with per-tenant data scoping.
 
@@ -191,6 +192,7 @@ The full answers, with the code and tests behind each, are in **[docs/CLIENT_REA
 - **Schools are kept apart by machine-checked rules.** Every model that links to a school is either filtered to the signed-in school automatically or listed with the reason it is safe; a test fails when a new model is neither (`tests/test_school_isolation_sweep.py`). That check found that employee tasks, timesheets and HR documents were not filtered by school; they now are.
 - **Retention and deletion.** Each school sets how long each kind of record is kept (Settings > Security), including AI chat history and decided AI requests, with a preview before anything is removed. From a **privacy request** the office can **download a copy of one student's data** and **erase it** (a preview, then the student ID typed to confirm, then audited). Marks, attendance and invoices stay without a name.
 - **A person reviews AI risk flags.** Scores are labelled advice only; each high or critical flag waits for a person to confirm it, ask for more information or dismiss it with a reason, and the decision is recorded (Reports > AI Risk & Review > AI Predictive Analytics). Nothing is decided or sent by a score alone.
+- **AI decisions leave a verifiable trail.** Assistant answers, risk-flag reviews, approval steps and AI setting changes are written to a per-school hash chain (tamper-evident, not tamper-proof); `python manage.py verify_audit_chain` checks it, and administrators read it in **AI Approvals > Decision records**. Details and limits: [docs/AI_GOVERNANCE.md](docs/AI_GOVERNANCE.md).
 - **Not claimed:** an independent audit, certification, or "GDPR compliance". The document lists what is still open.
 - **More:** how the system fits together, with diagrams, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); the school-isolation scenarios and known exclusions are in [docs/TENANT_ISOLATION_TEST_SUMMARY.md](docs/TENANT_ISOLATION_TEST_SUMMARY.md).
 
@@ -233,60 +235,7 @@ Planned, not built. Full briefs with sizes are in [docs/Future Plan.md](docs/Fut
 
 - [ ] **Live bus tracking** (Campus services > Transport). Today transport covers fleet, routes, stops, riders, daily trips, boarding events, family notices, monthly fees and reports, but it has no live location. Plan, about 5 days: (1) the driver's phone sends GPS from a web page and the server keeps only the latest position, (2) a live map and ETA for the office and for families, (3) a once-per-trip "bus is about 10 minutes away" alert, also pushed to phones, (4) a screen to set stop and school coordinates by clicking the map, (5) privacy, offline handling, tests and a labelled demo trip. The ETA, stale-location and alert-once logic can be taken from the SecureCampus project's `bus_eta` service. A native driver app is not planned.
 - [ ] **Library phone-camera scanning for librarians** (the library lock, return check and notices are built; this part is not).
-- [ ] **Stronger controls on what the AI assistant may do** (execution-time governance). Today the assistant can only ask; an administrator approves; only registered actions run once, with the approver's and asker's permissions checked again and every step audited. Planned on top of that, about 2 to 3 days in total, built only when a client asks:
-  1. A tamper-evident trail: each decision record is chained to the previous one by a hash, so an edited or removed record shows up.
-  2. An evidence export: one file per request with who asked, the exact arguments, who approved and when, the checks that ran, and the result.
-  3. Separation of duties: for sensitive actions, a different person must approve than the one who asked (set per school). Today an administrator can approve their own request.
-  4. Approval tied to the exact action: a fingerprint of the arguments is stored when the request is made and re-checked when it runs.
-  5. A per-school switch that pauses every AI action at once.
-  6. Approval policy set by each school: who may approve each action, and whether two approvals are needed.
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.11+
-- Node.js 20+
-- PostgreSQL (or SQLite for quick local dev)
-- Redis (optional for dev — required for Celery/WebSockets in production)
-
-### Backend
-
-```bash
-cd backend
-python -m venv venv
-# Windows: venv\Scripts\activate  |  macOS/Linux: source venv/bin/activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
-```
-
-On Windows you can also run `setup.bat` for a scripted fresh install (venv, deps, migrations, superuser, sample data).
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Environment Configuration
-
-Copy the example env files and fill in your values:
-
-- Backend: `.env.example` → `.env` (database, Redis/Celery, email, S3, WhatsApp, payment gateways, JWT, feature flags)
-- Frontend: `frontend/.env.example` → `frontend/.env.local` (API/WS URLs, Firebase, app settings)
-
-**Never commit real secrets** — keep production credentials out of the repository.
-
-### API Docs
-
-Versioned OpenAPI docs are auto-generated with drf-spectacular:
-
-- `/api/v1/schema/swagger-ui/`
-- `/api/v1/schema/redoc/`
+- [x] **Stronger controls on what the AI assistant may do**: built (Nov 2026): hash-chained decision trail, a record page and file per decision, two different approvers by default with named delegates, approval tied to a fingerprint of the exact action, one switch that pauses all AI, and an approval policy set by each school. What is **not** built yet is in [Next plan and gaps](#next-plan-and-gaps-ai-governance).
 
 ## AI Features
 
@@ -303,7 +252,7 @@ The floating **CodeCortex** assistant is available in every portal.
   - Teachers see only their own classes, and no fee data.
   - Students and parents see only their own (or their children's) records.
   - Data from other schools is never returned.
-- **Privacy.** Phone numbers, emails, CNIC and addresses are masked before any data is sent to the AI provider (turn this off with `AI_SHARE_CONTACT_INFO=true`). Every lookup the AI makes is recorded in the audit log.
+- **Privacy.** Phone numbers, emails, CNIC and addresses are masked before any data is sent to the AI provider (turn this off with `AI_SHARE_CONTACT_INFO=true`). Social security numbers, birth dates and health details are **always** masked, including a social-security-shaped number typed into free text; the student ID is sent on purpose so the assistant can refer to a student. Every lookup the AI makes is recorded in the audit log, and each answer is saved with a decision record.
 - **Chat experience.** Answers stream in as they're written, with a status such as "Checking attendance…" while the AI looks things up. Also: a stop button, saved chat history (open, continue, delete), copy, 👍/👎 feedback, tables in answers, and voice input/output in English or Urdu.
 - **Basic mode.** If no AI provider is configured, or the provider is down, the assistant answers common questions ("fee defaulters", "my attendance", …) with simple keyword matching, under the same role limits.
 
@@ -312,7 +261,12 @@ The floating **CodeCortex** assistant is available in every portal.
 Page: **AI Approvals & Documents** (`/education/ai-governance`). Code: `backend/services/ai/` (`knowledge.py`, `actions.py`, `governed.py`, `governance_api.py`).
 
 - **Answers from the school's own documents (retrieval-augmented).** An administrator adds the handbook, policies or fee rules as text (paste, or load a `.txt` / `.md` file). They are split into passages and searched with keyword ranking (BM25), so this needs no extra service and also works without an AI provider. The assistant names the documents it used ("Sources: ...") and says so when nothing matches. Each document has an audience (everyone, staff only, administrators only) that is enforced on the server by role and school, and one school's documents are never searched for another. Passages are given to the model as reference text, not instructions. *Not built yet: PDF upload and meaning-based (embedding) search.*
-- **The assistant can only ask; a person approves.** Actions are registered in code (`actions.py`), each with who may ask, who may approve and its own checks. Today: send a fee reminder for one unpaid invoice, and open a student support case. When someone asks the assistant to do one, it stores a pending request and tells the user nothing has been done. An administrator approves or rejects it on the Approvals tab. Before it runs, the approver's role, the school, the request's age (two days) and the asker's own permission are checked again, and it runs once. Requests, decisions and results go to the audit log. An asker cannot approve their own request unless they are an administrator, and a school can never see or decide another school's requests.
+- **The assistant can only ask; a person approves.** Actions are registered in code (`actions.py`), each with who may ask, who may approve and its own checks. Today there are three: send a fee reminder for one unpaid invoice (the same email as the fee office's button), open a student support case, and tell the counsellors about a risk finding. The reminder and counsel can also be asked for from the risk forecasts table (**Request reminder**, **Counsel**); both only create a request. Nothing is sent or opened until approval.
+- **Two different approvers by default.** The person who asked never approves; a school can name delegates (for example a second in command) or lower the rule to one approver (AI settings). A school with a single administrator must add a second.
+- **Two checks before anything runs.** (1) *Is it still the exact action asked for?* A SHA-256 of the action, school and arguments is written into the trail at request time and compared again; an edited request does not run. (2) *Is it still allowed now?* Roles, eligibility, expiry (two days) and today's data (for example the invoice is still open) are checked again. The first never replaces the second.
+- **Intent saved, outcome honest.** The last approval saves one row per request under a unique key, commits, and only then runs the action. Outcomes: done, not done, or **unknown** (attempted, result could not be confirmed). Unknown is not retried by itself; asking again is a new decision. Exactly-once delivery is **not** claimed (see the gaps below).
+- **Decision records.** Each approval has a **Decision record** (provider, model, instruction fingerprint, what was asked, the data sent after masking, controls on at the time, every approval with name and time, and whether the trail verifies; downloadable as JSON). The **Decision records** tab lists assistant answers, risk-flag reviews, approval steps and setting changes (administrators only).
+- **Switches.** *All AI* in AI settings stops the assistant, the risk scoring and its flags for the school (the change is itself recorded). Face recognition is off until a school turns it on.
 - **Limits.** This is a small, tested set of actions, not a general agent platform: there is no per-agent identity or policy language, and it has been tested on sample data only.
 
 ### Lesson plans and quizzes (teachers and admins)
@@ -334,7 +288,7 @@ Everything here is a draft for a person to read and edit. Nothing AI-written is 
 
 ### Analytics (ML)
 
-- **Risk scan** (admins): scores each student's dropout and fee-default risk. Results appear as "At-Risk Students" on the Analytics page.
+- **Risk scan** (admins): scores each student's dropout and fee-default risk. Results appear as "At-Risk Students" on the Analytics page. The scores are **fitted to written scoring rules, not learned from recorded outcomes**; they are advice for staff and have not been validated against real outcomes. A **model card** (Reports > AI Risk & Review) states the rules, the inputs, the library versions and a first look at flag rates by group; every scan is recorded with its version. The scan needs the ML packages, so it is **not switched on in the free hosted demo** (it says so); it runs in the full build.
 - **Attendance anomalies** and **face-recognition attendance** (teachers and admins).
 
 These need the packages in `ai-ml/requirements.txt` (scikit-learn, XGBoost, pandas, DeepFace). If they aren't installed on the server, the endpoints return **503 "not available"** instead of producing fake results.
@@ -352,10 +306,11 @@ Set these in `.env` (or in the Render dashboard):
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `AI_PROVIDER` | *(empty)* | `openai` or `anthropic`. Empty = whichever key is set (OpenAI first). |
+| `AI_PROVIDER` | *(empty)* | `openai`, `anthropic` or `gemini`. Empty = whichever key is set (OpenAI first). |
 | `OPENAI_API_KEY` | — | Enables OpenAI. |
 | `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model. |
-| `ANTHROPIC_API_KEY` | — | Enables Claude (default model `claude-opus-5`). |
+| `ANTHROPIC_API_KEY` | — | Enables Claude (default model `claude-sonnet-5-5`). |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | — / `gemini-flash-lite-latest` | Enables Gemini through Google's OpenAI-compatible endpoint. Keys go in `backend/.env` only, never in `.env.example`. The free tier is for sample data only. |
 | `AI_MODEL_FAST` / `AI_MODEL_SMART` | provider default | Override the chat model (fast) and the lesson/quiz model (smart). |
 | `AI_CLAUDE_EFFORT` | `medium` | Claude effort level (`low` … `max`). |
 | `AI_SHARE_CONTACT_INFO` | `false` | Send phone/email/CNIC/address to the AI provider. |
@@ -401,7 +356,7 @@ The code lives in `backend/services/ai/` (assistant, tools, AI providers, limits
 
 #### Decisions needed
 
-- [ ] **Main AI provider:** OpenAI or Claude. Current behaviour: OpenAI if its key is set, otherwise Claude (`claude-opus-5`).
+- [ ] **Main AI provider:** OpenAI or Claude. Current behaviour: OpenAI if its key is set, otherwise Claude (`claude-sonnet-5-5`), otherwise Gemini.
 - [ ] **Model choice:** a cheaper "fast" model for chat and a stronger "smart" model for lesson plans and grading.
 - [ ] **Monthly AI budget:** overall and per school.
 - [ ] **Where heavy ML runs:** a separate paid Render worker, a scheduled job, or dropping face recognition for now. The ML packages are not installed on Render today.
@@ -411,7 +366,7 @@ The code lives in `backend/services/ai/` (assistant, tools, AI providers, limits
 
 #### Not finished from the current work
 
-- [ ] Gemini support (only OpenAI and Claude are built).
+- [x] Gemini support (OpenAI, Claude and Gemini are built).
 - [ ] Switching to a second AI provider automatically when the first one fails.
 - [ ] Error tracking and performance metrics for AI calls (Sentry/Prometheus).
 - [ ] Charts inside chat answers (tables already work).
@@ -463,6 +418,20 @@ Two items sometimes proposed for this list are **already built**, not planned: d
 - [ ] Parent accounts are matched by phone number (`parent.<phone>@school.edu`). A parent with children in two different schools shares one account; it opens the school of the child linked first, every time, and never shows the two schools together. There is no school switcher yet.
 - [ ] Billing and plans for schools are not built yet (the platform page only lists, suspends and re-activates schools).
 - [x] The 24 one-off generator scripts that used to sit in `backend/` (some reset everyone to shared default passwords) are removed. Demo and sample data now come from `seed_demo` and the sample data pack in `sample-data/`.
+
+## Next plan and gaps (AI governance)
+
+The working ledger, with the owner's decisions, is [docs/AI_GOVERNANCE_GAPS.md](docs/AI_GOVERNANCE_GAPS.md). Not built, in the order to do them:
+
+1. **Deploy** the governance build to the hosted demo (Neon + Render + Vercel): 5 new migrations (audit 0005, ai 0003 to 0005, analytics 0003). The demo is shared with another client, so only on the owner's go-ahead, then a smoke test.
+2. **Walk it through in a browser** as an outsider would (chat, request, second approver, decision record, records tab, All AI off) and test the new migrations on Postgres.
+3. **Text-message duplicate check** (`communication/texts.py`) is look-then-create: add a database uniqueness constraint and a create-first flow.
+4. **Provider idempotency key and delivery lookup** so an "unknown" outcome can be settled without a person checking (needs an email/SMS provider that supports them).
+5. **Copy the newest chain hash outside the database** on a schedule (administrators); without it, someone who rewrites a whole chain is not caught.
+6. **Safer model store**: the risk model files are pickles next to the code; use a signed or isolated store.
+7. **Real validation of the risk scores**: outcome data, a fairness and validation study. Until then every outside statement says "fitted to written rules".
+8. **Provider and legal terms** for real student data (zero-retention terms, a data-processing agreement, a privacy policy). The free Gemini tier must not be used for real data.
+9. **Not claimed and not built:** independent security audit or penetration test, certification (SOC 2 or similar), single sign-on, OneRoster and district imports.
 
 ## Deployment
 

@@ -16,7 +16,7 @@ Status key: **Built** (in code, tests written) · **Open** (not done) · **Limit
 | A1e | AI lookups (`ai.tool.*`) were written without the school | Built: school is now recorded | [ ] |
 | A2 | Decision record lacked provider, model, instruction fingerprint, what was sent, controls | Built (`AIActionRequest.record`, hash in the trail; migration `ai/0003`). Model is the configured name, not a provider-pinned version | [ ] one real Gemini request holds all items; [ ] migration on Postgres |
 | A3 | No single page or export per decision | Built: "Decision record" on AI Approvals, JSON download | [ ] read it in a browser as an outsider would |
-| A3b | Chat answers and risk-flag reviews have no record page | Limit | [ ] decide if needed (see H) |
+| A3b | Chat answers and risk-flag reviews had no record page | Built: **Decision records** tab (administrators) lists answers, risk reviews, approval steps and setting changes; each opens with hashes and the verify result and downloads as a file. An answer is saved with its record or not shown | [ ] read it in a browser |
 
 ## B. Controls
 
@@ -24,8 +24,8 @@ Status key: **Built** (in code, tests written) · **Open** (not done) · **Limit
 |---|---|---|---|
 | B1 | No single AI-off switch; risk scan not behind a toggle | Built: master switch, `ai_risk_scan` switch; risk endpoints, model card and the reminder request refuse while off; changes are recorded | [ ] what the Analytics page shows while AI is off (may be a raw error); [ ] timetable and quiz endpoints while off |
 | B2 | "Remind" emailed a family on one click | Built: "Request reminder" creates a request for approval; the approved action sends the email (it used to text only) | [ ] click it in a browser, approve as a second person, see the email path with a real address |
-| B2a | The old direct reminder endpoint still exists for API callers | Open (see H) | [ ] |
-| B2b | "Counsel" notifies staff and opens a to-do with no approval | Limit: internal task, not contact with a family | [ ] say so when demonstrating |
+| B2a | The old direct reminder endpoint (`communication/student-reminder/`) | Built: removed (owner decision). The Fee Defaulters page and bulk reminders are the finance desk's own tools and are unchanged | [ ] |
+| B2b | "Counsel" notified staff and opened a to-do with no approval | Built: now a `notify_counsel` request that an administrator approves | [ ] click it in a browser as a teacher, approve as two administrators |
 | B2c | One person could ask and approve | Built: the asker can never approve; the school can require two different approvers and can name approvers (migration `ai/0004`) | [ ] two-person run in a browser with two logins; [ ] with only one admin, requests wait (the demo needs a second admin) |
 | B3 | Approval flow needed a provider to show | Built: Gemini provider (OpenAI-compatible endpoint); model `gemini-flash-lite-latest` | [ ] one full chat, approval, audit run on Gemini |
 | B4 | US identifiers were not masked | Built: SSN, birth date, health details always masked; SSN pattern in free text. Student ID is sent on purpose | [ ] decide whether to also mask the student ID (see H) |
@@ -35,7 +35,7 @@ Status key: **Built** (in code, tests written) · **Open** (not done) · **Limit
 
 | # | Gap or limit | Status | Verify at the end |
 |---|---|---|---|
-| C1 | Identical scores and 105 of 213 flagged high | Built (partly): fee model uses only the overdue share (no income, no siblings), excused and late days count as attended, list order is stable. On the sample school the count is still 105 because 89 students have overdue invoices in the sample data | [ ] decide the threshold or the sample data (see H) |
+| C1 | Identical scores and 105 of 213 flagged high | Built: fee model uses only the overdue share, excused and late days count as attended, stable order; the sample school's October invoices are now 82% paid (was 50%) so far fewer students are overdue | [ ] re-seed and read the new flag count before quoting any number |
 | C2 | Models are fitted to written rules, not learned from outcomes | Limit: stated on the model card, in the readiness doc and in the governance doc. **Earlier wording ("trained on the school's own records") overstated this** | [ ] every outside statement says "fitted to written scoring rules" |
 | C3 | No bias or fairness study | Limit: model card shows flag rates by gender and class per scan; no study | [ ] |
 | C4 | Model version and scan not stamped on scores | Built: each scan is a `RiskScanRun` (migration `analytics/0003`); each score carries the scan id | [ ] migration on Postgres |
@@ -61,7 +61,7 @@ Status key: **Built** (in code, tests written) · **Open** (not done) · **Limit
 | E2 | The test key was written into a tracked file (never committed) and shown in chat | Owner to rotate | [ ] new key in `backend/.env` only; [ ] `.env.example` holds placeholders only |
 | E3 | Free Gemini terms may allow Google to use content | Open: use sample data only; for real student data use a paid tier with terms the school accepts | [ ] |
 | E4 | Tests must never use a real key | Built: autouse fixture clears all provider settings in tests | [ ] |
-| E5 | Default Anthropic model name (`claude-opus-5`) in the code is unverified | Open | [ ] |
+| E5 | Default Anthropic model name was unverified | Built: owner chose Sonnet 5.5, default is `claude-sonnet-5-5` | [ ] one real Anthropic call when a key exists |
 
 ## F. Not built, already in the readiness document (do not claim)
 
@@ -73,7 +73,7 @@ terms on file · a real fairness and validation study · signed or isolated mode
 - [ ] Every sentence in the client email matches this ledger (the email must say the scores are fitted to written rules, not learned from outcomes).
 - [ ] No use of "compliant", "certified", "defensible", "tamper-proof" or "enterprise-grade".
 - [x] `docs/CLIENT_READINESS.md` and `docs/AI_GOVERNANCE.md` updated to match the build.
-- [ ] Full backend suite, front-end type check, front-end tests and build all pass (build passes; full suite last run before the changes above).
+- [ ] Full backend suite, front-end type check, front-end tests and build all pass (last full run: 7 failed of 874; 4 fail the same way on the earlier commit; the other 3 were fixed and re-run).
 
 ## H. Owner decisions (6 Nov 2026) and what was done
 
@@ -106,3 +106,14 @@ terms on file · a real fairness and validation study · signed or isolated mode
 | Database uniqueness for the text-message effect key (look-then-create today) | **Not built** (`communication/texts.py`): [ ] add a unique constraint and a create-first flow |
 | Request vs intent vs external-effect deduplication | Request and intent: built. External effect: limited as above. We do not claim exactly-once |
 
+## I. Next plan, in order
+
+1. Deploy the governance build to the hosted demo on the owner's word (5 migrations on Neon; shared with another client), then smoke test.
+2. Browser walk-through and Postgres migration test.
+3. Database uniqueness for the text-message duplicate check, with a create-first flow.
+4. Provider idempotency key and delivery lookup to settle "unknown" outcomes (needs a provider that supports them).
+5. Scheduled copy of the newest chain hash outside the database (administrators).
+6. Safer store for the risk model files (signed or isolated).
+7. Real validation and fairness study of the risk scores once outcome data exists.
+8. Provider terms (zero retention, data-processing agreement) and a privacy policy before any real student data.
+9. Revoke the old Gemini key at Google.
