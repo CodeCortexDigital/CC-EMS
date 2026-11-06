@@ -8,6 +8,7 @@
                                       it waits here for an administrator, like anything the assistant asks for
     POST approvals/<id>/approve/      {note?}  approve and run it (approver roles only)
     POST approvals/<id>/reject/       {note?}  reject it (approver roles only)
+    POST approvals/<id>/settle/       {outcome: done|not_done, note}  record what really happened to a request whose result could not be confirmed
     GET  records/?kind=               every recorded decision in the school's trail: assistant answers, risk-flag reviews, approvals, setting
                                       changes (administrators only)
     GET  records/<seq>/               one entry with its hashes and whether the trail verifies (?download=1 saves it as a file)
@@ -59,6 +60,7 @@ def _request_json(r: AIActionRequest, ctx) -> dict:
         'can_decide': pending and problem is None,
         'why_not': problem if pending and problem and actions.is_approver(ctx.user, ctx.role, ctx.tenant) else '',
         'can_withdraw': pending and r.requested_by_id == ctx.user.id,
+        'can_settle': actions.can_settle(r) and bool(spec) and actions._eligible(ctx.user, ctx.role, spec, ctx.tenant),
     }
 
 
@@ -168,6 +170,26 @@ def approval_record(request, pk):
 @permission_classes([HasAIRole])
 def approval_approve(request, pk):
     return _decide(request, pk, 'approve')
+
+
+@api_view(['POST'])
+@permission_classes([HasAIRole])
+def approval_settle(request, pk):
+    """{outcome: 'done' | 'not_done', note} A person records what really happened to a request whose result could not be confirmed."""
+    ctx = AIContext.from_request(request)
+    req = AIActionRequest.all_objects.filter(pk=pk, tenant=ctx.tenant).first()
+    if req is None:
+        return _err('Request not found.', 404)
+    data = request.data if isinstance(request.data, dict) else {}
+    try:
+        done = actions.settle(req, request.user, ctx.role, ctx.tenant, str(data.get('outcome') or ''), str(data.get('note') or ''))
+    except actions.ActionError as exc:
+        return _err(str(exc), 409 if 'no unconfirmed' in str(exc) else 400)
+    except PermissionError as exc:
+        return _err(str(exc), 403)
+    except audit_chain.AuditWriteError:
+        return _err('This could not be recorded, so it was not saved. Try again.', 503)
+    return Response(_request_json(AIActionRequest.all_objects.select_related('requested_by', 'decided_by').get(pk=done.pk), ctx))
 
 
 @api_view(['POST'])

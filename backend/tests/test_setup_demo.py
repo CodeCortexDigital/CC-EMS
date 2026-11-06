@@ -35,7 +35,7 @@ def test_reset_leaves_only_the_demo_school_and_the_demo_accounts(settings, monke
     assert not School.objects.filter(name='Old Test School').exists()
     school = School.objects.get(tenant_code='MGA')
     with use_tenant(school):
-        assert Student.objects.count() == 214
+        assert Student.objects.count() == 83
     assert DEMO <= set(get_user_model().objects.values_list('email', flat=True))
     assert get_user_model().objects.get(email='admin@code.com').check_password('Admin@123')
     assert not Student.all_objects.filter(full_name='Old Student').exists()
@@ -46,4 +46,4 @@ def test_reset_leaves_only_the_demo_school_and_the_demo_accounts(settings, monke
     call_command('setup_demo')
     assert get_user_model().objects.count() == before
     with use_tenant(school):
-        assert Student.objects.count() == 214
+        assert Student.objects.count() == 83

@@ -19,6 +19,7 @@ urlpatterns = [
     path("governance/records/<int:seq>/", governance_api.record_detail, name="ai-gov-record-entry"),
     path("governance/approvals/<uuid:pk>/record/", governance_api.approval_record, name="ai-gov-record"),
     path("governance/approvals/<uuid:pk>/approve/", governance_api.approval_approve, name="ai-gov-approve"),
+    path("governance/approvals/<uuid:pk>/settle/", governance_api.approval_settle, name="ai-gov-settle"),
     path("governance/approvals/<uuid:pk>/reject/", governance_api.approval_reject, name="ai-gov-reject"),
     path("governance/knowledge/", governance_api.knowledge_list, name="ai-gov-knowledge"),
     path("governance/knowledge/search/", governance_api.knowledge_search, name="ai-gov-knowledge-search"),

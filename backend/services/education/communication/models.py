@@ -31,6 +31,12 @@ class Message(models.Model):
     legacy_tenant_code = models.CharField(max_length=100, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        constraints = [
+            # The same alert to the same number is never saved twice, even when two requests arrive together: the database refuses the second.
+            models.UniqueConstraint(fields=['tenant', 'dedupe_key'], condition=~models.Q(dedupe_key=''), name='uniq_message_dedupe_per_school'),
+        ]
+
     def __str__(self):
         return f"{self.sender} -> {self.recipient}"
 

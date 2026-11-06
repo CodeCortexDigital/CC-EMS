@@ -1,10 +1,11 @@
 import os
-import pickle
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from django.apps import apps
 from django.db.models import Avg, Q, Sum
+
+from predictions.model_store import is_trusted, load_signed, save_signed
 
 try:
     from xgboost import XGBClassifier
@@ -146,10 +147,8 @@ def train_and_save_fee_dropout_models(tenant_id=None) -> str:
     
     # Save both models
     fee_path, dropout_path = get_tenant_model_paths(tenant_id)
-    with open(fee_path, "wb") as f:
-        pickle.dump(fee_model, f)
-    with open(dropout_path, "wb") as f:
-        pickle.dump(dropout_model, f)
+    save_signed(fee_model, fee_path)
+    save_signed(dropout_model, dropout_path)
         
     LAST_TRAINING.clear()
     LAST_TRAINING.update({
@@ -164,13 +163,12 @@ def predict_fee_dropout_risk(student, tenant_id=None) -> dict:
     fee_path, dropout_path = get_tenant_model_paths(tenant_id)
     
     # Ensure models exist
-    if not os.path.exists(fee_path) or not os.path.exists(dropout_path):
+    # (a file that is missing, unsigned or changed since it was saved is not loaded: a fresh model is trained instead)
+    if not is_trusted(fee_path) or not is_trusted(dropout_path):
         train_and_save_fee_dropout_models(tenant_id)
-        
-    with open(fee_path, "rb") as f:
-        fee_model = pickle.load(f)
-    with open(dropout_path, "rb") as f:
-        dropout_model = pickle.load(f)
+
+    fee_model = load_signed(fee_path)
+    dropout_model = load_signed(dropout_path)
         
     features = get_student_predictive_features(student)
     

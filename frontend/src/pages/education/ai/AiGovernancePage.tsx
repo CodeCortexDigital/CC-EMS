@@ -35,6 +35,12 @@ function Approvals() {
     } catch (e) { toast.error(errorText(e, 'That did not work.')); await load(); } finally { setBusy(''); }
   };
 
+  const settle = async (r: ApprovalRequest, outcome: 'done' | 'not_done') => {
+    setBusy(r.id);
+    try { await ai.settle(r.id, outcome, note[r.id] || ''); toast.success('Recorded.'); await load(); }
+    catch (e) { toast.error(errorText(e, 'That did not work.')); } finally { setBusy(''); }
+  };
+
   if (!rows) return <Spinner />;
   return (
     <section aria-label="Approvals" className="space-y-3">
@@ -71,6 +77,19 @@ function Approvals() {
           <button className="mt-2 text-xs font-bold text-indigo-700 hover:underline" onClick={() => setOpenRecord(r.id)}>Decision record</button>
           {r.can_withdraw && !r.can_decide && (
             <button className="mt-2 ml-3 text-xs font-bold text-slate-600 hover:underline" disabled={busy === r.id} onClick={() => decide(r, 'reject')}>Withdraw my request</button>
+          )}
+          {(r.status === 'unknown' || r.status === 'running') && (
+            <p className="text-xs text-red-800 mt-1" data-testid="unconfirmed">
+              We could not confirm whether this was done, and it will not be tried again automatically. Check (for example the mail log), then record what you found.
+            </p>
+          )}
+          {r.can_settle && (
+            <div className="mt-3 flex flex-wrap items-center gap-2" data-testid="settle">
+              <input className={`${input} max-w-xs`} placeholder="What you checked (required)" aria-label={`What you checked for ${r.summary}`} value={note[r.id] || ''}
+                onChange={(e) => setNote({ ...note, [r.id]: e.target.value })} />
+              <button className={btn} disabled={busy === r.id} onClick={() => settle(r, 'done')}>It was done</button>
+              <button className={btnDanger} disabled={busy === r.id} onClick={() => settle(r, 'not_done')}>It was not done</button>
+            </div>
           )}
           {r.can_decide && (
             <div className="mt-3 flex flex-wrap items-center gap-2">

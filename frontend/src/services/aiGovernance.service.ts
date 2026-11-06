@@ -12,7 +12,7 @@ export interface ApprovalRequest {
   decided_by: string; decided_at: string | null; decision_note: string;
   result: { note?: string; error?: string; [k: string]: unknown };
   approver_roles: string[]; can_decide: boolean;
-  approvals_needed?: number; approvals?: { by: string; at: string | null; note: string }[]; why_not?: string; can_withdraw?: boolean;
+  approvals_needed?: number; approvals?: { by: string; at: string | null; note: string }[]; why_not?: string; can_withdraw?: boolean; can_settle?: boolean;
 }
 export interface KnowledgeDoc { id: string; title: string; audience: Audience; is_active: boolean; passages: number; characters: number; updated_at: string; body?: string }
 export interface Passage { document_id: string; title: string; ordinal: number; text: string; score: number }
@@ -48,6 +48,7 @@ export const AUDIENCE_LABEL: Record<Audience, string> = { everyone: 'Everyone', 
 const ai = {
   async approvals(status: 'pending' | 'all' = 'pending'): Promise<ApprovalRequest[]> { return (await api.get(`${base}/approvals/`, { params: { status } })).data; },
   async approve(id: string, note = ''): Promise<ApprovalRequest> { return (await api.post(`${base}/approvals/${id}/approve/`, { note })).data; },
+  async settle(id: string, outcome: 'done' | 'not_done', note: string): Promise<ApprovalRequest> { return (await api.post(`${base}/approvals/${id}/settle/`, { outcome, note })).data; },
   async reject(id: string, note = ''): Promise<ApprovalRequest> { return (await api.post(`${base}/approvals/${id}/reject/`, { note })).data; },
   async record(id: string): Promise<DecisionRecord> { return (await api.get(`${base}/approvals/${id}/record/`)).data; },
   async downloadRecord(id: string): Promise<Blob> { return (await api.get(`${base}/approvals/${id}/record/`, { params: { download: 1 }, responseType: 'blob' })).data; },

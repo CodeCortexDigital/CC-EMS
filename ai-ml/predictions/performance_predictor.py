@@ -1,11 +1,12 @@
 import os
-import pickle
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from django.apps import apps
 from django.db.models import Avg, Q, Sum
 from django.db import transaction
+
+from predictions.model_store import is_trusted, load_signed, save_signed
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -105,19 +106,17 @@ def train_and_save_model(tenant_id=None) -> str:
     
     # Serialize model to disk
     model_path = _model_path(tenant_id)
-    with open(model_path, "wb") as f:
-        pickle.dump(model, f)
+    save_signed(model, model_path)
 
     return f"Model trained successfully on {len(df_combined)} samples (Real: {len(df_real)}, Synthetic: {len(df_synth)}) and saved to disk."
 
 def predict_student_performance(tenant_id=None) -> list:
     # Load model
     model_path = _model_path(tenant_id)
-    if not os.path.exists(model_path):
+    if not is_trusted(model_path):          # missing, unsigned or changed since it was saved: train a fresh one
         train_and_save_model(tenant_id)
 
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
+    model = load_signed(model_path)
 
     StudentRisk = apps.get_model('analytics', 'StudentRisk')
     AcademicPrediction = apps.get_model('analytics', 'AcademicPrediction')

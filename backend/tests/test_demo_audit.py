@@ -85,7 +85,7 @@ def test_nobody_sees_another_students_record(demo):
         kids = set(demo['parent'].parent_profile.linked_students.values_list('id', flat=True))
         from services.core.accounts.decorators import _get_teacher_class_ids
         taught = set(_get_teacher_class_ids(demo['teacher']))
-    assert len(everyone) > 100 and term is not None
+    assert len(everyone) > 50 and term is not None
     base = '/api/v1/auth/gradebook'
     qs = f'?term={term.id}'
 

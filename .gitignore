@@ -63,6 +63,9 @@ media/
 # Per-tenant AI model files are trained on demand (see ai-ml/predictions/*.py);
 # only the shared "_default" and legacy plain-named ones are committed.
 ai-ml/predictions/*_????????-????-????-????-????????????.pkl
+# Signatures are made with each server's own key, so they (and the models they cover) are made on the server, not committed.
+ai-ml/predictions/*.pkl.sig
+ai-ml/predictions/*_v2_*.pkl
 
 # Due Diligence & Handover Documents
 doc/

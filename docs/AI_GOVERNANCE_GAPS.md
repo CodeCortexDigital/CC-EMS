@@ -11,7 +11,7 @@ Status key: **Built** (in code, tests written) · **Open** (not done) · **Limit
 |---|---|---|---|
 | A1 | Audit log could be edited or deleted; no proof of tampering | Built: decision records are hash-chained, protected from change and delete (app, admin, cleanup, archive) | [ ] `verify_audit_chain` passes after a full demo run; [ ] migration `audit/0005` applied on Postgres |
 | A1b | Audit write failure was ignored and the action still ran | Built: each step is saved with its record or not at all | [ ] stop the audit write in a live run: nothing is sent |
-| A1c | Someone who rewrites a whole chain and its newest hash is not caught | Limit: copy the printed newest hash outside the database now and then (nobody is assigned to do this) | [ ] state it in every explanation |
+| A1c | Someone who rewrites a whole chain and its newest hash is not caught | Built (partly): `verify_audit_chain --keep-file FILE` appends the newest hashes and next time checks the old ones are still in the trail. It only helps if the file is kept where the database administrator cannot change it, and run on a schedule | [ ] schedule it; [ ] choose where the file lives |
 | A1d | Routine audit rows and AI lookup logs are not chained; older rows are not protected | Limit (chosen for speed) | [ ] say "decisions are chained", never "all logs" |
 | A1e | AI lookups (`ai.tool.*`) were written without the school | Built: school is now recorded | [ ] |
 | A2 | Decision record lacked provider, model, instruction fingerprint, what was sent, controls | Built (`AIActionRequest.record`, hash in the trail; migration `ai/0003`). Model is the configured name, not a provider-pinned version | [ ] one real Gemini request holds all items; [ ] migration on Postgres |
@@ -40,7 +40,7 @@ Status key: **Built** (in code, tests written) · **Open** (not done) · **Limit
 | C3 | No bias or fairness study | Limit: model card shows flag rates by gender and class per scan; no study | [ ] |
 | C4 | Model version and scan not stamped on scores | Built: each scan is a `RiskScanRun` (migration `analytics/0003`); each score carries the scan id | [ ] migration on Postgres |
 | C5 | Education risk scoring is likely high-risk AI under the EU AI Act | Limit: stated; no compliance claim | [ ] wording |
-| C6 | Model files are pickles stored next to the code | Limit: not built (signed or isolated store) | [ ] |
+| C6 | Model files are pickles stored next to the code | Built (partly): files are saved with an HMAC signature and loaded only when it matches; an unsigned or changed file is not run and a fresh model is trained. Not a model registry; someone holding the key and the folder can still sign a file | [ ] decide if a registry is wanted |
 | C7 | Anomaly check flags about 15% by design | Limit: stated on the card | [ ] |
 
 ## D. Hosted demo (shared with another client, do not disturb)
@@ -117,3 +117,17 @@ terms on file · a real fairness and validation study · signed or isolated mode
 7. Real validation and fairness study of the risk scores once outcome data exists.
 8. Provider terms (zero retention, data-processing agreement) and a privacy policy before any real student data.
 9. Revoke the old Gemini key at Google.
+
+## J. Gaps worked through on 6 Nov 2026
+
+| Gap | Result |
+|---|---|
+| Text-message duplicate check was look-then-create | Fixed: unique rule in the database (migration `communication/0008`, older duplicates are marked first); losing a race means no send |
+| "Unknown" outcomes could only wait | Fixed: an eligible person records "done" or "not done" with a note; recorded in the trail; the system never retries it |
+| Model files were unsigned pickles | Fixed (partly): signed, see C6 |
+| Newest chain hash only printed | Fixed (partly): keep-file, see A1c |
+| Sample school too large for a free database and "just to show off" | Fixed: 83 students (was 213), four weeks of attendance, 373 KB pack; the demo school starts with one approval and a second administrator |
+| Provider idempotency key and delivery lookup | Not possible with the current email and SMS paths; a person settles unknown results |
+| Postgres migration test | Not done: Docker Desktop is not running here; needs Docker started or a throwaway Neon branch |
+| Real validation of risk scores; provider and legal terms; revoke the old Gemini key | Not code. Owner / outside parties |
+| Four older tests that fail on dates (insights x2, absence rate, behaviour follow-ups) | Not fixed: they assume early October 2026 or the start of a month; need a clock-freeze fixture; not caused by this work |

@@ -58,7 +58,7 @@ See [docs/README.md](docs/README.md) for the full feature breakdown.
 On Windows, double-click **`demo.bat`** in the project root (or run it from a terminal). It:
 
 1. Creates the Python environment and installs packages (first run only).
-2. Sets up a local SQLite database and fills it with the sample US school, **Maple Grove Academy** (first run only, about a minute plus setup; later runs start in seconds): K-8, 214 students, 24 staff, timetable, fees, attendance, exams, HR and one saved lesson plan. It is loaded through the same importer a school would use.
+2. Sets up a local SQLite database and fills it with the sample US school, **Maple Grove Academy** (first run only, about a minute plus setup; later runs start in seconds): K-8, 83 students, 24 staff, timetable, fees, attendance, exams, HR and one saved lesson plan. It is loaded through the same importer a school would use.
 3. Starts the backend on **http://localhost:8009** and the frontend on **http://localhost:5179** in two windows, then opens the login page.
 
 **The demo school.** `python manage.py seed_demo` loads *Maple Grove Academy* from `sample-data/us-school/` (it is the only demo school; the old built-in Pakistani-style school is gone). The four demo logins below are wired to it (`teacher@code.com` is a maths teacher, `student@code.com` a Grade 8 student, `parent@code.com` a parent of two). `demo.bat` loads it on a first run; if you have an older demo database, run **`load-us-school.bat`** (it migrates, loads Maple Grove and makes the demo logins open it), then `restart-demo.bat`. The files are in [sample-data/us-school/](sample-data/us-school/); upload `us-school-pack.zip` in the app to load them into any school.
@@ -421,16 +421,20 @@ Two items sometimes proposed for this list are **already built**, not planned: d
 
 ## Next plan and gaps (AI governance)
 
-The working ledger, with the owner's decisions, is [docs/AI_GOVERNANCE_GAPS.md](docs/AI_GOVERNANCE_GAPS.md). Not built, in the order to do them:
+The working ledger, with the owner's decisions, is [docs/AI_GOVERNANCE_GAPS.md](docs/AI_GOVERNANCE_GAPS.md).
 
-1. **Deploy** the governance build to the hosted demo (Neon + Render + Vercel): 5 new migrations (audit 0005, ai 0003 to 0005, analytics 0003). The demo is shared with another client, so only on the owner's go-ahead, then a smoke test.
-2. **Walk it through in a browser** as an outsider would (chat, request, second approver, decision record, records tab, All AI off) and test the new migrations on Postgres.
-3. **Text-message duplicate check** (`communication/texts.py`) is look-then-create: add a database uniqueness constraint and a create-first flow.
-4. **Provider idempotency key and delivery lookup** so an "unknown" outcome can be settled without a person checking (needs an email/SMS provider that supports them).
-5. **Copy the newest chain hash outside the database** on a schedule (administrators); without it, someone who rewrites a whole chain is not caught.
-6. **Safer model store**: the risk model files are pickles next to the code; use a signed or isolated store.
-7. **Real validation of the risk scores**: outcome data, a fairness and validation study. Until then every outside statement says "fitted to written rules".
-8. **Provider and legal terms** for real student data (zero-retention terms, a data-processing agreement, a privacy policy). The free Gemini tier must not be used for real data.
+**Built since the first governance build (Nov 2026):** the text-message duplicate check is now a database rule (a second row with the same key is refused, so two requests arriving together cannot both send); a person can settle a request whose result could not be confirmed (**It was done / It was not done**, with what they checked, recorded in the trail); risk model files are saved with a signature and loaded only when it matches (a swapped file is not run); `verify_audit_chain --keep-file` keeps the newest hashes outside the database and next time catches a whole chain rewritten in step; the sample school is smaller (83 students, four weeks of attendance).
+
+**Not built, in the order to do them:**
+
+1. **Deploy** the governance build to the hosted demo (Neon + Render + Vercel): new migrations (audit 0005, ai 0003 to 0005, analytics 0003, communication 0008). The demo is shared with another client, so only on the owner's go-ahead, then a smoke test.
+2. **Walk it through in a browser** as an outsider would, and test the new migrations on Postgres (needs Docker running or a throwaway Neon branch).
+3. **Provider idempotency key and delivery lookup** so an "unknown" outcome can be settled by the system. Email and SMS here offer neither, so a person settles it.
+4. **Run the keep-file check on a schedule** and store the file somewhere the database administrator cannot change.
+5. **A model registry** (versions, who trained what, approvals) beyond signed files.
+6. **Real validation of the risk scores**: outcome data, a fairness and validation study. Until then every outside statement says "fitted to written rules".
+7. **Provider and legal terms** for real student data (zero-retention terms, a data-processing agreement, a privacy policy). The free Gemini tier must not be used for real data.
+8. **Four older tests fail on their dates** (insights x2, absence rate, behaviour follow-ups): they assume it is early October 2026 or the start of a month. They need a clock-freeze fixture; not caused by the AI work.
 9. **Not claimed and not built:** independent security audit or penetration test, certification (SOC 2 or similar), single sign-on, OneRoster and district imports.
 
 ## Deployment

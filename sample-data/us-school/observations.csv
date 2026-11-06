@@ -1,17 +1,17 @@
 ﻿Student number *,Type *,Title *,Date *,Notes,Severity,Status,Parent told (yes/no),Action taken,Follow up on,Outcome
-MG26-112,meeting,Parent meeting,2026-09-10,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,
-MG26-209,meeting,Parent meeting,2026-09-28,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Going well
-MG26-092,meeting,Parent meeting,2026-09-25,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,
-MG26-038,meeting,Parent meeting,2026-09-23,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Review in October
-MG26-006,incident,Playground incident follow-up,2026-08-28,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Review in October
-MG26-002,meeting,Parent meeting,2026-09-23,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Going well
-MG26-127,counselling,Check-in with the school counselor,2026-09-28,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Going well
-MG26-085,meeting,Parent meeting,2026-09-23,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Going well
-MG26-116,incident,Playground incident follow-up,2026-09-23,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Review in October
-MG26-013,incident,Playground incident follow-up,2026-10-02,Discussed how the first weeks of school are going.,low,resolved,yes,Weekly check-ins agreed,,Review in October
-MG26-121,counselling,Check-in with the school counselor,2026-09-17,Discussed how the first weeks of school are going.,low,resolved,yes,Weekly check-ins agreed,,Review in October
-MG26-081,counselling,Check-in with the school counselor,2026-09-16,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Review in October
-MG26-061,counselling,Check-in with the school counselor,2026-09-10,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Review in October
-MG26-094,incident,Playground incident follow-up,2026-09-04,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,
-MG26-056,counselling,Check-in with the school counselor,2026-09-30,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Review in October
-MG26-120,counselling,Check-in with the school counselor,2026-09-01,Discussed how the first weeks of school are going.,low,resolved,yes,Weekly check-ins agreed,,Review in October
+MG26-024,meeting,Parent meeting,2026-09-18,Discussed how the first weeks of school are going.,low,resolved,yes,Weekly check-ins agreed,,
+MG26-002,incident,Playground incident follow-up,2026-09-09,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,
+MG26-083,counselling,Check-in with the school counselor,2026-09-01,Discussed how the first weeks of school are going.,low,resolved,yes,Weekly check-ins agreed,,Going well
+MG26-012,meeting,Parent meeting,2026-08-31,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Going well
+MG26-076,counselling,Check-in with the school counselor,2026-09-10,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Review in October
+MG26-047,incident,Playground incident follow-up,2026-09-22,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,
+MG26-068,counselling,Check-in with the school counselor,2026-09-09,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Review in October
+MG26-073,counselling,Check-in with the school counselor,2026-09-04,Discussed how the first weeks of school are going.,low,resolved,yes,Weekly check-ins agreed,,Going well
+MG26-041,incident,Playground incident follow-up,2026-09-30,Discussed how the first weeks of school are going.,low,resolved,yes,Weekly check-ins agreed,,
+MG26-054,meeting,Parent meeting,2026-09-08,Discussed how the first weeks of school are going.,low,resolved,yes,Weekly check-ins agreed,,Going well
+MG26-078,counselling,Check-in with the school counselor,2026-09-09,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,
+MG26-019,meeting,Parent meeting,2026-09-10,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,
+MG26-018,counselling,Check-in with the school counselor,2026-10-01,Discussed how the first weeks of school are going.,low,resolved,yes,Weekly check-ins agreed,,
+MG26-033,counselling,Check-in with the school counselor,2026-09-04,Discussed how the first weeks of school are going.,low,resolved,yes,Weekly check-ins agreed,,Review in October
+MG26-046,meeting,Parent meeting,2026-09-30,Discussed how the first weeks of school are going.,low,resolved,yes,Weekly check-ins agreed,,Going well
+MG26-057,incident,Playground incident follow-up,2026-09-01,Discussed how the first weeks of school are going.,low,open,yes,Weekly check-ins agreed,,Going well

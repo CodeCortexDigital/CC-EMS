@@ -284,6 +284,42 @@ def _execute(req, tenant, requester, requester_role, spec, approver) -> AIAction
     return AIActionRequest.all_objects.get(pk=req.pk)
 
 
+STALE_RUNNING = datetime.timedelta(minutes=10)
+
+
+def can_settle(req: AIActionRequest) -> bool:
+    """A request whose result could not be confirmed (or one that has been "running" for too long, for example the server stopped)."""
+    if req.status == 'unknown':
+        return True
+    return req.status == 'running' and bool(req.decided_at) and timezone.now() - req.decided_at > STALE_RUNNING
+
+
+def settle(req: AIActionRequest, user, role, tenant, outcome: str, note: str) -> AIActionRequest:
+    """A person checks what really happened (for example looks in the mail log) and records it. This is how an unconfirmed result is
+    closed: it is never retried by the system. 'done' = it did happen; 'not_done' = it did not, so a new request may be asked for."""
+    if outcome not in ('done', 'not_done'):
+        raise ActionError("Say whether it was done or not done.")
+    note = (note or '').strip()[:500]
+    if not note:
+        raise ActionError('Write what you checked, so the record shows how this was settled.')
+    with transaction.atomic():
+        req = _lock(req, tenant)
+        spec = ACTIONS.get(req.action)
+        if spec is None or not _eligible(user, role, spec, tenant):
+            raise PermissionError('You are not one of the people who can settle this request.')
+        if not can_settle(req):
+            raise ActionError('This request has no unconfirmed result to settle.')
+        done = outcome == 'done'
+        req.status = 'executed' if done else 'failed'
+        req.result = {**(req.result or {}), 'settled_by_person': True, 'settled_as': outcome, 'settled_note': note,
+                      **({'note': 'A person confirmed this was done.'} if done else {'error': 'A person confirmed this was not done.'})}
+        req.save(update_fields=['status', 'result'])
+        AIActionEffect.objects.filter(request=req).update(state='confirmed' if done else 'not_done', finished_at=timezone.now(),
+                                                          detail=req.result)
+        _audit(user, tenant, req.action, req.id, 'settled', {'outcome': outcome, 'note': note, 'asked_by': str(req.requested_by_id)})
+    return req
+
+
 def _lock(req, tenant) -> AIActionRequest:
     return AIActionRequest.all_objects.select_for_update().get(pk=req.pk, tenant=tenant)     # another school's request is not found
 

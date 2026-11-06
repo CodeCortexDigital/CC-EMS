@@ -91,3 +91,22 @@ def test_a_record_that_cannot_be_written_raises(school, monkeypatch):
     monkeypatch.setattr(AuditLog.objects, 'create', lambda **kw: (_ for _ in ()).throw(RuntimeError('disk full')), raising=False)
     with pytest.raises(chain.AuditWriteError):
         chain.append(user=admin, school=s, action='UPDATE', resource_type='ai.action.x', new_data={})
+
+
+def test_a_kept_hash_catches_a_whole_chain_rewritten_in_step(school, tmp_path):
+    from services.core.audit.models import AuditChainHead
+    s, admin = school
+    keep = tmp_path / 'heads.jsonl'
+    _write(s, admin)
+    call_command('verify_audit_chain', keep_file=str(keep))                         # first run: nothing to compare, hashes kept
+    assert len(keep.read_text().splitlines()) == 1
+    call_command('verify_audit_chain', keep_file=str(keep))                         # unchanged: still fine
+    # Someone rewrites the whole chain consistently, so the chain alone still verifies...
+    AuditLog._base_manager.filter(chain=str(s.pk)).delete()
+    AuditChainHead.objects.filter(chain=str(s.pk)).delete()
+    for status in ('requested', 'approved', 'rejected'):
+        chain.append(user=admin, school=s, action='UPDATE', resource_type='ai.action.send_fee_reminder', new_data={'status': status})
+    assert chain.verify()['ok']
+    # ...but the hash kept outside the database no longer matches.
+    with pytest.raises(CommandError):
+        call_command('verify_audit_chain', keep_file=str(keep))
