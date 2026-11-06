@@ -35,7 +35,7 @@ Status key: **Built** (in code, tests written) · **Open** (not done) · **Limit
 
 | # | Gap or limit | Status | Verify at the end |
 |---|---|---|---|
-| C1 | Identical scores and 105 of 213 flagged high | Built: fee model uses only the overdue share, excused and late days count as attended, stable order; the sample school's October invoices are now 82% paid (was 50%) so far fewer students are overdue | [ ] re-seed and read the new flag count before quoting any number |
+| C1 | Identical scores and 105 of 213 flagged high | Built: fee model uses only the overdue share, excused and late days count as attended, stable order; the sample school is smaller and October invoices are 82% paid. Measured on the new local sample school (83 students, scan run 6 Nov 2026): 15 high (18%), 7 medium, 61 low | [ ] these are rule outputs on invented data, not accuracy; do not quote them as findings |
 | C2 | Models are fitted to written rules, not learned from outcomes | Limit: stated on the model card, in the readiness doc and in the governance doc. **Earlier wording ("trained on the school's own records") overstated this** | [ ] every outside statement says "fitted to written scoring rules" |
 | C3 | No bias or fairness study | Limit: model card shows flag rates by gender and class per scan; no study | [ ] |
 | C4 | Model version and scan not stamped on scores | Built: each scan is a `RiskScanRun` (migration `analytics/0003`); each score carries the scan id | [ ] migration on Postgres |
