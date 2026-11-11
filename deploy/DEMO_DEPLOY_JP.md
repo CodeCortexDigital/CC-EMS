@@ -2,7 +2,7 @@
 
 A separate site from the US demo: its own Render backend, database and screens, so the other client's demo is not touched.
 It loads the sample Japanese school **Wakaba Gakuen** (みどり市立 若葉学園: 109 students in grades 1-9, staff, timetable, school-lunch fees in yen,
-attendance, exams, and sample 指導要録 for class 6年) and one administrator login for Masato.
+attendance, exams, and sample 指導要録 for class 6年) and one administrator login for Masato, listed on the sign-in page.
 
 | Role | Email | Password |
 |------|-------|----------|
@@ -14,7 +14,7 @@ The site runs as `APP_ENV=staging` (no real email or payments).
 
 ## 1. Put it on Render (backend, database and screens in one go)
 1. Render > New > **Blueprint** > this repository, branch `feat/japan-demo` > Blueprint path `deploy/render-demo-jp.yaml` > Apply.
-2. When asked for `DEMO_ADMIN_PASSWORD`, type the password for Masato. (Later: backend service > Environment, change it and redeploy to change the password.)
+2. When asked for `DEMO_ADMIN_PASSWORD` (backend) and `VITE_DEMO_ADMIN_PASSWORD` (screens), type the same password for Masato in both. The sign-in page then lists his administrator login (and the teacher, parent and student logins) to click, so the password is visible on the page: that is fine for sample data, but do not reuse it anywhere. (Later: backend service > Environment, change it and redeploy to change the password.)
 3. It creates three things: `erp-jp-demo-db`, `erp-jp-demo-backend`, `erp-jp-demo-web`. Wait **5 to 8 minutes** for the school to load (logins fail until it is done).
 4. Check the two addresses Render shows. If the backend is not exactly `https://erp-jp-demo-backend.onrender.com`, set `VITE_API_URL` on `erp-jp-demo-web` to `https://<backend address>/api/v1/` and redeploy it.
 5. Backend service > Environment, set:

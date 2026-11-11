@@ -33,8 +33,13 @@ const REMEMBER_KEY = 'login_remembered_username';
 
 // Demo accounts: shown only on a demo site, where VITE_DEMO_LOGINS=true is set in the build environment (never on a live site).
 const SHOW_DEMO_LOGINS = import.meta.env.VITE_DEMO_LOGINS === 'true';
-const DEMO_LOGINS: { label: string; email: string; password: string; role: LoginRole }[] = [
-  { label: 'Admin', email: 'admin@code.com', password: 'Admin@123', role: 'admin' },
+// A client's own demo administrator replaces the public one on that client's site: VITE_DEMO_ADMIN_EMAIL, VITE_DEMO_ADMIN_PASSWORD and
+// (optionally) VITE_DEMO_ADMIN_LABEL in the build environment. The password is then visible on the page, so use it only for a demo with sample data.
+const OWN_ADMIN = import.meta.env.VITE_DEMO_ADMIN_EMAIL && import.meta.env.VITE_DEMO_ADMIN_PASSWORD
+  ? { label: import.meta.env.VITE_DEMO_ADMIN_LABEL || 'Admin', email: String(import.meta.env.VITE_DEMO_ADMIN_EMAIL), password: String(import.meta.env.VITE_DEMO_ADMIN_PASSWORD), role: 'admin' as LoginRole }
+  : null;
+export const DEMO_LOGINS: { label: string; email: string; password: string; role: LoginRole }[] = [
+  OWN_ADMIN ?? { label: 'Admin', email: 'admin@code.com', password: 'Admin@123', role: 'admin' },
   { label: 'Teacher', email: 'teacher@code.com', password: 'Teacher@123', role: 'employee' },
   { label: 'Parent', email: 'parent@code.com', password: 'Parent@123', role: 'student' },
   { label: 'Student', email: 'student@code.com', password: 'Student@123', role: 'student' },

@@ -97,5 +97,13 @@ services:
         value: "20"
       - key: VITE_API_URL
         value: https://erp-jp-demo-backend.onrender.com/api/v1/
+      # The sign-in page lists Masato's administrator (in place of admin@code.com) and the teacher, parent and student logins.
+      # The password is typed here in the Render dashboard (same one as DEMO_ADMIN_PASSWORD on the backend); it is shown on the page, so keep this site to sample data.
       - key: VITE_DEMO_LOGINS
-        value: "false"
+        value: "true"
+      - key: VITE_DEMO_ADMIN_EMAIL
+        value: masato@admin.com
+      - key: VITE_DEMO_ADMIN_LABEL
+        value: Admin (Masato)
+      - key: VITE_DEMO_ADMIN_PASSWORD
+        sync: false
