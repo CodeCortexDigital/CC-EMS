@@ -79,3 +79,23 @@ services:
       # Set to 1 for ONE deploy to wipe every school and account and load the demo again; then delete the variable.
       - key: DEMO_RESET
         sync: false
+
+  # The screens. On Render too (Vercel's free plan will not deploy from an organisation's repository).
+  # If Render gives the backend a different address than the one below (it adds letters when a name is taken), correct VITE_API_URL here and redeploy this one.
+  - type: web
+    name: erp-jp-demo-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: VITE_API_URL
+        value: https://erp-jp-demo-backend.onrender.com/api/v1/
+      - key: VITE_DEMO_LOGINS
+        value: "false"
