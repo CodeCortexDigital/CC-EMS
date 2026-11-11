@@ -119,6 +119,9 @@ REGIONS = {
     'us': {'label': 'United States', 'currency': 'USD', 'timezone': 'America/New_York', 'date_format': 'MM/DD/YYYY',
            'week_start': 0, 'hidden_fields': ['cast', 'orphan_student', 'osc'],
            'payment_methods': ['card', 'ach', 'check', 'cash']},
+    'jp': {'label': 'Japan', 'currency': 'JPY', 'timezone': 'Asia/Tokyo', 'date_format': 'YYYY-MM-DD',
+           'week_start': 0, 'hidden_fields': ['cast', 'orphan_student', 'osc'],
+           'payment_methods': ['bank_transfer', 'cash', 'card']},
 }
 DATE_FORMATS = {'DD/MM/YYYY': 'en-GB', 'MM/DD/YYYY': 'en-US', 'YYYY-MM-DD': 'sv-SE'}
 PAYMENT_METHOD_LABELS = {
@@ -127,20 +130,20 @@ PAYMENT_METHOD_LABELS = {
 }
 # The words each region uses. Keys name the Pakistani wording the app was written with.
 TERMS = {
-    'challan':          {'pk': 'Challan', 'intl': 'Invoice', 'uk': 'Invoice', 'us': 'Invoice'},
-    'date_sheet':       {'pk': 'Date Sheet', 'intl': 'Exam Timetable', 'uk': 'Exam Timetable', 'us': 'Exam Schedule'},
-    'award_list':       {'pk': 'Award List', 'intl': 'Mark Sheet', 'uk': 'Mark Sheet', 'us': 'Grade Sheet'},
-    'result_card':      {'pk': 'Result Card', 'intl': 'Report Card', 'uk': 'Report Card', 'us': 'Report Card'},
-    'paid_slips':       {'pk': 'Paid Slips', 'intl': 'Receipts', 'uk': 'Receipts', 'us': 'Receipts'},
-    'fee_defaulters':   {'pk': 'Fee Defaulters', 'intl': 'Overdue Accounts', 'uk': 'Overdue Accounts', 'us': 'Past-due Accounts'},
-    'fee_particulars':  {'pk': 'Fee Particulars', 'intl': 'Fee Items', 'uk': 'Fee Items', 'us': 'Fee Items'},
-    'admission_letter': {'pk': 'Admission Letter', 'intl': 'Offer Letter', 'uk': 'Offer Letter', 'us': 'Acceptance Letter'},
-    'b_form':           {'pk': 'B-Form', 'intl': 'Birth Certificate No.', 'uk': 'Birth Certificate No.', 'us': 'Birth Certificate No.'},
-    'cnic':             {'pk': 'CNIC', 'intl': 'National ID', 'uk': 'ID Number', 'us': 'ID Number'},
-    'cheque':           {'pk': 'Cheque', 'intl': 'Cheque', 'uk': 'Cheque', 'us': 'Check'},
-    'timetable':        {'pk': 'Timetable', 'intl': 'Timetable', 'uk': 'Timetable', 'us': 'Schedule'},
-    'enrolment':        {'pk': 'Enrolment', 'intl': 'Enrolment', 'uk': 'Enrolment', 'us': 'Enrollment'},
-    'principal':        {'pk': 'Principal', 'intl': 'Principal', 'uk': 'Head Teacher', 'us': 'Principal'},
+    'challan':          {'pk': 'Challan', 'intl': 'Invoice', 'uk': 'Invoice', 'us': 'Invoice', 'jp': 'Invoice'},
+    'date_sheet':       {'pk': 'Date Sheet', 'intl': 'Exam Timetable', 'uk': 'Exam Timetable', 'us': 'Exam Schedule', 'jp': 'Exam Timetable'},
+    'award_list':       {'pk': 'Award List', 'intl': 'Mark Sheet', 'uk': 'Mark Sheet', 'us': 'Grade Sheet', 'jp': 'Mark Sheet'},
+    'result_card':      {'pk': 'Result Card', 'intl': 'Report Card', 'uk': 'Report Card', 'us': 'Report Card', 'jp': 'Report Card'},
+    'paid_slips':       {'pk': 'Paid Slips', 'intl': 'Receipts', 'uk': 'Receipts', 'us': 'Receipts', 'jp': 'Receipts'},
+    'fee_defaulters':   {'pk': 'Fee Defaulters', 'intl': 'Overdue Accounts', 'uk': 'Overdue Accounts', 'us': 'Past-due Accounts', 'jp': 'Overdue Accounts'},
+    'fee_particulars':  {'pk': 'Fee Particulars', 'intl': 'Fee Items', 'uk': 'Fee Items', 'us': 'Fee Items', 'jp': 'Fee Items'},
+    'admission_letter': {'pk': 'Admission Letter', 'intl': 'Offer Letter', 'uk': 'Offer Letter', 'us': 'Acceptance Letter', 'jp': 'Offer Letter'},
+    'b_form':           {'pk': 'B-Form', 'intl': 'Birth Certificate No.', 'uk': 'Birth Certificate No.', 'us': 'Birth Certificate No.', 'jp': 'Birth Certificate No.'},
+    'cnic':             {'pk': 'CNIC', 'intl': 'National ID', 'uk': 'ID Number', 'us': 'ID Number', 'jp': 'National ID'},
+    'cheque':           {'pk': 'Cheque', 'intl': 'Cheque', 'uk': 'Cheque', 'us': 'Check', 'jp': 'Cheque'},
+    'timetable':        {'pk': 'Timetable', 'intl': 'Timetable', 'uk': 'Timetable', 'us': 'Schedule', 'jp': 'Timetable'},
+    'enrolment':        {'pk': 'Enrolment', 'intl': 'Enrolment', 'uk': 'Enrolment', 'us': 'Enrollment', 'jp': 'Enrolment'},
+    'principal':        {'pk': 'Principal', 'intl': 'Principal', 'uk': 'Head Teacher', 'us': 'Principal', 'jp': 'Principal'},
 }
 
 

@@ -109,7 +109,7 @@ def create_school_with_admin(*, school_name, admin_email, admin_name, password=N
                 'currency': currency_code,
                 # A new school's wording follows its currency: dollars start US-style, pounds UK-style, rupees Pakistan-style;
                 # anything else starts International.
-                'region': {'USD': 'us', 'GBP': 'uk', 'PKR': 'pk'}.get(currency_code, 'intl'),
+                'region': {'USD': 'us', 'GBP': 'uk', 'PKR': 'pk', 'JPY': 'jp'}.get(currency_code, 'intl'),
                 'language': language_code,
                 'timezone': (timezone or DEFAULT_TIMEZONE)[:64],
                 'onboarding': {'created_via': 'google' if firebase_uid else 'signup'},
@@ -218,7 +218,7 @@ def school_locale_view(request):
 
         code = normalize_region(request.data.get('region'))
         if not code:
-            errors['region'] = 'Choose Pakistan, International, United Kingdom or United States.'
+            errors['region'] = 'Choose Pakistan, International, United Kingdom, United States or Japan.'
         else:
             updates['region'] = code
             # A new region brings its own date format and week start, unless those are given too.

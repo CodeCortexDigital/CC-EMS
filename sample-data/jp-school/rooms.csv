@@ -1,0 +1,19 @@
+﻿Room code *,Room name *,Capacity,Category,Floor,Location
+C01,教室1,36,classroom,first,本校舎
+C02,教室2,36,classroom,first,本校舎
+C03,教室3,36,classroom,first,本校舎
+C04,教室4,36,classroom,first,本校舎
+C05,教室5,36,classroom,first,本校舎
+C06,教室6,36,classroom,first,本校舎
+C07,教室7,36,classroom,second,本校舎
+C08,教室8,36,classroom,second,本校舎
+C09,教室9,36,classroom,second,本校舎
+C10,教室10,36,classroom,second,本校舎
+C11,教室11,36,classroom,second,本校舎
+C12,教室12,36,classroom,second,本校舎
+GYM,体育館,200,sports,ground,体育館棟
+FIELD,校庭,200,sports,ground,屋外
+PC,コンピュータ室,40,lab,second,本校舎
+MUSIC,音楽室,40,classroom,second,特別教室棟
+ARTR,図工室,40,classroom,first,特別教室棟
+SCIR,理科室,40,lab,first,特別教室棟

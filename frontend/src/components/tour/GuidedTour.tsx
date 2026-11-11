@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { tourFor } from '@/config/tourSteps';
 import tourApi, { needsTour, skippedThisSignIn, skipForThisSignIn, START_TOUR_EVENT } from '@/services/tour.service';
@@ -10,6 +11,7 @@ import tourApi, { needsTour, skippedThisSignIn, skipForThisSignIn, START_TOUR_EV
 export default function GuidedTour() {
   const { role } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const tour = tourFor(role);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
@@ -54,7 +56,7 @@ export default function GuidedTour() {
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-5">
         <div className="flex items-start gap-3">
           <div className="mr-auto">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">Step {step + 1} of {tour.steps.length}</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">{t('tour.stepOf', { defaultValue: 'Step {{current}} of {{total}}', current: step + 1, total: tour.steps.length })}</p>
             <h2 className="text-lg font-black text-slate-900 mt-0.5">{current.title}</h2>
           </div>
           <button aria-label="Skip the tour" className="text-slate-400 hover:text-slate-700" onClick={() => finish('skipped')}><X className="w-5 h-5" /></button>

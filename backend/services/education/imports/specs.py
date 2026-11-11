@@ -16,7 +16,8 @@ from django.utils import timezone
 
 
 def norm(text) -> str:
-    return re.sub(r'[^a-z0-9]', '', str(text or '').lower())
+    # Letters and digits of any script (Japanese, Arabic, Cyrillic...), so non-Latin names are not all reduced to an empty key.
+    return re.sub(r'[\W_]+', '', str(text or '').lower())
 
 
 def text(v) -> str:

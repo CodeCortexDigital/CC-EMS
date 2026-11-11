@@ -201,5 +201,6 @@
     "saveSchool": "Save school settings",
     "savedSchool": "School language and currency saved.",
     "confirmCurrency": "Change the school currency to {{currency}}? Amounts are not converted."
-  }
+  },
+  "tour": { "stepOf": "Step {{current}} of {{total}}" }
 }

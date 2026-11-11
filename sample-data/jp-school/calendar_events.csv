@@ -1,0 +1,19 @@
+﻿Title *,Type,First day *,Last day *,Location,For,School closed (yes/no),Description
+敬老の日,holiday,2026-09-21,2026-09-21,,everyone,yes,休み
+国民の休日,holiday,2026-09-22,2026-09-22,,everyone,yes,休み
+秋分の日,holiday,2026-09-23,2026-09-23,,everyone,yes,休み
+スポーツの日,holiday,2026-10-12,2026-10-12,,everyone,yes,休み
+文化の日,holiday,2026-11-03,2026-11-03,,everyone,yes,休み
+勤労感謝の日,holiday,2026-11-23,2026-11-23,,everyone,yes,休み
+冬休み,holiday,2026-12-26,2027-01-07,,everyone,yes,休み
+成人の日,holiday,2027-01-11,2027-01-11,,everyone,yes,休み
+建国記念の日,holiday,2027-02-11,2027-02-11,,everyone,yes,休み
+天皇誕生日,holiday,2027-02-23,2027-02-23,,everyone,yes,休み
+春分の日（振替休日）,holiday,2027-03-22,2027-03-22,,everyone,yes,休み
+春休み,holiday,2027-03-25,2027-04-05,,everyone,yes,休み
+運動会,event,2026-10-10,2026-10-10,校庭,everyone,,雨天の場合は翌週に延期
+遠足,event,2026-10-22,2026-10-22,,families,,
+学習発表会,event,2026-11-14,2026-11-14,体育館,everyone,,
+個人面談,meeting,2026-11-16,2026-11-20,,families,,午後の短縮授業
+避難訓練,event,2026-11-27,2026-11-27,,everyone,,
+2学期 終業式,event,2026-12-25,2026-12-25,,everyone,,

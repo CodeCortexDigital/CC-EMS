@@ -8,7 +8,8 @@ from .pack import col, lookup, model_kind, ref_name, register
 ATTENDANCE_STATUS = {'present': 'Present', 'absent': 'Absent', 'late': 'Late', 'excused': 'Excused', 'holiday': 'Holiday',
                      'early_dismissal': 'Early dismissal'}
 ATTENDANCE_REASON = {'illness': 'Illness', 'medical': 'Medical appointment', 'family': 'Family', 'religious': 'Religious',
-                     'school_activity': 'School activity', 'transport': 'Transport', 'unknown': 'Unknown', 'other': 'Other'}
+                     'school_activity': 'School activity', 'suspension': 'Suspension', 'bereavement': 'Bereavement', 'transport': 'Transport',
+                     'unknown': 'Unknown', 'other': 'Other'}
 EXAM_TYPES = {'midterm': 'Midterm', 'final': 'Final', 'quiz': 'Quiz', 'test': 'Test', 'assignment': 'Assignment'}
 DAYS = {'monday': 'Monday', 'tuesday': 'Tuesday', 'wednesday': 'Wednesday', 'thursday': 'Thursday', 'friday': 'Friday',
         'saturday': 'Saturday', 'sunday': 'Sunday'}

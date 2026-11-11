@@ -11,13 +11,13 @@ import os
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 
 from services.core.security.defaults import refuse_on_live
 
-SCHOOL_CODE = 'MGA'
+SCHOOL_CODE = 'MGA'   # the US sample school; a pack's own code comes from seed_demo
 KEEP_SCHOOL = 'DEF'   # the empty default school the system uses as a placeholder
 
 
@@ -78,11 +78,43 @@ def keep_subscription_active(school):
         type(school).objects.filter(pk=school.pk).update(settings_json=saved)
 
 
+def pack_code(pack: str) -> str:
+    from services.core.accounts.management.commands.seed_demo import Command as SeedDemo
+    return SeedDemo.PACKS.get(pack, {}).get('code', SCHOOL_CODE)
+
+
+def add_demo_admin(school, email: str, password: str, name: str, say=lambda *_: None):
+    """A named administrator for one client's demo, with a password only that client is told (it comes from the environment, never from the repository).
+
+    The two public administrator logins (admin@code.com, deputy@code.com) are switched off on this site, so the only way in as administrator is this account.
+    Runs on every start, so changing the password variable and redeploying changes the password.
+    """
+    from services.core.accounts.models import User
+    from services.core.tenants.models import TenantMembership
+
+    user = User.objects.filter(email__iexact=email).first()
+    if user is None:
+        user = User.objects.create_user(email=email, password=password, full_name=name or email)
+    else:
+        user.set_password(password)
+    user.account_status, user.email_verified = User.AccountStatus.ACTIVE, True
+    if name:
+        user.full_name = name
+    user.save()
+    TenantMembership.objects.filter(user=user).exclude(school=school).update(is_primary=False)
+    member, _ = TenantMembership.objects.get_or_create(user=user, school=school, defaults={'role': 'admin', 'is_primary': True})
+    if member.role != 'admin' or not member.is_primary:
+        member.role, member.is_primary = 'admin', True
+        member.save(update_fields=['role', 'is_primary'])
+    User.objects.filter(email__in=('admin@code.com', 'deputy@code.com')).exclude(pk=user.pk).update(account_status=User.AccountStatus.INACTIVE)
+    say(f'Administrator {email} is ready; the public administrator logins are switched off.')
+
+
 class Command(BaseCommand):
-    help = 'Set up the demo site: the demo accounts and the sample US school only.'
+    help = 'Set up the demo site: the demo accounts and one sample school (US by default; --pack jp-school for the Japanese one).'
 
     def add_arguments(self, parser):
-        parser.add_argument('--pack', default='us-school')
+        parser.add_argument('--pack', default=os.environ.get('DEMO_PACK', '').strip() or 'us-school')
         parser.add_argument('--reset', action='store_true', help='Delete every school and account first')
 
     def handle(self, *args, **opts):
@@ -93,12 +125,22 @@ class Command(BaseCommand):
         reset = opts['reset'] or os.environ.get('DEMO_RESET', '').strip().lower() in ('1', 'true', 'yes')
         if reset:
             wipe_everything(self.stdout.write)
-        school = School.objects.filter(tenant_code=SCHOOL_CODE).first()
-        if school is not None and Student.all_objects.filter(tenant=school).exists():
+        code = pack_code(opts['pack'])
+        admin_email = os.environ.get('DEMO_ADMIN_EMAIL', '').strip()
+        admin_password = os.environ.get('DEMO_ADMIN_PASSWORD', '')
+        if admin_email and not admin_password:
+            raise CommandError('DEMO_ADMIN_EMAIL is set but DEMO_ADMIN_PASSWORD is not.')
+        school = School.objects.filter(tenant_code=code).first()
+        loaded = school is not None and Student.all_objects.filter(tenant=school).exists()
+        if loaded:
             keep_subscription_active(school)
             self.stdout.write(self.style.SUCCESS('Demo school is already loaded. Its plan is kept active.'))
-            return
-        call_command('seed_sample_users', '--force')
-        call_command('seed_demo', '--pack', opts['pack'], '--reset', stdout=self.stdout)
-        keep_subscription_active(School.objects.filter(tenant_code=SCHOOL_CODE).first())
-        self.stdout.write(self.style.SUCCESS('Demo site ready. Log in as admin@code.com / Admin@123.'))
+        else:
+            call_command('seed_sample_users', '--force')
+            call_command('seed_demo', '--pack', opts['pack'], '--reset', stdout=self.stdout)
+            school = School.objects.filter(tenant_code=code).first()
+            keep_subscription_active(school)
+        if admin_email:
+            add_demo_admin(school, admin_email, admin_password, os.environ.get('DEMO_ADMIN_NAME', '').strip(), self.stdout.write)
+        elif not loaded:
+            self.stdout.write(self.style.SUCCESS('Demo site ready. Log in as admin@code.com / Admin@123.'))

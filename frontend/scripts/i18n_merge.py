@@ -14,7 +14,7 @@ import sys
 OUT, CHUNKS = sys.argv[1], sys.argv[2]
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEST = os.path.join(HERE, '..', 'src', 'i18n', 'phrases')
-LANGS = ['es', 'pt', 'fr', 'de', 'ar']
+LANGS = ['es', 'pt', 'fr', 'de', 'ar', 'ja']
 ph = re.compile(r'\{[^}]*\}|%[sd]')
 
 english = []

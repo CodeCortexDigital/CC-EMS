@@ -75,7 +75,8 @@ export interface StudentCalendar {
 export const REASONS = [
   { value: 'illness', label: 'Illness' }, { value: 'medical', label: 'Medical appointment' },
   { value: 'family', label: 'Family matter' }, { value: 'religious', label: 'Religious observance' },
-  { value: 'school_activity', label: 'School activity' }, { value: 'transport', label: 'Transport' },
+  { value: 'school_activity', label: 'School activity' }, { value: 'suspension', label: 'Suspension (出席停止)' },
+  { value: 'bereavement', label: 'Bereavement (忌引)' }, { value: 'transport', label: 'Transport' },
   { value: 'unknown', label: 'No reason given' }, { value: 'other', label: 'Other' },
 ];
 

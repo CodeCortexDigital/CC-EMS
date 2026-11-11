@@ -95,6 +95,7 @@ INSTALLED_APPS = [
     'services.education.hr',
     'services.education.safety',
     'services.education.interventions',
+    'services.education.records',
     'services.education.briefs',
     'services.education.forms',
     'services.analytics',

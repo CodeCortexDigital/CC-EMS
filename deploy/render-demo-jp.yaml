@@ -1,0 +1,81 @@
+# Demo site for the Japanese client: the sample Japanese school (Wakaba Gakuen, 指導要録 included) with its own administrator login.
+# A separate site from the US demo: its own backend and database, so nothing else is touched. Steps: deploy/DEMO_DEPLOY_JP.md.
+#
+# Create it once in Render: New > Blueprint > this repository > Blueprint path "deploy/render-demo-jp.yaml". The steps, including
+# how to wipe a Render site that already has data and how to connect the Vercel frontend, are in deploy/DEMO_DEPLOY_JP.md.
+#
+# No Redis: Render allows only one free Key Value store per account, and the demo does not need one (the app falls back to in-memory
+# cache and live updates, and runs background jobs inline).
+# Free plan notes: the web service sleeps when idle (about a minute to wake) and the free Postgres database is time-limited.
+# Runs as APP_ENV=staging so the demo accounts (public passwords) are allowed and no real email is sent.
+
+databases:
+  - name: erp-jp-demo-db
+    databaseName: erp_jp_demo
+    user: erp_jp_demo_user
+    plan: free
+
+services:
+  - type: web
+    name: erp-jp-demo-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    # The sample school loads in the background after the server is up (about 3 to 5 minutes the first time); the command does
+    # nothing once the school is there. No admin account is created from the environment: only the demo accounts exist.
+    startCommand: python manage.py migrate --noinput && python manage.py collectstatic --noinput && (python manage.py setup_demo > /tmp/setup_demo.log 2>&1 &) && daphne -b 0.0.0.0 -p $PORT erp_core.asgi:application
+    healthCheckPath: /api/v1/health/live/
+    envVars:
+      - key: APP_ENV
+        value: staging
+      # Which sample school to load, and the administrator Masato signs in with. The password is set in the Render dashboard
+      # (never in this file): it is the one you give him. The public administrator logins (admin@code.com) are switched off here.
+      - key: DEMO_PACK
+        value: jp-school
+      - key: DEMO_ADMIN_EMAIL
+        value: masato@admin.com
+      - key: DEMO_ADMIN_NAME
+        value: Masato Yamano
+      - key: DEMO_ADMIN_PASSWORD
+        sync: false
+      - key: TIME_ZONE
+        value: Asia/Tokyo
+      - key: DJANGO_SETTINGS_MODULE
+        value: erp_core.settings
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,localhost,127.0.0.1"
+      - key: DB_HOST
+        fromDatabase:
+          name: erp-jp-demo-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: erp-jp-demo-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: erp-jp-demo-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: erp-jp-demo-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: erp-jp-demo-db
+          property: password
+      - key: FIREBASE_PROJECT_ID
+        value: school-erp-c53b4
+      # Set these two in the Render dashboard once the Vercel address is known (see deploy/DEMO_DEPLOY_JP.md).
+      - key: FRONTEND_ORIGINS
+        sync: false
+      - key: PUBLIC_API_URL
+        sync: false
+      # Set to 1 for ONE deploy to wipe every school and account and load the demo again; then delete the variable.
+      - key: DEMO_RESET
+        sync: false

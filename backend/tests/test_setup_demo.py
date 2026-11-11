@@ -47,3 +47,31 @@ def test_reset_leaves_only_the_demo_school_and_the_demo_accounts(settings, monke
     assert get_user_model().objects.count() == before
     with use_tenant(school):
         assert Student.objects.count() == 83
+
+
+def test_a_named_administrator_replaces_the_public_ones(settings):
+    from services.core.accounts.models import User
+    from services.education.imports.management.commands.setup_demo import add_demo_admin, pack_code
+
+    assert pack_code('jp-school') == 'WKG' and pack_code('us-school') == 'MGA'
+    school = SchoolFactory(name='Client School')
+    public = UserFactory(email='admin@code.com')
+    TenantMembership.objects.create(user=public, school=school, role='admin', is_primary=True)
+    add_demo_admin(school, 'client@admin.test', 'a-private-password', 'Client Admin')
+    user = User.objects.get(email='client@admin.test')
+    assert user.check_password('a-private-password') and user.account_status == User.AccountStatus.ACTIVE
+    member = TenantMembership.objects.get(user=user, school=school)
+    assert member.role == 'admin' and member.is_primary
+    assert not user.is_superuser
+    assert User.objects.get(email='admin@code.com').account_status == User.AccountStatus.INACTIVE
+    add_demo_admin(school, 'client@admin.test', 'a-new-password', '')          # a restart with a changed password
+    assert User.objects.get(email='client@admin.test').check_password('a-new-password')
+    assert TenantMembership.objects.filter(user=user, school=school).count() == 1
+
+
+def test_an_admin_email_without_a_password_is_refused(settings, monkeypatch):
+    settings.APP_ENV = 'staging'
+    monkeypatch.setenv('DEMO_ADMIN_EMAIL', 'client@admin.test')
+    monkeypatch.delenv('DEMO_ADMIN_PASSWORD', raising=False)
+    with pytest.raises(CommandError):
+        call_command('setup_demo')

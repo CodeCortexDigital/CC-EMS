@@ -5,6 +5,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { GraduationCap, LayoutDashboard, Moon, ShieldCheck, Sparkles, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { readThemeSettings, saveThemeSettings } from '@/utils/theme';
+import { LanguageMenuButton } from '@/components/common/LanguagePicker';
+import { useLocaleStore } from '@/store/localeStore';
 
 export const SERIF = "font-['Cambria','Constantia','Palatino_Linotype',Georgia,serif]";
 export const MONO = "font-['Cascadia_Mono',Consolas,'Courier_New',monospace]";
@@ -47,6 +49,7 @@ function FlowingLines() {
 export default function LoginFrame({ children, console: consoleLabel }: { children: ReactNode; console: string }) {
   const { t } = useTranslation();
   const [hello, setHello] = useState('Welcome');
+  const { userLanguage, school, setUserLanguage } = useLocaleStore();
   useEffect(() => setHello(greeting(new Date().getHours())), []);       // set after mount so the server and browser agree
 
   const gets: { icon: typeof LayoutDashboard; title: string; text: string }[] = [
@@ -68,6 +71,8 @@ export default function LoginFrame({ children, console: consoleLabel }: { childr
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <LanguageMenuButton value={userLanguage || school.language || 'en'} onChange={(code) => code && setUserLanguage(code)}
+              buttonClassName="h-10 rounded-full bg-white px-3 text-slate-700 shadow-[0_6px_20px_-10px_rgba(15,81,67,.5)] hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-100" />
             <ThemeSwitch />
             <div className="hidden items-center gap-3 rounded-full bg-white px-3 py-2 shadow-[0_6px_20px_-10px_rgba(15,81,67,.5)] dark:bg-slate-800 sm:flex">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--app-accent)] text-white"><ShieldCheck className="h-5 w-5" /></span>

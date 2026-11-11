@@ -1,0 +1,166 @@
+{
+  "pack_version": 1,
+  "school": "\u307f\u3069\u308a\u5e02\u7acb \u82e5\u8449\u5b66\u5712 (Wakaba Gakuen)",
+  "files": {
+    "academic_years.csv": {
+      "kind": "academic_years",
+      "rows": 1,
+      "sha256": "f05cd20c4a227667b5c34d249ac0851f7f7337c6fbacde42486628a3f8f19945"
+    },
+    "terms.csv": {
+      "kind": "terms",
+      "rows": 3,
+      "sha256": "5cbeeac13889563c555e097ad631af17eaa6f995c3f5c4f177a1d512a1fe0269"
+    },
+    "classes.csv": {
+      "kind": "classes",
+      "rows": 9,
+      "sha256": "bdeebd243afa0f72cbfc992f2b1dbdc3e70835b89949e815502ec863ba3fb425"
+    },
+    "subjects.csv": {
+      "kind": "subjects",
+      "rows": 12,
+      "sha256": "b570059f7fe9a3e4b05f55f5c5b629bd253097e707cba2f792c3e9b046768f0f"
+    },
+    "rooms.csv": {
+      "kind": "rooms",
+      "rows": 18,
+      "sha256": "decf26d6a514fe5cd6da9e891c6dd33247523b557f70e5fbaea85f4bff0fecb6"
+    },
+    "periods.csv": {
+      "kind": "periods",
+      "rows": 8,
+      "sha256": "f357a30bc74847683dbf609895608637335d977fdca2ecec950b17cef21f28fe"
+    },
+    "weekdays.csv": {
+      "kind": "weekdays",
+      "rows": 5,
+      "sha256": "0a269a1b226373c79e347b8b25d5ffd508168df9ee60fdc6360af9b49e0287d6"
+    },
+    "class_subjects.csv": {
+      "kind": "class_subjects",
+      "rows": 87,
+      "sha256": "0d3817efa07cd68f1828db0e57144b90354ab381dc28513f284e8a5188d25fa9"
+    },
+    "pay_grades.csv": {
+      "kind": "pay_grades",
+      "rows": 5,
+      "sha256": "78da2ea6a2fd9689d7999793efc1721700c72883d89dec4e79f20d594811d973"
+    },
+    "staff.csv": {
+      "kind": "staff",
+      "rows": 27,
+      "sha256": "1cd495629978009d9c635e41e5e6e3fa74800f0636dccb10afe019f2208bec83"
+    },
+    "teacher_assignments.csv": {
+      "kind": "teacher_assignments",
+      "rows": 87,
+      "sha256": "a9b5d718e022100055e001bd968745941f83c1ea05290a87e0184eed50c52898"
+    },
+    "students.csv": {
+      "kind": "students",
+      "rows": 109,
+      "sha256": "582185157e0ed31535356ae6f857fb29c360eb4eb9df7089b8d22a70465761dd"
+    },
+    "guardians.csv": {
+      "kind": "guardians",
+      "rows": 218,
+      "sha256": "3646eec64ae9226d7b0b15f320288b872b676035cf6d7910de992e5e05870a1d"
+    },
+    "student_health.csv": {
+      "kind": "student_health",
+      "rows": 109,
+      "sha256": "d06d920935c7d490821154bcbc169bccbf84a24b91492ef13826a1970e037c38"
+    },
+    "admissions.csv": {
+      "kind": "admissions",
+      "rows": 20,
+      "sha256": "c47cb3db0c4ebbd7f3de9aea3e3c376f6138ebd4684491a413ccf409d9568d5a"
+    },
+    "fee_structure.csv": {
+      "kind": "fee_structure",
+      "rows": 18,
+      "sha256": "89b52126efd1d5d499aa4d3801f01268f254c88ee30fa0fde4768fcfc824a0f6"
+    },
+    "invoices.csv": {
+      "kind": "invoices",
+      "rows": 218,
+      "sha256": "516c550a3247f41ebb4d53ac3c19acea9beecdba785949e7ce4b1311d4cb7ec1"
+    },
+    "payments.csv": {
+      "kind": "payments",
+      "rows": 198,
+      "sha256": "976effa7aea4987e6c9fc64f79c55e863ebace40ce7300c4384e634d213b3308"
+    },
+    "opening_balances.csv": {
+      "kind": "balances",
+      "rows": 5,
+      "sha256": "90e00b17aa0e59030117f92d1651f8a68311ae345391bb17da2afa6f10d32238"
+    },
+    "payroll_profiles.csv": {
+      "kind": "payroll_profiles",
+      "rows": 27,
+      "sha256": "95172eac55d09be6ac8d35b2fe2076be2783b5200f1db74f58d63c18c42b0d51"
+    },
+    "payslips.csv": {
+      "kind": "payslips",
+      "rows": 54,
+      "sha256": "deaf7bfec8e865ca39e3f857663e914c7d2977274a8a8f93132abd498cf63a0f"
+    },
+    "leave_allowances.csv": {
+      "kind": "leave_balances",
+      "rows": 27,
+      "sha256": "a1a87b3bdc4fce97c7571f51992860b3c9d7483db912458770b3666cd4a318e9"
+    },
+    "leave_requests.csv": {
+      "kind": "leave_requests",
+      "rows": 6,
+      "sha256": "281e43ba412fb38d292ce3abe2294888eb6047c6de8bfad1a1c7426a219eab40"
+    },
+    "attendance.csv": {
+      "kind": "attendance",
+      "rows": 2180,
+      "sha256": "2fc5523932fe2fa1aa380abcdca5d2e05b05fb634ab0de323f5123f2e65a3909"
+    },
+    "staff_attendance.csv": {
+      "kind": "staff_attendance",
+      "rows": 324,
+      "sha256": "382dd4b170dc7c4ec8ff6ed9c09b1552a290cc28c1bade08225de3d4dda2a652"
+    },
+    "exams.csv": {
+      "kind": "exams",
+      "rows": 18,
+      "sha256": "39a752ff1c2f176e4686ec732ff18485f510f59e3b8a596619a168dad4692b97"
+    },
+    "exam_results.csv": {
+      "kind": "exam_results",
+      "rows": 218,
+      "sha256": "8ef0df73a14777ab104dabaafb92bd0d851bac5d585fb7eed3559a5b150caaae"
+    },
+    "timetable.csv": {
+      "kind": "timetable",
+      "rows": 296,
+      "sha256": "e54ef92a1c5cfbcec1d62023e19c08e5dee9e6005b0d03a761727592357e85e1"
+    },
+    "calendar_events.csv": {
+      "kind": "calendar_events",
+      "rows": 18,
+      "sha256": "69711677a83d83a1b5d991033b37ad5cc1cb5455678bcae8f07c11d64efb8002"
+    },
+    "behaviour_categories.csv": {
+      "kind": "behaviour_categories",
+      "rows": 8,
+      "sha256": "5665ef835abc19ff58f65ca86f15006a58e27214fc6b44a002f8b7e134ab24d4"
+    },
+    "behaviour_incidents.csv": {
+      "kind": "behaviour_incidents",
+      "rows": 100,
+      "sha256": "090b235bb090a636b32def521da50459899f894a48ac7678808420211306157e"
+    },
+    "observations.csv": {
+      "kind": "observations",
+      "rows": 12,
+      "sha256": "35728cb2674dcc5ac1314fcca1a229e983e3f5d3c33db90741df5f10f5e3ccd5"
+    }
+  }
+}

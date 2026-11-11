@@ -37,6 +37,7 @@ class AttendanceRecord(SchoolAliasMixin, SoftDeleteModel):
     reason = models.CharField(max_length=20, blank=True, default='', choices=[
         ('illness', 'Illness'), ('medical', 'Medical appointment'), ('family', 'Family matter'),
         ('religious', 'Religious observance'), ('school_activity', 'School activity'),
+        ('suspension', 'Suspension (出席停止)'), ('bereavement', 'Bereavement (忌引)'),
         ('transport', 'Transport'), ('unknown', 'No reason given'), ('other', 'Other'),
     ])
     minutes_late = models.PositiveSmallIntegerField(null=True, blank=True)

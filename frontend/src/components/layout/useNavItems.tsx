@@ -6,7 +6,7 @@ import {
   Eye, MessageSquare, Video, FileQuestion,
   Edit, Award, Lock, Unlock, Search, X, ChevronRight, ChevronLeft, LogOut,
   DollarSign, User, Star, Building2, ClipboardList, Mail, Megaphone, CalendarDays, Handshake, TrendingUp, Library, Bus, Boxes, UtensilsCrossed, Plug, FileSpreadsheet, ShieldCheck,
-  LifeBuoy, Briefcase, ScanFace, Stethoscope, AlertOctagon, FileSignature, HeartPulse, Sparkles, ClipboardCheck, Sunrise,
+  LifeBuoy, Briefcase, ScanFace, Stethoscope, AlertOctagon, FileSignature, HeartPulse, Sparkles, ClipboardCheck, Sunrise, BookMarked,
 } from 'lucide-react';
 import cafeteriaService from '@/services/cafeteria.service';
 import transportService from '@/services/transport.service';
@@ -139,6 +139,7 @@ export function useNavItems(): MenuItem[] {
     { id: 'gradebook', label: 'Gradebook', icon: <BookOpen className="w-4 h-4" />, href: '/education/gradebook', group: 'academics' },
     { id: 'examination', label: 'Examination', icon: <Edit className="w-4 h-4" />, href: '/education/exams', group: 'academics' },
     { id: 'behaviour', label: 'Behaviour & Skills', icon: <Eye className="w-4 h-4" />, href: '/education/behaviour?tab=log', group: 'academics' },
+    { id: 'cumulative-records', label: 'Cumulative Records', icon: <BookMarked className="w-4 h-4" />, href: '/education/records', always: true, group: 'academics' },
     { id: 'certificates', label: 'Certificates', icon: <Award className="w-4 h-4" />, href: '/education/certificates', group: 'academics' },
     { id: 'fees', label: 'Fees', icon: <Banknote className="w-4 h-4" />, href: '/education/fees/invoices', group: 'billing' },
     { id: 'salary', label: 'Salary', icon: <DollarSign className="w-4 h-4" />, href: '/education/salary/generate', group: 'billing' },
@@ -178,6 +179,7 @@ export function useNavItems(): MenuItem[] {
     { id: 'staff-hr', label: 'Cover & My HR', icon: <Briefcase className="w-4 h-4" />, href: '/education/hr/cover', always: true, group: 'teaching' },
     { id: 'safety', label: 'Safety Reports', icon: <AlertOctagon className="w-4 h-4" />, href: '/education/safety', always: true, group: 'teaching' },
     { id: 'interventions', label: 'My Interventions', icon: <ClipboardCheck className="w-4 h-4" />, href: '/education/interventions', always: true, group: 'teaching' },
+    { id: 'cumulative-records', label: 'Cumulative Records', icon: <BookMarked className="w-4 h-4" />, href: '/education/records', always: true, group: 'teaching' },
     { id: 'library', label: 'Library', icon: <Library className="w-4 h-4" />, href: '/library', always: true, group: 'services' },
     ...teacherQuickActions
       .filter((q) => canView(q.module))

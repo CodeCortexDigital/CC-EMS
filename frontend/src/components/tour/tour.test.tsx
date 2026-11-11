@@ -10,6 +10,7 @@ vi.mock('@/services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), delet
 import api from '@/services/api';
 import { ALL_TOURS, tourFor } from '@/config/tourSteps';
 import { forgetSkip, needsTour, startTour } from '@/services/tour.service';
+import '@/i18n';                                   // the real English text, so the step counter is filled in
 import GuidedTour from './GuidedTour';
 
 const get = api.get as unknown as ReturnType<typeof vi.fn>;

@@ -1,0 +1,9 @@
+﻿Category *,Type *,Points,Severity,Tell the family (yes/no),Order
+友だちを助けた,positive,2,low,no,1
+よく努力した,positive,3,low,no,2
+リーダーシップ,positive,2,low,no,3
+思いやりのある行動,positive,2,low,no,4
+授業中の私語,negative,-1,low,no,5
+遅刻,negative,-1,low,no,6
+宿題の未提出,negative,-1,low,no,7
+言葉によるトラブル,negative,-2,medium,yes,8
