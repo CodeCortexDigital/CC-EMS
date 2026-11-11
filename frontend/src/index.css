@@ -318,3 +318,8 @@ html.theme-transition * {
 .dark .auth-input { background-color: var(--dk-surface); border-color: var(--dk-border); color: var(--dk-text); }
 .dark .auth-secondary-btn { background-color: var(--dk-surface); border-color: var(--dk-border); color: var(--dk-text); }
 .dark .auth-secondary-btn:hover { background-color: var(--dk-raised); }
+
+/* Japanese: the Latin fonts above have no Japanese characters, so name good Japanese ones before the system default. */
+html[lang='ja'] body, html[lang='ja'] button, html[lang='ja'] input, html[lang='ja'] select, html[lang='ja'] textarea {
+  font-family: 'Yu Gothic UI', 'Hiragino Sans', 'Noto Sans JP', Meiryo, 'Roboto', system-ui, sans-serif;
+}

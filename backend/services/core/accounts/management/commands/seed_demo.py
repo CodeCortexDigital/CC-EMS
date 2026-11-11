@@ -19,6 +19,7 @@ DEMO_PASSWORDS = {
     "teacher@code.com": "Teacher@123",
     "parent@code.com": "Parent@123",
     "student@code.com": "Student@123",
+    "deputy@code.com": "Deputy@123",       # a second administrator, so approvals that need two different people can be shown
 }
 
 
@@ -42,7 +43,15 @@ class Command(BaseCommand):
                                        "phone": "+1 (413) 555-0172", "website": "https://maplegrove.example",
                                        "address": "88 Maple Avenue, Springfield, MA 01103", "country": "United States",
                                        "currency": "USD", "language": "en", "region": "us", "region_chosen": True,
-                                       "timezone": "America/New_York"}}}
+                                       "timezone": "America/New_York"}},
+             # The Japanese demo school (for the Japan market): a public nine-year school, in yen, school year April to March.
+             "jp-school": {"school": "Wakaba Gakuen", "code": "WKG", "subdomain": "wakaba", "teacher_class": "6年", "student_class": "8年", "lesson_plan": False, "cumulative_records": "6年",
+                           "profile": {"institute_name": "みどり市立 若葉学園", "name": "みどり市立 若葉学園",
+                                       "tagline": "ともに学び、ともに育つ", "motto": "ともに学び、ともに育つ",
+                                       "phone": "+81 93-555-0172", "website": "https://wakaba-gakuen.example",
+                                       "address": "福岡県 みどり市 緑町 1-2-3", "country": "Japan",
+                                       "currency": "JPY", "language": "ja", "region": "jp", "region_chosen": True,
+                                       "timezone": "Asia/Tokyo"}}}
 
     def _seed_pack(self, name, reset=False):
         """Load a sample pack as the demo school and point the four demo logins at real people in it."""
@@ -56,6 +65,7 @@ class Command(BaseCommand):
         if name not in self.PACKS:
             raise CommandError(f"Unknown pack '{name}'. Available: {', '.join(self.PACKS)}.")
         info = self.PACKS[name]
+        self.info = info
         path = Path(settings.BASE_DIR).parent / "sample-data" / name
         if not path.exists():
             raise CommandError(f"The pack folder {path} is missing.")
@@ -75,10 +85,24 @@ class Command(BaseCommand):
             with transaction.atomic():      # all or nothing: a failure leaves no half-loaded school behind
                 loader.load(path, school, "update", out=self.stdout.write)
                 self._link_pack_logins(M, school)
-            self._seed_lesson_plan(M)
+            if info.get("lesson_plan", True):
+                self._seed_lesson_plan(M)
             from services.education.academics.substitution import refresh_cover
-            self.stdout.write(f"Cover arranged for {refresh_cover(60, today=date(2026, 10, 2))} approved leave(s).")
+            if info.get("cumulative_records"):
+                self._seed_cumulative_records(M, school, info)
+            cover_day = date(2026, 10, 2) if name == "us-school" else date(2026, 11, 6)
+            self.stdout.write(f"Cover arranged for {refresh_cover(60, today=cover_day)} approved leave(s).")
         self.stdout.write(self.style.SUCCESS(f"{info['school']} is ready. Log in as admin@code.com / Admin@123."))
+
+    def _seed_cumulative_records(self, M, school, info):
+        """Sample 指導要録 (cumulative records) for one class of the Japanese demo school, so the screens are not empty."""
+        from services.education.records.sample import seed_demo_records
+
+        cls = M("education_academics", "SchoolClass").objects.filter(name=info["cumulative_records"]).first()
+        if cls is None:
+            self.stdout.write("Cumulative records skipped (the class was not found).")
+            return
+        self.stdout.write(f"Cumulative records made for {seed_demo_records(school, cls)} students of {cls.name}.")
 
     def _seed_lesson_plan(self, M):
         """One saved lesson plan for the demo teacher, so the Lesson Planner is not empty when a visitor opens it."""
@@ -149,9 +173,11 @@ class Command(BaseCommand):
         from services.core.accounts.credentials import issue_credential
 
         User = get_user_model()
+        if not User.objects.filter(email="deputy@code.com").exists():
+            User.objects.create_user(email="deputy@code.com", password="Deputy@123", full_name="Dana Deputy")
         Membership = M("core_tenants", "TenantMembership")
         Teacher, Student = M("education_academics", "Teacher"), M("education_students", "Student")
-        for email, role in (("admin@code.com", "admin"), ("teacher@code.com", "teacher"), ("parent@code.com", "parent"), ("student@code.com", "student")):
+        for email, role in (("admin@code.com", "admin"), ("deputy@code.com", "admin"), ("teacher@code.com", "teacher"), ("parent@code.com", "parent"), ("student@code.com", "student")):
             u = User.objects.filter(email=email).first()
             if u:
                 # Make this school the one the login opens (an older demo school stays available but is no longer the default).
@@ -173,10 +199,10 @@ class Command(BaseCommand):
             login.save(update_fields=["full_name"])
             TeacherProfile = M("core_accounts", "TeacherProfile")
             tp, _ = TeacherProfile.objects.get_or_create(user=login, defaults={"employee_id": teacher.employee_id})
-            grade6 = M("education_academics", "SchoolClass").objects.filter(name="Grade 6").first()
+            grade6 = M("education_academics", "SchoolClass").objects.filter(name=self.info.get("teacher_class", "Grade 6")).first()
             if grade6:
                 tp.assigned_classes.add(grade6)
-        grade8 = list(Student.objects.filter(current_class__name="Grade 8").order_by("student_id"))
+        grade8 = list(Student.objects.filter(current_class__name=self.info.get("student_class", "Grade 8")).order_by("student_id"))
         stu_login = User.objects.filter(email="student@code.com").first()
         if grade8 and stu_login:
             s = grade8[0]

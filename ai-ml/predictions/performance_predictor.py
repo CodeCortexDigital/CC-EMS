@@ -1,11 +1,12 @@
 import os
-import pickle
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from django.apps import apps
 from django.db.models import Avg, Q, Sum
 from django.db import transaction
+
+from predictions.model_store import is_trusted, load_signed, save_signed
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -29,8 +30,10 @@ def get_student_feature_row(student) -> dict:
     Invoice = apps.get_model('education_finance', 'Invoice')
     
     # 1. Attendance Rate
-    att_total = AttendanceRecord.objects.filter(student=student).count()
-    att_present = AttendanceRecord.objects.filter(student=student, status='present').count()
+    # Holidays are not school days. Present, late, early-dismissal and excused days all count as attended: being excused is not a risk sign.
+    day_records = AttendanceRecord.objects.filter(student=student).exclude(status='holiday')
+    att_total = day_records.count()
+    att_present = day_records.filter(status__in=['present', 'late', 'early_dismissal', 'excused']).count()
     att_rate = (att_present / att_total * 100.0) if att_total > 0 else 90.0
     
     # 2. Exam Average
@@ -103,19 +106,17 @@ def train_and_save_model(tenant_id=None) -> str:
     
     # Serialize model to disk
     model_path = _model_path(tenant_id)
-    with open(model_path, "wb") as f:
-        pickle.dump(model, f)
+    save_signed(model, model_path)
 
     return f"Model trained successfully on {len(df_combined)} samples (Real: {len(df_real)}, Synthetic: {len(df_synth)}) and saved to disk."
 
 def predict_student_performance(tenant_id=None) -> list:
     # Load model
     model_path = _model_path(tenant_id)
-    if not os.path.exists(model_path):
+    if not is_trusted(model_path):          # missing, unsigned or changed since it was saved: train a fresh one
         train_and_save_model(tenant_id)
 
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
+    model = load_signed(model_path)
 
     StudentRisk = apps.get_model('analytics', 'StudentRisk')
     AcademicPrediction = apps.get_model('analytics', 'AcademicPrediction')

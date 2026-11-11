@@ -25,7 +25,7 @@ from services.ai.generation import (
 )
 from services.ai.llm import LLMError, get_llm_client
 from services.ai.permissions import HasAIRole, IsAIAdmin, IsAIEducator
-from services.ai.quota import AIQuotaExceeded, check_rate_limit, check_token_budget, feature_enabled, record_usage
+from services.ai.quota import AIQuotaExceeded, check_rate_limit, check_token_budget, feature_enabled, record_usage, requires_feature
 from services.core.tenants.localization import school_locale
 
 logger = logging.getLogger("erp.ai")
@@ -60,7 +60,7 @@ except ImportError:
 
 
 def _unavailable(feature):
-    return Response({'error': f'{feature} is not available on this server yet.'},
+    return Response({'error': f'{feature} is not available on this server. It runs in the full build and is not switched on in the free hosted demo.'},
                     status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
@@ -168,7 +168,37 @@ def carry_over_review(risk, kept):
     return level
 
 
-def _run_risk_scan(tenant_id=None) -> dict:
+def fairness_snapshot(rows) -> dict:
+    """Share of students flagged high or critical, by gender and by class. A first look only: it cannot say whether a difference is
+    fair, only where to look. Groups with fewer than 10 students are not shown, because a small count says nothing."""
+    from collections import defaultdict
+
+    out = {}
+    for label, key in (('gender', 'gender'), ('class', 'class')):
+        groups = defaultdict(lambda: [0, 0])
+        for r in rows:
+            g = r.get(key) or 'not recorded'
+            groups[g][0] += 1
+            groups[g][1] += 1 if r['flagged'] else 0
+        shown = [{'group': g, 'students': n, 'flagged': f, 'flag_rate': round(f / n * 100, 1)} for g, (n, f) in sorted(groups.items()) if n >= 10]
+        rates = [x['flag_rate'] for x in shown]
+        ratio = round(min(rates) / max(rates), 2) if len(rates) >= 2 and max(rates) > 0 else None
+        out[label] = {'groups': shown, 'lowest_to_highest_rate': ratio, 'hidden_small_groups': sum(1 for n, _ in groups.values() if n < 10)}
+    return out
+
+
+def _library_versions() -> dict:
+    out = {}
+    for name in ('scikit-learn', 'xgboost', 'numpy', 'pandas'):
+        try:
+            from importlib.metadata import version
+            out[name] = version(name)
+        except Exception:
+            out[name] = 'not installed'
+    return out
+
+
+def _run_risk_scan(tenant_id=None, ran_by=None) -> dict:
     """Train the grade, dropout and fee-default models and write scores into StudentRisk.
 
     `tenant_id` scopes training and scoring to one school (plus legacy rows with no tenant
@@ -190,9 +220,12 @@ def _run_risk_scan(tenant_id=None) -> dict:
     StudentRisk = apps.get_model('analytics', 'StudentRisk')
     Student = apps.get_model('education_students', 'Student')
 
-    students = Student.objects.filter(is_active=True)
+    RiskScanRun = apps.get_model('analytics', 'RiskScanRun')
+    students = Student.objects.filter(is_active=True).select_related('current_class')
     if tenant_id:
         students = students.filter(Q(tenant_id=tenant_id) | Q(tenant_id__isnull=True))
+    run = RiskScanRun.objects.create(tenant_id=tenant_id, ran_by=ran_by if getattr(ran_by, 'pk', None) else None)
+    scored, level_counts, gap_counts, fairness_rows = 0, {}, {}, []
 
     for student in students:
         predictions = predict_fee_dropout_risk(student, tenant_id=tenant_id)
@@ -206,6 +239,14 @@ def _run_risk_scan(tenant_id=None) -> dict:
         factors = risk_obj.factors or {}
         factors["fee_default_risk"] = predictions["fee_default_risk"]
         factors["dropout_risk"] = predictions["dropout_risk"]
+        factors["model_run"] = str(run.id)
+        gaps = (predictions.get("features") or {}).get("data_gaps") or []
+        if gaps:
+            factors["data_gaps"] = gaps
+        else:
+            factors.pop("data_gaps", None)
+        for gap in gaps:
+            gap_counts[gap] = gap_counts.get(gap, 0) + 1
 
         # Map factors details
         if predictions["fee_default_risk"] > 50.0:
@@ -235,6 +276,10 @@ def _run_risk_scan(tenant_id=None) -> dict:
 
         clear_stale_review(risk_obj, previous_level)
         risk_obj.save()
+        scored += 1
+        level_counts[risk_obj.risk_level] = level_counts.get(risk_obj.risk_level, 0) + 1
+        fairness_rows.append({'gender': student.gender or '', 'class': student.current_class.name if student.current_class_id else '',
+                              'flagged': risk_obj.risk_level in ('high', 'critical')})
 
         # A high or critical dropout risk becomes a task for a counselor (one per student, not one per scan).
         try:
@@ -244,7 +289,19 @@ def _run_risk_scan(tenant_id=None) -> dict:
         except Exception:
             logger.exception('Could not open an intervention for student %s', student.pk)
 
+    try:
+        import predictions.dropout_fee_model as _dfm
+        training = dict(getattr(_dfm, 'LAST_TRAINING', {}))
+    except Exception:
+        training = {}
+    run.students_scored = scored
+    run.details = {'training': training, 'libraries': _library_versions(), 'level_counts': level_counts, 'data_gaps': gap_counts,
+                   'anomalies_flagged': len(anomaly_results)}
+    run.fairness = fairness_snapshot(fairness_rows)
+    run.save(update_fields=['students_scored', 'details', 'fairness'])
+
     return {
+        'model_run': str(run.id),
         'model_training': f"{train_msg} | {train_fd_msg}",
         'students_evaluated': len(perf_results),
         'anomalies_detected': len(anomaly_results),
@@ -254,6 +311,7 @@ def _run_risk_scan(tenant_id=None) -> dict:
 
 @api_view(['POST'])
 @permission_classes([IsAIAdmin])
+@requires_feature('ai_risk_scan')
 def train_and_predict(request):
     if not RISK_ML_AVAILABLE:
         return _unavailable('AI risk scanning')
@@ -268,7 +326,7 @@ def train_and_predict(request):
         return Response({'status': 'busy', 'error': 'A risk scan is already running for this school. Wait for it to finish, then refresh.'},
                         status=status.HTTP_409_CONFLICT)
     try:
-        result = _run_risk_scan(tenant_id)
+        result = _run_risk_scan(tenant_id, ran_by=request.user)
         return Response({'status': 'success', **result}, status=status.HTTP_200_OK)
     except Exception:
         logger.exception("AI model training / risk scan failed")
@@ -279,6 +337,7 @@ def train_and_predict(request):
 
 @api_view(['GET'])
 @permission_classes([HasAIRole])
+@requires_feature('ai_risk_scan')
 def get_student_predictions(request):
     StudentRisk = apps.get_model('analytics', 'StudentRisk')
     AcademicPrediction = apps.get_model('analytics', 'AcademicPrediction')
@@ -290,6 +349,9 @@ def get_student_predictions(request):
     
     predictions_map = {str(p.student_id): p for p in predictions}
     
+    rank = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
+    # Worst first. Students with the same score are ordered by dropout risk, then by name, so the list does not shuffle between loads.
+    risks = sorted(risks, key=lambda r: (rank.get(r.risk_level, 4), -float(r.risk_score), -float((r.factors or {}).get('dropout_risk') or 0), r.student.full_name))
     data = []
     for r in risks:
         p = predictions_map.get(str(r.student_id))
@@ -319,6 +381,24 @@ def get_student_predictions(request):
         
     return Response(data, status=status.HTTP_200_OK)
 
+@api_view(['GET'])
+@permission_classes([IsAIEducator])
+@requires_feature('ai_risk_scan')
+def risk_model_card(request):
+    """What the risk scoring is, what it was fitted to and its limits, with the facts of this school's latest scan."""
+    from .model_card import MODEL_CARD
+
+    ctx = AIContext.from_request(request)
+    RiskScanRun = apps.get_model('analytics', 'RiskScanRun')
+    runs = RiskScanRun.objects.filter(tenant=ctx.tenant) if ctx.tenant is not None else RiskScanRun.objects.all()
+    run = runs.select_related('ran_by').first()
+    latest = None
+    if run:
+        latest = {'id': str(run.id), 'ran_at': run.ran_at.isoformat(), 'ran_by': (run.ran_by.full_name or run.ran_by.email) if run.ran_by_id else 'scheduled scan',
+                  'students_scored': run.students_scored, 'details': run.details, 'fairness': run.fairness}
+    return Response({**MODEL_CARD, 'available': RISK_ML_AVAILABLE, 'latest_run': latest})
+
+
 def _review_payload(r):
     if not r.review_decision:
         return None
@@ -329,6 +409,7 @@ def _review_payload(r):
 
 @api_view(['POST'])
 @permission_classes([IsAIEducator])
+@requires_feature('ai_risk_scan')
 def review_student_risk(request, student_id):
     """A person records what they decided about an AI risk flag: confirmed, dismissed or needs more information.
 
@@ -349,74 +430,54 @@ def review_student_risk(request, student_id):
     if decision != 'confirmed' and len(note) < 5:
         return Response({'error': 'Say why (a few words) so the record explains the decision.'}, status=status.HTTP_400_BAD_REQUEST)
     risk.review_decision, risk.review_note, risk.reviewed_by, risk.reviewed_at = decision, note[:500], request.user, timezone.now()
-    risk.save(update_fields=['review_decision', 'review_note', 'reviewed_by', 'reviewed_at'])
-    try:
-        from services.core.audit.models import AuditLog
+    from django.db import transaction
+    from services.core.audit import chain as audit_chain
 
-        AuditLog.objects.create(user=request.user, school=ctx.tenant, action='UPDATE', resource_type='analytics.risk.review',
-                                resource_id=risk.id, new_data={'student_id': str(student_id), 'decision': decision,
-                                                               'level_at_review': risk.risk_level})
-    except Exception:
-        logger.exception('Could not audit a risk review')
+    try:
+        # The review and its record are saved together: a decision with no record is not kept.
+        with transaction.atomic():
+            risk.save(update_fields=['review_decision', 'review_note', 'reviewed_by', 'reviewed_at'])
+            audit_chain.append(user=request.user, school=ctx.tenant, action='UPDATE', resource_type='analytics.risk.review',
+                               resource_id=risk.id, new_data={'student_id': str(student_id), 'decision': decision, 'note': note[:500],
+                                                              'level_at_review': risk.risk_level})
+    except audit_chain.AuditWriteError:
+        logger.exception('Could not record a risk review, so it was not saved')
+        return Response({'error': 'The decision could not be recorded, so it was not saved. Try again.'},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE)
     return Response({'review': _review_payload(risk)})
 
 
 @api_view(['POST'])
 @permission_classes([IsAIEducator])
+@requires_feature('ai_risk_scan')
 def notify_dropout_risk(request):
-    """{student_id} -> tell the student's class teachers and school admins about a dropout-risk
-    finding, and log a Recommendation, so a prediction turns into an actual intervention
-    (docs table "AI Attendance Insights": "Early intervention saves students")."""
-    from services.core.accounts.models import TeacherProfile
-    from services.core.tenants.models import TenantMembership
-    from services.core.user_notifications.utils import create_user_notification
+    """{student_id} -> ask for the student's counsellors to be told about a dropout-risk finding. Nothing is sent: it becomes a request
+    for an administrator to approve (with a decision record), like anything else the AI side asks for."""
+    from services.ai import actions
+    from services.analytics import counsel
 
-    StudentRisk = apps.get_model('analytics', 'StudentRisk')
-    Recommendation = apps.get_model('analytics', 'Recommendation')
     Student = apps.get_model('education_students', 'Student')
-
     ctx = AIContext.from_request(request)
     student = Student.objects.filter(pk=request.data.get('student_id'), id__in=_visible_student_ids(ctx)).first()
     if student is None:
         return Response({'error': 'Student not found.'}, status=status.HTTP_404_NOT_FOUND)
-    risk = StudentRisk.objects.filter(student=student).first()
-    dropout_risk = (risk.factors or {}).get('dropout_risk') if risk else None
-    if dropout_risk is None:
+    if counsel.dropout_risk_of(student)[1] is None:
         return Response({'error': 'Run the AI risk scan for this school first.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    message = f"{student.full_name} shows a {dropout_risk:.0f}% dropout risk (attendance, grades and behaviour). Please follow up."
-    rec = Recommendation.objects.create(
-        student=student, recommendation_type='attendance', title='Dropout risk follow-up',
-        description=message, action_items=['Meet with the student', 'Contact the family',
-                                           'Review attendance and recent grades'])
-
-    recipients = {t.user_id: t.user for t in TeacherProfile.objects.filter(
-        assigned_classes=student.current_class_id).select_related('user') if t.user_id}
-    if student.tenant_id:
-        recipients.update({m.user_id: m.user for m in TenantMembership.objects.filter(
-            school_id=student.tenant_id, role='admin').select_related('user')})
-    notified = 0
-    for user in recipients.values():
-        if create_user_notification(user, 'Dropout risk alert', message, 'academic'):
-            notified += 1
-
-    try:  # the same reason as the nightly scan's, so it lands in the counselor queue once
-        from services.education.interventions.engine import open_intervention
-
-        open_intervention(student=student, source='risk', title=f'Dropout risk {dropout_risk:.0f}%', description=message,
-                          actions=['Meet with the student', 'Contact the family', 'Review attendance and recent grades'],
-                          due_days=7, dedupe_key=f'risk:{student.pk}', created_by=request.user, notify=False)
-    except Exception:
-        logger.exception('Could not open an intervention for student %s', student.pk)
-
-    risk.recommendations = (risk.recommendations or []) + [
-        {'action': 'counsel_notified', 'at': timezone.now().isoformat(), 'by': request.user.email, 'notified': notified}]
-    risk.save(update_fields=['recommendations'])
-    return Response({'notified': notified, 'recommendation_id': str(rec.id)})
+    who = getattr(request.user, 'full_name', '') or request.user.email
+    ctx.extra.update({'origin': 'risk forecasts table (a person asked for it)', 'llm_provider': '', 'llm_model': '',
+                      'user_message': f'{who} asked for the counsellors to be told about {student.full_name} from the risk forecasts table.'})
+    out = actions.propose(ctx, 'notify_counsel', {'student_id': student.student_id})
+    if out.get('error'):
+        code = status.HTTP_403_FORBIDDEN if 'not available for your role' in out['error'] else status.HTTP_400_BAD_REQUEST
+        return Response({'error': out['error']}, status=code)
+    return Response({'request_id': out['request_id'], 'summary': out['summary'],
+                     'message': 'Sent for approval. Nobody has been notified yet: an administrator must approve it in AI Approvals.'},
+                    status=status.HTTP_202_ACCEPTED)
 
 
 @api_view(['GET'])
 @permission_classes([IsAIEducator])
+@requires_feature('ai_risk_scan')
 def get_attendance_anomalies(request):
     AttendanceAlert = apps.get_model('education_attendance', 'AttendanceAlert')
     ctx = AIContext.from_request(request)
@@ -443,6 +504,7 @@ def get_attendance_anomalies(request):
 
 @api_view(['POST'])
 @permission_classes([IsAIEducator])
+@requires_feature('ai_face_attendance')
 def face_register(request):
     if not FACE_ML_AVAILABLE:
         return _unavailable('Face recognition')
@@ -491,6 +553,7 @@ def face_register(request):
 
 @api_view(['POST'])
 @permission_classes([IsAIEducator])
+@requires_feature('ai_face_attendance')
 def face_attendance(request):
     if not FACE_ML_AVAILABLE:
         return _unavailable('Face recognition')

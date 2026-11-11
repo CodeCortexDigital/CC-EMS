@@ -266,21 +266,21 @@ setTeacherPerformance(rawTeachers);
 
   const notifyCounselor = async (studentId: string | number, studentName: string) => {
     try {
+      // A request, not a notification: an administrator approves it in AI Approvals before anyone is told.
       const res = await api.post('/ai/dropout-risk/notify/', { student_id: studentId });
-      toast.success(res.data?.notified > 0
-        ? `Notified ${res.data.notified} staff member(s) about ${studentName}.`
-        : `Logged a follow-up for ${studentName}, but no class teacher or admin was found to notify.`);
+      toast.success(res.data?.message || `Request about ${studentName} sent for approval.`);
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || `Could not notify staff about ${studentName}.`);
+      toast.error(err?.response?.data?.error || `Could not ask to notify staff about ${studentName}.`);
     }
   };
 
   const sendFeeReminder = async (studentId: string | number, studentName: string) => {
     try {
-      const res = await api.post(`/auth/finance/communication/student-reminder/${studentId}/`);
-      toast.success(res.data?.message || `Reminder emailed to ${studentName}'s family.`);
+      // A request, not a send: an administrator approves it in AI Approvals before anything reaches the family.
+      const res = await api.post('/ai/governance/requests/fee-reminder/', { student_id: studentId });
+      toast.success(res.data?.message || `Reminder for ${studentName} sent for approval.`);
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || `Could not send ${studentName}'s reminder.`);
+      toast.error(err?.response?.data?.error || `Could not ask for ${studentName}'s reminder.`);
     }
   };
 
@@ -1374,7 +1374,7 @@ setTeacherPerformance(rawTeachers);
                               className="border-yellow-600 text-yellow-700 hover:bg-yellow-50 flex items-center gap-1"
                               onClick={() => sendFeeReminder(s.id, s.name)}
                             >
-                              <Mail className="w-3 h-3" /> Remind
+                              <Mail className="w-3 h-3" /> Request reminder
                             </Button>
                           )}
                         </td>

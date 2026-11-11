@@ -3,6 +3,26 @@ from django.db import models
 from django.conf import settings
 
 
+class ProtectedAuditError(Exception):
+    """Raised when something tries to change or delete a protected (hash-chained) audit record."""
+
+
+class AuditLogQuerySet(models.QuerySet):
+    """Rows written to the hash chain (see chain.py) can be read, but never updated or deleted through the application."""
+
+    def _refuse_if_protected(self, what):
+        if self.exclude(entry_hash='').exists():
+            raise ProtectedAuditError(f'Protected audit records cannot be {what}.')
+
+    def delete(self):
+        self._refuse_if_protected('deleted')
+        return super().delete()
+
+    def update(self, **kwargs):
+        self._refuse_if_protected('changed')
+        return super().update(**kwargs)
+
+
 class AuditLog(models.Model):
     ACTION_CHOICES = [
         ('LOGIN', 'Login'),
@@ -29,6 +49,27 @@ class AuditLog(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.CharField(max_length=512, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    # Decision records (AI approvals, risk reviews, AI settings) are chained: each carries the hash of the one before it for the
+    # same school, so a changed, removed or inserted record shows up in `verify_audit_chain`. Older and routine rows leave these blank.
+    chain = models.CharField(max_length=40, blank=True, db_index=True)
+    seq = models.PositiveBigIntegerField(null=True, blank=True)
+    prev_hash = models.CharField(max_length=64, blank=True)
+    entry_hash = models.CharField(max_length=64, blank=True)
+
+    objects = AuditLogQuerySet.as_manager()
+
+    def _is_protected_in_db(self):
+        return (not self._state.adding and AuditLog._base_manager.filter(pk=self.pk).exclude(entry_hash='').exists())
+
+    def save(self, *args, **kwargs):
+        if self._is_protected_in_db():
+            raise ProtectedAuditError('Protected audit records cannot be changed.')
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self._is_protected_in_db():
+            raise ProtectedAuditError('Protected audit records cannot be deleted.')
+        return super().delete(*args, **kwargs)
 
     class Meta:
         ordering = ['-timestamp']
@@ -41,6 +82,16 @@ class AuditLog(models.Model):
             models.Index(fields=['resource_type', 'timestamp']),
             models.Index(fields=['school', 'timestamp']),
         ]
+        constraints = [
+            models.UniqueConstraint(fields=['chain', 'seq'], condition=models.Q(seq__isnull=False), name='audit_chain_seq_unique'),
+        ]
 
     def __str__(self):
         return f"{self.action} - {self.resource_type} - {self.resource_id} - {self.user_id or 'anon'}"
+
+
+class AuditChainHead(models.Model):
+    """The newest record of each chain. It is locked while a record is added, so two writers cannot both extend the same tip."""
+    chain = models.CharField(max_length=40, primary_key=True)
+    last_seq = models.PositiveBigIntegerField(default=0)
+    last_hash = models.CharField(max_length=64, blank=True)

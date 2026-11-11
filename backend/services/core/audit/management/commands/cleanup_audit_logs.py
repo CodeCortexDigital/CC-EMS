@@ -13,7 +13,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         days = options.get('days', 90)
         cutoff = timezone.now() - timedelta(days=days)
-        qs = AuditLog.objects.filter(timestamp__lt=cutoff)
+        # Decision records (the hash-chained ones) are never removed here.
+        qs = AuditLog.objects.filter(timestamp__lt=cutoff, entry_hash='')
         count = qs.count()
         qs.delete()
         self.stdout.write(self.style.SUCCESS(f'Deleted {count} audit logs older than {days} days'))

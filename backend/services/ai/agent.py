@@ -10,6 +10,7 @@ streaming (SSE) endpoints:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
@@ -117,6 +118,13 @@ def run_agent(ctx: AIContext, history: list[dict], llm: LLMClient, *, stream: bo
     tools = get_tools_for_role(ctx.role)
     messages = list(history)
     result = AgentResult(reply="")
+    # What a decision record needs to say about this answer (see actions.build_record).
+    ctx.extra.update({
+        'llm_provider': getattr(llm, 'provider', '') or '', 'llm_model': (llm.model_for('fast') if hasattr(llm, 'model_for') else ''),
+        'instructions_sha256': hashlib.sha256(system.encode('utf-8')).hexdigest(),
+        'user_message': next((m.get('content') for m in reversed(history) if m.get('role') == 'user' and isinstance(m.get('content'), str)), ''),
+        'tool_outputs': [],
+    })
 
     for round_no in range(MAX_TOOL_ROUNDS + 1):
         last_round = round_no == MAX_TOOL_ROUNDS
@@ -151,6 +159,8 @@ def run_agent(ctx: AIContext, history: list[dict], llm: LLMClient, *, stream: bo
         for call in turn.tool_calls:
             yield {"type": "tool_start", "name": call.name, "label": TOOL_LABELS.get(call.name, "Looking up your data")}
             content, ok = _execute(ctx, call.name, call.arguments)
+            if len(ctx.extra['tool_outputs']) < 8:
+                ctx.extra['tool_outputs'].append({'tool': call.name, 'arguments': call.arguments, 'sent_to_model': content[:3000]})
             result.tool_log.append({"name": call.name, "arguments": call.arguments, "ok": ok})
             outputs.append((call, content, not ok))
             yield {"type": "tool_end", "name": call.name, "ok": ok}
@@ -181,6 +191,7 @@ def _audit(ctx: AIContext, action: str, name: str, arguments: dict, data) -> Non
     try:
         AuditLog.objects.create(
             user=ctx.user,
+            school=ctx.tenant,
             action=action,
             resource_type=f"ai.tool.{name}",
             new_data={"arguments": arguments, "rows": rows, "role": ctx.role,

@@ -1,0 +1,13 @@
+﻿Subject *,Code,Department,Elective (yes/no)
+国語,JPN,国語,no
+算数・数学,MATH,算数・数学,no
+理科,SCI,理科,no
+社会,SOC,社会,no
+生活,LIFE,生活,no
+外国語（英語）,ENG,外国語,no
+音楽,MUS,音楽,no
+図画工作・美術,ART,図工・美術,no
+体育,PE,体育,no
+技術・家庭,HOME,技術・家庭,no
+特別の教科 道徳,MORAL,道徳,no
+総合的な学習の時間,INQ,総合,no

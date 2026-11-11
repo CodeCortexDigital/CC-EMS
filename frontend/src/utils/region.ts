@@ -78,14 +78,20 @@ export function paymentOptions(methods?: Array<{ code: string; label: string }>)
 
 // ---------------------------------------------------------------------------
 // Dates: every `toLocaleDateString()` / `toLocaleString()` in the app that doesn't name a locale follows the school's
-// date style (DD/MM/YYYY, MM/DD/YYYY or YYYY-MM-DD). Calls that pass a locale keep it.
+// date style (DD/MM/YYYY, MM/DD/YYYY or YYYY-MM-DD). Calls that pass a locale keep it, except a hard-coded English one
+// ('en-US' or 'en-GB') while the screen is in another language: month and day names then follow the chosen language.
 // ---------------------------------------------------------------------------
 
 let installed = false;
 export function installRegionDates() {
   if (installed) return;
   installed = true;
-  const pick = (locales: unknown) => (locales == null || (Array.isArray(locales) && locales.length === 0) ? currentRegion().date_locale || undefined : locales);
+  const pick = (locales: unknown) => {
+    if (locales == null || (Array.isArray(locales) && locales.length === 0)) return currentRegion().date_locale || undefined;
+    const language = useLocaleStore.getState().effectiveLanguage();
+    if ((locales === 'en-US' || locales === 'en-GB') && language && language !== 'en') return language;
+    return locales;
+  };
   const proto = Date.prototype as any;
   for (const name of ['toLocaleDateString', 'toLocaleString', 'toLocaleTimeString'] as const) {
     const original = proto[name];

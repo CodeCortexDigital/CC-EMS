@@ -124,7 +124,8 @@ class AIActionRequest(TenantScopedModel):
     """Something the AI assistant wants done. It is only a request: nothing happens until a person with the right role
     approves it, and then only through an action that is registered in code (see actions.py)."""
     STATUSES = [('pending', 'Waiting for approval'), ('executed', 'Approved and done'), ('failed', 'Approved, but it did not work'),
-                ('rejected', 'Rejected'), ('expired', 'Expired')]
+                ('rejected', 'Rejected'), ('expired', 'Expired'), ('running', 'Approved, running now'),
+                ('unknown', 'Approved, result could not be confirmed')]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     action = models.CharField(max_length=60)
@@ -138,9 +139,29 @@ class AIActionRequest(TenantScopedModel):
     decided_at = models.DateTimeField(null=True, blank=True)
     decision_note = models.CharField(max_length=500, blank=True)
     result = models.JSONField(default=dict, blank=True)
+    # What the request was based on when it was made: provider and model, a fingerprint of the instructions given to the model,
+    # what the person asked, what data was sent (after masking), the sources used and the controls that were on. Its hash is written
+    # into the verified trail, so a changed record is noticed (see actions.basis_hash and the decision record page).
+    record = models.JSONField(default=dict, blank=True)
+    # Each approval given so far: [{user_id, name, at, note}]. The action runs when there are as many as the school requires (1 or 2).
+    approvals = models.JSONField(default=list, blank=True)
     expires_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at']
         indexes = [models.Index(fields=['tenant', 'status', '-created_at'])]
+
+
+class AIActionEffect(TenantScopedModel):
+    """The saved intent to carry out one approved request, and what is known about the outcome. One row per request (the key is unique), so a
+    second attempt cannot create another. States: dispatching (saved, not yet finished), confirmed, not_done (stopped by a check, nothing
+    was sent) and unknown (it was attempted and the result could not be confirmed; it is not retried automatically)."""
+    STATES = [('dispatching', 'Running'), ('confirmed', 'Done'), ('not_done', 'Not done'), ('unknown', 'Result not confirmed')]
+
+    request = models.OneToOneField(AIActionRequest, on_delete=models.CASCADE, related_name='effect')
+    effect_key = models.CharField(max_length=120, unique=True)
+    state = models.CharField(max_length=12, choices=STATES, default='dispatching')
+    detail = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)

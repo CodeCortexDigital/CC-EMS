@@ -8,14 +8,18 @@ import { Modal } from '@/components/ui/Modal';
 import { Empty, Field, PageHead, Pill, Spinner, Tabs, btn, btnDanger, btnGhost, card, errorText, fmtDateTime, input } from '@/components/common/kit';
 import ai, { AUDIENCE_LABEL, STATUS_LABEL, type ApprovalRequest, type Audience, type KnowledgeDoc, type Passage, type RequestStatus } from '@/services/aiGovernance.service';
 
-type TabKey = 'approvals' | 'documents';
-const TONE: Record<RequestStatus, 'green' | 'amber' | 'red' | 'blue' | 'slate'> = { pending: 'amber', executed: 'green', failed: 'red', rejected: 'slate', expired: 'slate' };
+import DecisionRecordModal from './DecisionRecordModal';
+import TrailRecords from './TrailRecords';
+
+type TabKey = 'approvals' | 'records' | 'documents';
+const TONE: Record<RequestStatus, 'green' | 'amber' | 'red' | 'blue' | 'slate'> = { pending: 'amber', executed: 'green', failed: 'red', rejected: 'slate', expired: 'slate', running: 'blue', unknown: 'red' };
 
 function Approvals() {
   const [rows, setRows] = useState<ApprovalRequest[] | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [note, setNote] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState('');
+  const [openRecord, setOpenRecord] = useState('');
 
   const load = useCallback(async () => {
     try { setRows(await ai.approvals(showAll ? 'all' : 'pending')); } catch (e) { toast.error(errorText(e, 'Could not load the requests.')); setRows([]); }
@@ -29,6 +33,12 @@ function Approvals() {
       toast[done.status === 'failed' ? 'error' : 'success'](verb === 'reject' ? 'Rejected. Nothing was done.' : done.status === 'failed' ? (done.result.error || 'It did not work.') : (done.result.note || 'Approved and done.'));
       await load();
     } catch (e) { toast.error(errorText(e, 'That did not work.')); await load(); } finally { setBusy(''); }
+  };
+
+  const settle = async (r: ApprovalRequest, outcome: 'done' | 'not_done') => {
+    setBusy(r.id);
+    try { await ai.settle(r.id, outcome, note[r.id] || ''); toast.success('Recorded.'); await load(); }
+    catch (e) { toast.error(errorText(e, 'That did not work.')); } finally { setBusy(''); }
   };
 
   if (!rows) return <Spinner />;
@@ -51,11 +61,35 @@ function Approvals() {
           <p className="text-sm mt-1">{r.summary}</p>
           <p className="text-xs text-slate-500 mt-1">Asked by {r.requested_by || 'unknown'} ({r.requester_role || 'role unknown'}) on {fmtDateTime(r.created_at)}
             {r.status === 'pending' && <>, expires {fmtDateTime(r.expires_at)}</>}</p>
+          {r.status === 'pending' && (r.approvals_needed ?? 1) > 1 && (
+            <p className="text-xs text-slate-600 mt-1" data-testid="approval-progress">
+              {(r.approvals || []).length} of {r.approvals_needed} approvals given{(r.approvals || []).length > 0 && <> (by {(r.approvals || []).map((a) => a.by).join(', ')})</>}.
+              Two different people must approve before anything is sent.
+            </p>
+          )}
+          {r.status === 'pending' && !r.can_decide && r.why_not && <p className="text-xs text-amber-800 mt-1">{r.why_not}</p>}
           {r.status !== 'pending' && (
             <p className="text-xs text-slate-600 mt-1">
               {r.decided_by ? `Decided by ${r.decided_by} on ${fmtDateTime(r.decided_at)}.` : ''} {r.decision_note && `Note: ${r.decision_note}. `}
               {r.result?.note || r.result?.error || ''}
             </p>
+          )}
+          <button className="mt-2 text-xs font-bold text-indigo-700 hover:underline" onClick={() => setOpenRecord(r.id)}>Decision record</button>
+          {r.can_withdraw && !r.can_decide && (
+            <button className="mt-2 ml-3 text-xs font-bold text-slate-600 hover:underline" disabled={busy === r.id} onClick={() => decide(r, 'reject')}>Withdraw my request</button>
+          )}
+          {(r.status === 'unknown' || r.status === 'running') && (
+            <p className="text-xs text-red-800 mt-1" data-testid="unconfirmed">
+              We could not confirm whether this was done, and it will not be tried again automatically. Check (for example the mail log), then record what you found.
+            </p>
+          )}
+          {r.can_settle && (
+            <div className="mt-3 flex flex-wrap items-center gap-2" data-testid="settle">
+              <input className={`${input} max-w-xs`} placeholder="What you checked (required)" aria-label={`What you checked for ${r.summary}`} value={note[r.id] || ''}
+                onChange={(e) => setNote({ ...note, [r.id]: e.target.value })} />
+              <button className={btn} disabled={busy === r.id} onClick={() => settle(r, 'done')}>It was done</button>
+              <button className={btnDanger} disabled={busy === r.id} onClick={() => settle(r, 'not_done')}>It was not done</button>
+            </div>
           )}
           {r.can_decide && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -67,6 +101,7 @@ function Approvals() {
           )}
         </div>
       ))}
+      {openRecord && <DecisionRecordModal id={openRecord} onClose={() => setOpenRecord('')} />}
     </section>
   );
 }
@@ -189,8 +224,8 @@ export default function AiGovernancePage() {
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <PageHead title="AI approvals and school documents" hint="You stay in control: the assistant only asks, and quotes only what you give it." />
-      <Tabs value={tab} onChange={(v) => setTab(v as TabKey)} tabs={[['approvals', 'Approvals'], ['documents', 'School documents']]} />
-      {tab === 'approvals' ? <Approvals /> : <Documents />}
+      <Tabs value={tab} onChange={(v) => setTab(v as TabKey)} tabs={[['approvals', 'Approvals'], ['records', 'Decision records'], ['documents', 'School documents']]} />
+      {tab === 'approvals' ? <Approvals /> : tab === 'records' ? <TrailRecords /> : <Documents />}
     </div>
   );
 }

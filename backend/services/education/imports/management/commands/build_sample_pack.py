@@ -14,7 +14,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand
 
-from services.education.imports import sample_pack
+from services.education.imports import sample_pack, sample_pack_jp
 from services.education.imports.specs import KINDS
 
 README = """# Maple Grove Academy: sample US school (K-8)
@@ -42,19 +42,41 @@ Rebuild with `python manage.py build_sample_pack` (same seed gives the same file
 """
 
 
+README_JP = """# みどり市立 若葉学園 (Wakaba Gakuen): sample Japanese school (grades 1-9)
+
+A complete, invented public nine-year school as a CC-EMS data pack: {students} students in nine grades (1年 to 9年), {staff} staff,
+a clash-free timetable (six lessons a day, with 給食 and 中休み), school lunch fees and payments in yen, attendance, exams, payroll, leave,
+admissions for the next school year, health records and a Japanese school calendar (national holidays, 運動会, 個人面談). The school year
+is April to March in three terms (1学期, 2学期, 3学期). Names are written family name first. Names and numbers are made up. Loaded up to 6 November 2026.
+
+## Use it
+
+* **In the app:** Settings > Import data > Load data, choose `jp-school-pack.zip`, pick **Add and update**, check the preview, Import.
+* **From the command line:** `python manage.py load_pack ../sample-data/jp-school --school "Wakaba Gakuen"`
+
+## Files (loaded in this order)
+
+{files}
+
+Rebuild with `python manage.py build_sample_pack --pack jp --out ../sample-data/jp-school`.
+"""
+
+
 class Command(BaseCommand):
     help = 'Rebuild the sample US school pack.'
 
     def add_arguments(self, parser):
         parser.add_argument('--out', default='../sample-data/us-school')
+        parser.add_argument('--pack', choices=['us', 'jp'], default='us', help='us = Maple Grove Academy, jp = Wakaba Gakuen (Japan)')
         parser.add_argument('--seed', type=int, default=2026)
 
     def handle(self, *args, **opts):
         out = Path(opts['out'])
         out.mkdir(parents=True, exist_ok=True)
-        files = sample_pack.build(opts['seed'])
+        jp = opts['pack'] == 'jp'
+        files = (sample_pack_jp if jp else sample_pack).build(opts['seed'])
         order = sorted(files, key=lambda k: (KINDS[k]['order'], k))
-        manifest = {'pack_version': 1, 'school': sample_pack.SCHOOL, 'files': {}}
+        manifest = {'pack_version': 1, 'school': (sample_pack_jp if jp else sample_pack).SCHOOL, 'files': {}}
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
             for kind in order:
@@ -66,7 +88,7 @@ class Command(BaseCommand):
                 manifest['files'][name] = {'kind': kind, 'rows': len(files[kind]), 'sha256': hashlib.sha256(data).hexdigest()}
             zf.writestr('manifest.json', json.dumps(manifest, indent=2))
         (out / 'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
-        (out / 'us-school-pack.zip').write_bytes(buf.getvalue())
+        (out / ('jp-school-pack.zip' if jp else 'us-school-pack.zip')).write_bytes(buf.getvalue())
         listing = '\n'.join(f'{i}. `{KINDS[k]["filename"]}`: {KINDS[k]["label"]} ({len(files[k])} rows)' for i, k in enumerate(order, 1))
-        (out / 'README.md').write_text(README.format(students=len(files['students']), staff=len(files['staff']), files=listing), encoding='utf-8')
-        self.stdout.write(self.style.SUCCESS(f'Wrote {len(order)} files and us-school-pack.zip to {out}'))
+        (out / 'README.md').write_text((README_JP if jp else README).format(students=len(files['students']), staff=len(files['staff']), files=listing), encoding='utf-8')
+        self.stdout.write(self.style.SUCCESS(f'Wrote {len(order)} files and the pack zip to {out}'))

@@ -58,7 +58,7 @@ describe('phrase lists', () => {
         expect(holes(out), `${file}: ${en}`).toBe(holes(en));
       }
     }
-  });
+  }, 30000);                                              // ~45,000 checks across the phrase lists: more than the default 5 seconds on a busy machine
 });
 
 describe('regional wording', () => {

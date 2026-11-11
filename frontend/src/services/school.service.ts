@@ -22,7 +22,7 @@ export interface SignupConfig {
   currencies: { code: string; symbol: string; name: string; decimals: number }[];
   languages: { code: string; name: string; native_name: string; direction: 'ltr' | 'rtl' }[];
   defaults: { currency: string; language: string; timezone: string };
-  regions?: { code: 'pk' | 'intl' | 'uk' | 'us'; label: string; currency: string | null; timezone: string | null;
+  regions?: { code: 'pk' | 'intl' | 'uk' | 'us' | 'jp'; label: string; currency: string | null; timezone: string | null;
     date_format: string; week_start: number; terms: Record<string, string> }[];
   date_formats?: string[];
 }

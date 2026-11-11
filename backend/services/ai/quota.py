@@ -19,11 +19,46 @@ class AIQuotaExceeded(Exception):
         self.retry_after = retry_after
 
 
+MASTER_FLAG = "ai_master"
+# Switched off until a school turns them on (there is no flag by default): biometric features.
+OPT_IN_FEATURES = {"ai_face_attendance"}
+
+
+def ai_enabled(ctx: AIContext) -> bool:
+    """The school's one switch for all AI. On unless a flag named `ai_master` (global or for this school) is off."""
+    flag = get_flag_record(MASTER_FLAG, tenant=ctx.tenant)
+    return True if flag is None else evaluate_flag(flag, tenant=ctx.tenant, user=ctx.user)
+
+
 def feature_enabled(name: str, ctx: AIContext) -> bool:
     """AI features are on unless a FeatureFlag record (global or per-tenant)
-    exists for `name` and evaluates to off — so existing deploys keep working."""
+    exists for `name` and evaluates to off, so existing deploys keep working.
+    Nothing is on while the school's master AI switch is off."""
+    if not ai_enabled(ctx):
+        return False
     flag = get_flag_record(name, tenant=ctx.tenant)
-    return True if flag is None else evaluate_flag(flag, tenant=ctx.tenant, user=ctx.user)
+    if flag is None:
+        return name not in OPT_IN_FEATURES
+    return evaluate_flag(flag, tenant=ctx.tenant, user=ctx.user)
+
+
+def requires_feature(name: str):
+    """For an API view: refuse (403) while the feature, or AI as a whole, is switched off for the signed-in person's school."""
+    import functools
+
+    from rest_framework import status
+    from rest_framework.response import Response
+
+    def decorate(view):
+        @functools.wraps(view)
+        def wrapper(request, *args, **kwargs):
+            ctx = AIContext.from_request(request)
+            if not feature_enabled(name, ctx):
+                why = 'AI is switched off for your school.' if not ai_enabled(ctx) else 'This AI feature is turned off for your school.'
+                return Response({'error': why, 'ai_off': True}, status=status.HTTP_403_FORBIDDEN)
+            return view(request, *args, **kwargs)
+        return wrapper
+    return decorate
 
 
 def check_rate_limit(ctx: AIContext, feature: str) -> None:

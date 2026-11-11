@@ -197,7 +197,7 @@ def build(seed=2026):
     nsid = 0
     for name, code, grade, sections, _fee in CLASSES:
         for section in sections:
-            for _ in range(rng.randint(16, 20)):
+            for _ in range(rng.randint(6, 8)):             # a small school: it is invented, so it only needs to be enough to show the screens
                 nsid += 1
                 if families and rng.random() < 0.12:
                     fam = rng.choice([f for f in families if f['grade'] != grade and f['kids'] < 3] or families)
@@ -270,7 +270,7 @@ def build(seed=2026):
                                         recurring=False, frequency='yearly'))
     fees = {c[0]: c[4] for c in CLASSES}
     inv, rc = 0, 0
-    for month, due, issued, paid_share in (('09', '2026-09-10', '2026-09-01', 0.88), ('10', '2026-10-10', '2026-10-01', 0.5)):
+    for month, due, issued, paid_share in (('09', '2026-09-10', '2026-09-01', 0.88), ('10', '2026-10-10', '2026-10-01', 0.82)):
         for s in students:
             inv += 1
             amount = fees[s['cls']]
@@ -311,7 +311,7 @@ def build(seed=2026):
     closed = closed_dates()
     days = list(school_days(date(2026, 8, 17), date(2026, 10, 2), closed))
     ill = ['illness', 'illness', 'medical', 'family', 'transport']
-    for d in days:
+    for d in days[-20:]:             # four school weeks of attendance is enough to show the reports
         for s in students:
             r = rng.random()
             if r < 0.945:

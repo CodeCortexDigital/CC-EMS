@@ -1,0 +1,28 @@
+﻿Name *,Email *,Phone,Employee number,Role,Department,Subjects,Joining date,Gender,Date of birth,Monthly salary,Qualifications,National ID,Address,Staff type (regular or relief),Manager (employee number)
+長谷川 瑞希,hasegawa.mizuki@wakaba-gakuen.example,090-6188-8498,WK-E-001,Principal,管理職,,2011-08-27,female,1969-05-31,520000,,,みどり市 東町 9-9-15,regular,
+山本 翔,yamamoto.sho@wakaba-gakuen.example,090-3999-7975,WK-E-002,Assistant Principal,管理職,,2012-09-08,male,1986-06-30,520000,,,みどり市 若葉台 5-29-16,regular,WK-E-001
+中島 一輝,nakajima.kazuki@wakaba-gakuen.example,090-7064-2583,WK-E-003,Office Manager,事務,,2013-11-18,male,1973-09-24,300000,,,みどり市 中央 3-15-1,regular,WK-E-001
+岡田 一輝,okada.kazuki@wakaba-gakuen.example,090-2510-1003,WK-E-004,School Nurse,保健室,,2016-04-10,male,1985-03-29,300000,,,みどり市 北原 9-30-3,regular,WK-E-001
+青木 結衣,aoki.yui@wakaba-gakuen.example,090-4257-5060,WK-E-005,School Counselor,生徒指導,,2023-09-07,female,1970-06-03,300000,,,みどり市 北原 1-25-18,regular,WK-E-001
+山本 優奈,yamamoto.yuna@wakaba-gakuen.example,090-5399-6853,WK-E-006,Librarian,図書館,,2025-11-28,female,1971-12-11,300000,,,みどり市 緑町 6-22-19,regular,WK-E-001
+岡田 大輝,okada.daiki@wakaba-gakuen.example,090-9060-3209,WK-E-007,Teacher,国語,国語,2021-06-14,male,1989-06-26,400000,教育学修士,,みどり市 北原 3-20-17,regular,WK-E-002
+橋本 彩,hashimoto.aya@wakaba-gakuen.example,090-5762-2383,WK-E-008,Teacher,国語,国語,2014-08-25,female,1983-09-28,340000,教員免許状,,みどり市 桜ヶ丘 5-17-14,regular,WK-E-002
+渡辺 涼太,watanabe.ryota@wakaba-gakuen.example,090-7396-3433,WK-E-009,Teacher,国語,国語,2014-02-06,male,1988-04-30,290000,教員免許状,,みどり市 中央 1-4-13,regular,WK-E-002
+小川 紬,ogawa.tsumugi@wakaba-gakuen.example,090-2203-1841,WK-E-010,Teacher,算数・数学,算数・数学,2011-09-15,female,1980-07-26,400000,教員免許状,,みどり市 緑町 1-17-16,regular,WK-E-002
+阿部 心愛,abe.kokona@wakaba-gakuen.example,090-6370-5975,WK-E-011,Teacher,算数・数学,算数・数学,2015-10-29,female,1985-03-12,340000,教員免許状,,みどり市 若葉台 8-15-19,regular,WK-E-002
+坂本 茜,sakamoto.akane@wakaba-gakuen.example,090-3797-3521,WK-E-012,Teacher,算数・数学,算数・数学,2014-12-27,female,1991-07-11,340000,教員免許状,,みどり市 中央 6-15-20,regular,WK-E-002
+前田 海斗,maeda.kaito@wakaba-gakuen.example,090-4822-2138,WK-E-013,Teacher,理科,理科,2012-09-15,male,1989-07-21,400000,教員免許状,,みどり市 朝日町 3-2-18,regular,WK-E-002
+村上 美咲,murakami.misaki@wakaba-gakuen.example,090-1789-8402,WK-E-014,Teacher,理科,理科,2016-09-30,female,1993-09-30,340000,教育学修士,,みどり市 緑町 3-21-17,regular,WK-E-002
+後藤 海斗,goto.kaito@wakaba-gakuen.example,090-4583-9468,WK-E-015,Teacher,社会,社会,2014-07-20,male,1971-03-07,400000,教育学修士,,みどり市 桜ヶ丘 7-9-14,regular,WK-E-002
+小林 湊,kobayashi.minato@wakaba-gakuen.example,090-9732-7784,WK-E-016,Teacher,社会,社会,2010-05-13,male,1968-07-12,290000,教員免許状,,みどり市 桜ヶ丘 6-6-9,regular,WK-E-002
+山本 直樹,yamamoto.naoki@wakaba-gakuen.example,090-8600-9152,WK-E-017,Teacher,生活,生活,2016-07-15,male,1983-08-26,400000,教育学修士,,みどり市 桜ヶ丘 6-17-16,regular,WK-E-002
+後藤 葵,goto.aoi@wakaba-gakuen.example,090-8284-2967,WK-E-018,Teacher,外国語,外国語（英語）,2023-06-07,female,1988-08-26,400000,教員免許状,,みどり市 栄町 2-28-7,regular,WK-E-002
+小川 駿,ogawa.shun@wakaba-gakuen.example,090-4790-1080,WK-E-019,Teacher,音楽,音楽,2010-02-21,male,1969-03-06,400000,教員免許状,,みどり市 駅前 7-18-6,regular,WK-E-002
+近藤 健太,kondo.kenta@wakaba-gakuen.example,090-1445-6766,WK-E-020,Teacher,図工・美術,図画工作・美術,2013-08-12,male,1972-01-13,400000,教員免許状,,みどり市 北原 9-7-4,regular,WK-E-002
+山崎 茜,yamazaki.akane@wakaba-gakuen.example,090-5595-4513,WK-E-021,Teacher,体育,体育,2011-08-29,female,1990-07-25,400000,教育学修士,,みどり市 栄町 9-5-4,regular,WK-E-002
+山下 晴,yamashita.haru@wakaba-gakuen.example,090-5320-2579,WK-E-022,Teacher,体育,体育,2021-08-16,male,1984-07-24,340000,教育学修士,,みどり市 緑町 6-24-6,regular,WK-E-002
+林 陽菜,hayashi.hina@wakaba-gakuen.example,090-2741-9300,WK-E-023,Teacher,技術・家庭,技術・家庭,2025-06-04,female,1979-01-25,400000,教育学修士,,みどり市 若葉台 5-30-11,regular,WK-E-002
+遠藤 優奈,endo.yuna@wakaba-gakuen.example,090-3644-5273,WK-E-024,Teacher,道徳,特別の教科 道徳,2014-06-10,female,1976-06-28,400000,教育学修士,,みどり市 中央 5-14-1,regular,WK-E-002
+阿部 颯太,abe.sota@wakaba-gakuen.example,090-1938-2580,WK-E-025,Teacher,総合,総合的な学習の時間,2020-05-02,male,1975-07-21,400000,教育学修士,,みどり市 若葉台 2-22-18,regular,WK-E-002
+小川 海斗,ogawa.kaito@wakaba-gakuen.example,090-6739-6160,WK-E-026,Substitute teacher,国語・算数,"国語, 算数・数学",2015-01-07,male,1985-06-16,290000,,,みどり市 北原 1-30-13,relief,WK-E-002
+石井 湊,ishii.minato@wakaba-gakuen.example,090-6178-4532,WK-E-027,Substitute teacher,理科・社会,"理科, 社会",2019-08-30,male,1991-08-26,290000,,,みどり市 東町 7-22-4,relief,WK-E-002

@@ -24,6 +24,55 @@ export default function AiSettingsPage() {
     <div className="p-4 sm:p-6 space-y-4 max-w-4xl">
       <PageHead title="AI assistant" hint="Choose which AI features your school uses, see what they cost this month, and read how AI is used. Everything the AI writes is a draft for a person to check." />
 
+      <section className={`${card} ${data.ai_enabled ? '' : 'border-red-300 bg-red-50'}`} aria-label="All AI">
+        <div className="flex items-start gap-3">
+          <div className="mr-auto">
+            <h2 className="font-bold text-sm">{data.ai_enabled ? 'AI is on for your school' : 'AI is switched OFF for your school'}</h2>
+            <p className="text-xs text-slate-600">
+              {data.ai_enabled
+                ? 'One switch turns off every AI feature, including student risk scoring. Each feature keeps its own setting below. The change is recorded with your name and time.'
+                : 'No AI feature runs, and student risk scores and flags are hidden, until you turn this back on. Your settings below are kept.'}
+            </p>
+          </div>
+          <label className="inline-flex items-center gap-2 text-sm font-semibold">
+            <input type="checkbox" role="switch" aria-label="All AI" checked={data.ai_enabled} disabled={busy}
+              onChange={(e) => run(() => aiSettings.setAiEnabled(e.target.checked), e.target.checked ? 'AI turned on.' : 'AI turned off for your school.')} />
+            {data.ai_enabled ? 'On' : 'Off'}
+          </label>
+        </div>
+      </section>
+
+      <section className={card} aria-label="Approvals">
+        <h2 className="font-bold text-sm mb-1">Who approves what the AI asks for</h2>
+        <p className="text-xs text-slate-600 mb-2">
+          The assistant can only ask. Whoever asked can never approve their own request. Choose how many different people must approve before anything is sent,
+          and, if you want, name who they are. If you name nobody, any administrator can approve. Each change is recorded with your name and time.
+        </p>
+        <label className="text-sm flex items-center gap-2">
+          Approvals needed
+          <select className="rounded border border-slate-300 px-2 py-1 text-sm" aria-label="Approvals needed" value={data.approval.required} disabled={busy}
+            onChange={(e) => run(() => aiSettings.setApproval(Number(e.target.value) as 1 | 2, data.approval.approvers), 'Approval rule saved.')}>
+            <option value={1}>One person</option>
+            <option value={2}>Two different people</option>
+          </select>
+        </label>
+        <fieldset className="mt-2">
+          <legend className="text-xs font-semibold text-slate-700">People who may approve {data.approval.approvers.length === 0 && <span className="font-normal text-slate-500">(none named: any administrator)</span>}</legend>
+          <ul className="mt-1 space-y-1">
+            {data.approval.candidates.map((c) => (
+              <li key={c.id}>
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input type="checkbox" aria-label={`Approver ${c.name}`} disabled={busy} checked={data.approval.approvers.includes(c.id)}
+                    onChange={(e) => run(() => aiSettings.setApproval(data.approval.required,
+                      e.target.checked ? [...data.approval.approvers, c.id] : data.approval.approvers.filter((x) => x !== c.id)), 'Approvers saved.')} />
+                  {c.name} <span className="text-xs text-slate-500">({c.role}, {c.email})</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </fieldset>
+      </section>
+
       <section className={card} aria-label="Provider">
         <h2 className="font-bold text-sm mb-1 flex items-center gap-2"><Sparkles className="w-4 h-4 text-emerald-700" />AI provider</h2>
         {provider.configured

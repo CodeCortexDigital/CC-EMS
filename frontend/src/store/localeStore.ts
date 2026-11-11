@@ -14,7 +14,7 @@ export interface SchoolLocale {
   direction: 'ltr' | 'rtl';
   timezone: string;
   // Region style (Phase 20)
-  region: 'pk' | 'intl' | 'uk' | 'us';
+  region: 'pk' | 'intl' | 'uk' | 'us' | 'jp';
   region_label: string;
   date_format: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
   date_locale: string;

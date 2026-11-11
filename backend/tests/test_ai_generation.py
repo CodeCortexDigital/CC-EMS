@@ -176,9 +176,19 @@ class TestNotifyDropoutRisk:
         teacher = TeacherProfile.objects.create(user=teacher_user)
         teacher.assigned_classes.add(cls)
 
+        school.settings_json = {**(school.settings_json or {}), 'ai_approval': {'required': 1, 'approvers': []}}
+        school.save(update_fields=['settings_json'])
+        deputy = UserFactory(email='deputy@maple.test')
+        TenantMembership.objects.create(user=deputy, school=school, role='admin', is_primary=True)
+
         res = _client(admin).post("/api/v1/ai/dropout-risk/notify/", {"student_id": str(student.id)}, format="json")
-        assert res.status_code == 200
-        body = res.json()
+        assert res.status_code == 202                                   # a request, not a notification: nobody is told yet
+        assert not Notification.objects.filter(recipient=teacher_user, notification_type='academic').exists()
+        from services.ai.models import AIActionRequest
+        req = AIActionRequest.all_objects.get(action='notify_counsel')
+        done = _client(deputy).post(f"/api/v1/ai/governance/approvals/{req.id}/approve/", {}, format="json")
+        assert done.status_code == 200, done.content
+        body = done.json()["result"]
         assert body["notified"] >= 1
         assert Recommendation.objects.filter(student=student, recommendation_type='attendance').exists()
         assert Notification.objects.filter(recipient=teacher_user, notification_type='academic').exists()
@@ -190,6 +200,10 @@ def test_ml_endpoints_report_unavailable(admin):
     with mock.patch.object(ai_views, "RISK_ML_AVAILABLE", False), mock.patch.object(ai_views, "FACE_ML_AVAILABLE", False):
         client = _client(admin)
         assert client.post("/api/v1/ai/train-models/", {}, format="json").status_code == 503
+        # Face recognition is off until switched on (biometric data); once on, a server without the packages says it is unavailable.
+        assert client.post("/api/v1/ai/face-attendance/", {}, format="json").status_code == 403
+        from services.core.features.models import FeatureFlag
+        FeatureFlag.objects.create(name="ai_face_attendance", is_enabled=True, rollout_percentage=100)
         assert client.post("/api/v1/ai/face-attendance/", {}, format="json").status_code == 503
 
 

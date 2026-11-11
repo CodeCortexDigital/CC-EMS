@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/services/api';
+import RiskModelCard from './RiskModelCard';
 
 interface Review { decision: string; label: string; note: string; by: string; at: string | null }
 interface Flag {
@@ -46,6 +47,7 @@ export default function RiskReviewPanel() {
         and nothing is sent or changed because of a score. A person looks at each high flag and records what they decided and why. If a later scan moves a
         student to a different level, the earlier review no longer applies and the flag comes back here.
       </p>
+      <RiskModelCard />
       {flags === null ? <Loader2 className="mt-3 animate-spin text-slate-400" /> : flags.length === 0 ? (
         <p className="mt-3 text-sm text-slate-500">No student is flagged high or critical. Run the AI risk scan to refresh the scores.</p>
       ) : (

@@ -163,6 +163,18 @@ def _anonymise_student(student):
             for row in rows:
                 getattr(row, f.name).delete(save=False) if getattr(row, f.name) else None
         rows.delete()
+    # The cumulative record (指導要録): the name-bearing parts go; the ratings and attendance counts stay without a name, like marks do.
+    try:
+        Record = apps.get_model('education_records', 'CumulativeRecord')
+        Year = apps.get_model('education_records', 'CumulativeYear')
+        Record._base_manager.filter(student=student).update(
+            student_furigana='', student_address='', guardian_name='', guardian_furigana='', guardian_address='', previous_history='',
+            transfer_out_note='', next_school='', next_work='')
+        for y in Year._base_manager.filter(record__student=student):
+            keep = {k: v for k, v in (y.content or {}).items() if k in ('subjects', 'courses', 'special_activities', 'behaviour')}
+            Year._base_manager.filter(pk=y.pk).update(content=keep, attendance_remarks='')
+    except LookupError:
+        pass
     # What was worked out about the person: their face template and the risk scores and predictions made about them.
     for label in ('education_attendance.StudentFaceEncoding', 'analytics.StudentRisk', 'analytics.AcademicPrediction', 'analytics.Recommendation'):
         try:

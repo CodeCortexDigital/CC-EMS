@@ -129,6 +129,9 @@ import ParentFormsPage from '@/pages/portals/parent/ParentFormsPage'
 import ParentHealthPage from '@/pages/portals/parent/ParentHealthPage'
 import AiSettingsPage from '@/pages/settings/AiSettingsPage'
 import InterventionsPage from '@/pages/education/interventions/InterventionsPage'
+import CumulativeRecordsPage from '@/pages/education/records/RecordsPage'
+import RecordEditorPage from '@/pages/education/records/RecordEditorPage'
+import RecordPrintPage from '@/pages/education/records/RecordPrintPage'
 import FamilyBillingPage from '@/pages/education/finance/FamilyBillingPage'
 import PaymentPlansPage from '@/pages/education/finance/PaymentPlansPage'
 import OnlinePaymentsPage from '@/pages/education/finance/OnlinePaymentsPage'
@@ -655,6 +658,9 @@ function App() {
                 <Route path="education/health-office" element={<RoleBasedRoute allowedRoles={['admin', 'nurse']}><HealthOfficePage /></RoleBasedRoute>} />
                 <Route path="education/safety" element={<RoleBasedRoute allowedRoles={['admin', 'counsellor', 'teacher', 'staff', 'nurse', 'front_desk', 'manager', 'hr']}><SafetyPage /></RoleBasedRoute>} />
                 <Route path="education/interventions" element={<RoleBasedRoute allowedRoles={['admin', 'counsellor', 'teacher', 'staff', 'manager', 'hr']}><InterventionsPage /></RoleBasedRoute>} />
+                <Route path="education/records" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><CumulativeRecordsPage /></RoleBasedRoute>} />
+                <Route path="education/records/:id" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><RecordEditorPage /></RoleBasedRoute>} />
+                <Route path="education/records/:id/print" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><RecordPrintPage /></RoleBasedRoute>} />
                 <Route path="education/briefs" element={<RoleBasedRoute allowedRoles={['admin']}><BriefsPage /></RoleBasedRoute>} />
                 <Route path="education/ai-governance" element={<RoleBasedRoute allowedRoles={['admin']}><AiGovernancePage /></RoleBasedRoute>} />
                 <Route path="education/forms" element={<RoleBasedRoute allowedRoles={['admin', 'manager']}><FormsPage /></RoleBasedRoute>} />

@@ -1,7 +1,7 @@
 // Sidebar sections (Phase 22): which items go under which heading, and whether a heading is open.
 
 // Sections in the order they appear; each role only uses some of them. '' is the top (no heading).
-export const GROUP_ORDER = ['', 'people', 'teaching', 'family', 'learning', 'academics', 'billing', 'communication', 'services', 'reports', 'admin', 'account'];
+export const GROUP_ORDER = ['', 'people', 'teaching', 'family', 'learning', 'academics', 'billing', 'communication', 'services', 'reports', 'admin', 'settings', 'account'];
 
 export function buildSections<T extends { group?: string }>(items: T[]): { group: string; items: T[] }[] {
   const known = new Set(GROUP_ORDER);

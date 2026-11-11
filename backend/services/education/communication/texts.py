@@ -16,6 +16,7 @@ from collections import defaultdict
 
 import requests
 from django.conf import settings
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from .models import AutoTextRule, Message, SmsConfig
@@ -95,9 +96,15 @@ def send_text(cfg: SmsConfig, channel: str, to: str, body: str, *, student=None,
     if dedupe_key and Message._base_manager.filter(tenant_id=cfg.tenant_id, dedupe_key=dedupe_key).exists():
         return None
     number = normalize_phone(to, cfg.default_country_code)
-    log = Message._base_manager.create(tenant_id=cfg.tenant_id, student=student, sender='School', recipient=number or to,
-                                 recipient_phone=(number or to)[:20], message=body[:1600], channel=channel, event=event,
-                                 batch=batch, dedupe_key=dedupe_key[:200], last_attempt_at=timezone.now())
+    # The row is saved first (the intent), then the provider is called. The database refuses a second row with the same key, so two
+    # requests arriving together cannot both send.
+    try:
+        with transaction.atomic():
+            log = Message._base_manager.create(tenant_id=cfg.tenant_id, student=student, sender='School', recipient=number or to,
+                                               recipient_phone=(number or to)[:20], message=body[:1600], channel=channel, event=event,
+                                               batch=batch, dedupe_key=dedupe_key[:200], last_attempt_at=timezone.now())
+    except IntegrityError:
+        return None
     sender = cfg.from_number if channel == 'sms' else cfg.whatsapp_from
     if not number:
         log.delivery_status, log.error = 'failed', f'{to} is not a valid phone number.'

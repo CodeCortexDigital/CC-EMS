@@ -59,28 +59,28 @@
     },
     "students.csv": {
       "kind": "students",
-      "rows": 214,
-      "sha256": "e23c8aebafb88f22fea86f7b3776d2d8c296089d20c336fb8ddfa19e97215910"
+      "rows": 83,
+      "sha256": "fa6c2a3a2f1b08d36f277ba27dc610722a32bb21ab6f5060c4ea8d3839e93f19"
     },
     "guardians.csv": {
       "kind": "guardians",
-      "rows": 428,
-      "sha256": "cf5108649fbe6ea94c39a6f530c1c78f88c7bbccf9b69b6c11bebb00985b6fbd"
+      "rows": 166,
+      "sha256": "b0562b54125ea62621b01c42c31d05606263814b7c955c41cd05db994bb83e9f"
     },
     "student_health.csv": {
       "kind": "student_health",
-      "rows": 214,
-      "sha256": "f7d056a4cc9e18e5c0094cba1fb473d3d8df28c97b323cd449e85dd56ba60d58"
+      "rows": 83,
+      "sha256": "107dd24799e15693b6fe49631051b4d30cf718100bba2b956452f21bf2501535"
     },
     "immunizations.csv": {
       "kind": "immunizations",
-      "rows": 642,
-      "sha256": "c0e901760110209e43a825ba2e66a7dde495c32a3ac02409bb6fb2cb789f9c4d"
+      "rows": 249,
+      "sha256": "f9de97f9071906353d0c5d31fe7240104b7cfca163579f190641ea29ad521c03"
     },
     "admissions.csv": {
       "kind": "admissions",
       "rows": 28,
-      "sha256": "c7e264524e308cb01a2ee8264e68216066175a05f5fc809c23b00b875959688c"
+      "sha256": "b9410305e6d511515c56787c2630eda2a41dd5dc3ef644b5be14d079cc1ca605"
     },
     "fee_structure.csv": {
       "kind": "fee_structure",
@@ -89,18 +89,18 @@
     },
     "invoices.csv": {
       "kind": "invoices",
-      "rows": 428,
-      "sha256": "c0584d6484264e1baf75c3fef82a97d8e97dbd8557ed92d9da673e663c7d94be"
+      "rows": 166,
+      "sha256": "f12179859a1f1677532925e4c1b420f9b36b56a0d446a279a0942afd08ef29e3"
     },
     "payments.csv": {
       "kind": "payments",
-      "rows": 318,
-      "sha256": "518ee0ee7a899c2394840f3397d79d59fc436de9987a01800c0220b9216d5348"
+      "rows": 150,
+      "sha256": "26eab65daf7a0274b34965926f16dbfb2531c28c542edf56f36a89cfc91188e3"
     },
     "opening_balances.csv": {
       "kind": "balances",
       "rows": 6,
-      "sha256": "638475d0038e9307d6b84fcad225222beadb2308e871525397589c72cbabdf02"
+      "sha256": "4c1af9377c3754feaa56561e43198f7a74793f6960e40b9a884445591535a816"
     },
     "payroll_profiles.csv": {
       "kind": "payroll_profiles",
@@ -115,7 +115,7 @@
     "leave_allowances.csv": {
       "kind": "leave_balances",
       "rows": 24,
-      "sha256": "3a3323293ef6ceecbec441115ba4048f9038c65c43f9c9da93106f7eb21313ac"
+      "sha256": "96541ba7de7fa9c042542f1bb3bfc862227fb07d77c6eb92434eb4cd19190c39"
     },
     "leave_requests.csv": {
       "kind": "leave_requests",
@@ -124,8 +124,8 @@
     },
     "attendance.csv": {
       "kind": "attendance",
-      "rows": 7276,
-      "sha256": "03cd17414aeb9000339450835ede0a247f2aa561fda0d90ed18283a51e1bd0ff"
+      "rows": 1660,
+      "sha256": "f156477e55826cdb518dd452464ed42f882bf2427e2cf6d5e1d199a7661f9208"
     },
     "staff_attendance.csv": {
       "kind": "staff_attendance",
@@ -139,8 +139,8 @@
     },
     "exam_results.csv": {
       "kind": "exam_results",
-      "rows": 428,
-      "sha256": "63d573fe875ada1ab44a4b3c1cd5c9c08ee5be15c5ce9445e725cbf3706c5fb0"
+      "rows": 166,
+      "sha256": "54125c92a457c42f0900e51363ba61dcffd0cba9531d108746b6b4a1eb1a0412"
     },
     "timetable.csv": {
       "kind": "timetable",
@@ -160,17 +160,17 @@
     "credentials.csv": {
       "kind": "credentials",
       "rows": 17,
-      "sha256": "fa008aa0f263aa9a1e85170c54b056fafb314636b8f09c3b6c37d5259ea447dc"
+      "sha256": "8099149ea734c43c7b42f0cca2dab0f2d0110c95577125e46d602157127d0580"
     },
     "reviews.csv": {
       "kind": "reviews",
       "rows": 8,
-      "sha256": "2b1fbb1b03a5b43c798ed3dbca4f6404a6393ed0937c1c2967194cdc02092a39"
+      "sha256": "1ac08e6e4f1a430c48c3d0852464a9dc4f9a463c77f91ec34facb90c78cb24f5"
     },
     "goals.csv": {
       "kind": "goals",
       "rows": 8,
-      "sha256": "b5d936114ce9c0dfe3a3af98a1ba7c4ffda2295c3492c620850ba6dacb46ba9e"
+      "sha256": "931174a7d533dfcc112e93f1f6bc9b1e0579a3cc4093df894a941e8be623b133"
     },
     "job_openings.csv": {
       "kind": "job_openings",
@@ -180,7 +180,7 @@
     "job_candidates.csv": {
       "kind": "job_candidates",
       "rows": 6,
-      "sha256": "2005cbb08a013c666de157f2d76eb3c7d103861c045fd479828f4eb1ad579342"
+      "sha256": "b80ad62e451988bc8ff926d1969461fce14eb15a77cfb1afb95e874e35990da5"
     },
     "behaviour_categories.csv": {
       "kind": "behaviour_categories",
@@ -189,8 +189,8 @@
     },
     "behaviour_incidents.csv": {
       "kind": "behaviour_incidents",
-      "rows": 186,
-      "sha256": "f9f1bfabee280a332f4fce9a94356b1f2a492ffb46e8987c746e0287f19b9f17"
+      "rows": 174,
+      "sha256": "cbd9740953a7cb2aa3ae8da988e81f3c4f42e36662c901069465d6f97d60a41b"
     },
     "skills.csv": {
       "kind": "skills",
@@ -199,13 +199,13 @@
     },
     "behaviour_ratings.csv": {
       "kind": "behaviour_ratings",
-      "rows": 428,
-      "sha256": "db1325c643c0813b7c3255dfcb0d42ab0b9690f3fc997f7694ebe5cebb38de6b"
+      "rows": 166,
+      "sha256": "62b39c11380b39fe9b1cb3a9f7931ff2b86f97cdb3350333dcaeea1111bc7ed2"
     },
     "observations.csv": {
       "kind": "observations",
       "rows": 16,
-      "sha256": "8319f1657c4d3e5a7b1e867b2b4ad9b715fad8fffc337a55285d34dee631ae99"
+      "sha256": "1ba79c715a71e3a685ab283076f6d1b35017ce0563b498408c4d53b574a8e922"
     }
   }
 }

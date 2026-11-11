@@ -246,7 +246,7 @@ class TestScanKeepsReviewsAndRunsOnce:
         (a, admin, api), _ = two
         calls = []
         monkeypatch.setattr(ai_views, 'RISK_ML_AVAILABLE', True)
-        monkeypatch.setattr(ai_views, '_run_risk_scan', lambda tenant_id=None: calls.append(tenant_id) or {})
+        monkeypatch.setattr(ai_views, '_run_risk_scan', lambda tenant_id=None, **kw: calls.append(tenant_id) or {})
         cache.add(f'risk-scan:{a.id}', 1, timeout=60)                  # a scan is already running
         busy = api.post('/api/v1/ai/train-models/', {}, format='json')
         assert busy.status_code == 409 and 'already running' in busy.json()['error'] and calls == []

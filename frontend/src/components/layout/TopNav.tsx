@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  BookOpen, Boxes, ChevronRight, GraduationCap, LayoutDashboard, MessageSquare, MoreHorizontal, PanelLeft, Settings, Star, TrendingUp,
+  BookOpen, Boxes, ChevronRight, GraduationCap, LayoutDashboard, MessageSquare, MoreHorizontal, PanelLeft, Settings, ShieldCheck, Star, TrendingUp,
   User, Users, Wallet,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -22,11 +22,11 @@ export interface NavModule { id: string; label: string; description: string; lin
 /** Short names for the bar. Page titles keep the full name. */
 const SHORT: Record<string, string> = {
   home: 'Home', people: 'People', teaching: 'Teaching', academics: 'Academics', billing: 'Billing', communication: 'Comms', services: 'Services',
-  reports: 'Reports', admin: 'Admin', account: 'Account',
+  reports: 'Reports', admin: 'Admin', settings: 'Settings', account: 'Account',
 };
 const FULL: Record<string, string> = {
   home: 'Home', people: 'People', teaching: 'Teaching', academics: 'Academics', billing: 'Billing', communication: 'Communication', services: 'Campus services',
-  reports: 'Reports', admin: 'Administration', account: 'My account',
+  reports: 'Reports', admin: 'Administration', settings: 'Settings', account: 'My account',
 };
 const ABOUT: Record<string, string> = {
   home: 'Your dashboard, the daily brief and what needs your approval.',
@@ -37,12 +37,13 @@ const ABOUT: Record<string, string> = {
   communication: 'Messages, announcements, the calendar and meetings.',
   services: 'Library, transport, inventory and the cafeteria.',
   reports: 'Insights on enrolment, attendance, finance and results.',
-  admin: 'Security, imports, integrations and the school settings.',
+  admin: 'Security and privacy, importing data, integrations and the AI assistant.',
+  settings: 'The school profile, theme, language, your account, plan and help.',
   account: 'Your privacy, help and account settings.',
 };
 const ICON: Record<string, typeof Users> = {
   home: LayoutDashboard, people: Users, teaching: GraduationCap, academics: BookOpen, billing: Wallet, communication: MessageSquare, services: Boxes,
-  reports: TrendingUp, admin: Settings, account: User,
+  reports: TrendingUp, admin: ShieldCheck, settings: Settings, account: User,
 };
 /** Very light panel, a slightly deeper tile, and an accent strong enough for 15px text. */
 const THEMES: Record<string, { panel: string; tile: string; accent: string }> = {
@@ -55,13 +56,16 @@ const THEMES: Record<string, { panel: string; tile: string; accent: string }> = 
   services: { panel: '#e4f5f9', tile: '#c8e8f0', accent: '#0e7490' },
   reports: { panel: '#e5f2fb', tile: '#c9e3f5', accent: '#0369a1' },
   admin: { panel: '#eff2f6', tile: '#dde3eb', accent: '#475569' },
+  settings: { panel: '#eef4f1', tile: '#d9e8e1', accent: '#2f6f5e' },
   account: { panel: '#fdecf0', tile: '#fad4dd', accent: '#be123c' },
   favourites: { panel: '#fff6dc', tile: '#fdeab0', accent: '#b45309' },
   more: { panel: '#eef1f6', tile: '#dde3ec', accent: '#334155' },
 };
 
-export const OPEN_DELAY_MS = 70;
-export const CLOSE_DELAY_MS = 220;
+// The panel opens and closes the moment the pointer arrives or leaves (the 12px strip under each tab covers the gap).
+export const OPEN_DELAY_MS = 0;
+export const CLOSE_DELAY_MS = 0;
+const PANEL_FONT = "Raleway, 'Segoe UI', 'Yu Gothic UI', 'Hiragino Sans', Meiryo, system-ui, -apple-system, sans-serif";
 const MORE_WIDTH = 64;
 
 /** How many tabs fit in `available` px (leaving room for More when some do not). Pure, so it can be tested. */
@@ -89,7 +93,7 @@ export function useNavModules(): NavModule[] {
   return useMemo(() => buildSections(items).map((sec) => {
     const id = sec.group || 'home';
     const links: NavLinkItem[] = dedupe(sec.items.flatMap((item): NavLinkItem[] => item.id === 'settings' && !item.subItems
-      ? settingsSections.map((s) => ({ key: `${id}:settings:${s.id}`, label: tl(s.label), href: s.path }))     // Settings: one entry per section
+      ? settingsSections.filter((s) => s.id !== 'security').map((s) => ({ key: `${id}:settings:${s.id}`, label: tl(s.label), href: s.path }))     // Settings: one entry per section (Security & privacy stays under Admin)
       : item.subItems
       ? item.subItems.filter((s) => !s.isDivider).map((s) => (s.isLogout
         ? { key: `${id}:logout`, label: 'Log out', onClick: () => { logout(); navigate('/login'); } }
@@ -123,13 +127,12 @@ export default function TopNav() {
   const open = useCallback((id: string) => {
     if (closeTimer.current) window.clearTimeout(closeTimer.current);
     if (openTimer.current) window.clearTimeout(openTimer.current);
-    if (openId !== null) setOpenId(id);                                   // another panel is open: switch at once
-    else openTimer.current = window.setTimeout(() => setOpenId(id), OPEN_DELAY_MS);
-  }, [openId]);
+    setOpenId(id);
+  }, []);
   const scheduleClose = () => {
     if (openTimer.current) window.clearTimeout(openTimer.current);
     if (closeTimer.current) window.clearTimeout(closeTimer.current);
-    closeTimer.current = window.setTimeout(() => setOpenId(null), CLOSE_DELAY_MS);
+    setOpenId(null);
   };
   const keepOpen = () => { if (closeTimer.current) window.clearTimeout(closeTimer.current); };
 
@@ -183,33 +186,32 @@ export default function TopNav() {
 
   const tabClass = (id: string, current: boolean) => {
     const active = openId === id || current;
-    return `relative shrink-0 whitespace-nowrap rounded-[var(--radius-2xl,16px)] font-medium transition-colors ${active ? 'text-[color:var(--tab-accent)]' : 'text-white/90 hover:bg-white/10'}`;
+    return `relative shrink-0 whitespace-nowrap rounded-none font-medium transition-colors ${active ? 'text-[color:var(--tab-accent)]' : 'text-white/90 hover:bg-white/10'}`;
   };
   const tabStyle = (id: string): React.CSSProperties => {
     const th = THEMES[id] || THEMES.more;
     const isOpen = openId === id;
-    return { fontSize: 'clamp(13px, 1.03vw, 15px)', padding: '8px clamp(8px, 0.78vw, 14px)',
-      ['--tab-accent' as any]: th.accent, background: isOpen ? th.panel : undefined, color: isOpen ? th.accent : undefined };
+    return { fontSize: 'clamp(13px, 1.03vw, 15px)', padding: '14px clamp(10px, 0.9vw, 18px)',
+      ['--tab-accent' as any]: th.accent, background: isOpen ? th.accent : undefined, color: isOpen ? '#fff' : undefined };
   };
 
   const panelFor = (id: string) => {
     const th = THEMES[id] || THEMES.more;
-    const base = { background: th.panel, ['--accent' as any]: th.accent } as React.CSSProperties;
+    const base = { background: th.accent, color: '#fff', fontFamily: PANEL_FONT } as React.CSSProperties;
     if (id === 'more') {
       return (
-        <div style={base} className="h-[17.5rem] overflow-y-auto">
+        <div style={base} className="h-[280px] overflow-y-auto">
           <div className="mx-auto grid max-w-[1600px] gap-3 px-8 py-5 sm:grid-cols-2 xl:grid-cols-3">
             {hidden.map((m) => {
-              const t2 = THEMES[m.id] || THEMES.more; const Icon = ICON[m.id] || Boxes;
+              const Icon = ICON[m.id] || Boxes;
               return (
-                <div key={m.id} className="rounded-[var(--radius-xl,12px)] bg-white p-3 shadow-sm">
-                  <p className="mb-2 flex items-center gap-2 text-sm font-bold" style={{ color: t2.accent }}>
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: t2.tile }}><Icon size={15} /></span>{FULL[m.id] || m.label}
+                <div key={m.id} className="rounded-[var(--radius-xl,12px)] p-3" style={{ background: 'rgba(0,0,0,.16)' }}>
+                  <p className="mb-2 flex items-center gap-2 text-sm font-bold text-white">
+                    <Icon size={16} strokeWidth={1.5} />{FULL[m.id] || m.label}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {m.links.map((l) => (
-                      <button key={l.key} onClick={() => go(l)} className="rounded-[var(--radius-lg,8px)] border border-slate-200 px-2.5 py-1 text-xs text-slate-700 hover:text-white" style={{ ['--hover' as any]: t2.accent }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = t2.accent; }} onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}>{l.label}</button>
+                      <button key={l.key} onClick={() => go(l)} className="rounded-[var(--radius-lg,8px)] border border-white/30 px-2.5 py-1 text-xs text-white/80 hover:bg-white/15 hover:text-white">{l.label}</button>
                     ))}
                   </div>
                 </div>
@@ -225,35 +227,35 @@ export default function TopNav() {
     const Icon = isFav ? Star : ICON[id] || Boxes;
     const first = links.find((l) => l.href);
     return (
-      <div style={base} className="h-[17.5rem]">
+      <div style={base} className="h-[280px]">
         <div className="mx-auto flex h-full max-w-[1600px] gap-6 px-8 py-5">
-          <div className="flex w-60 shrink-0 flex-col items-center justify-center rounded-[var(--radius-xl,12px)] text-center" style={{ background: th.tile }}>
-            <Icon size={56} strokeWidth={1.2} style={{ color: th.accent }} />
-            <p className="mt-2 text-[1.35rem] font-extrabold uppercase tracking-wide" style={{ color: th.accent }}>{isFav ? 'Favourites' : FULL[id] || mod?.label}</p>
+          <div className="flex w-60 shrink-0 flex-col items-center justify-center rounded-[var(--radius-xl,12px)] text-center" style={{ background: 'rgba(0,0,0,.22)' }}>
+            <Icon size={56} strokeWidth={1.2} className="text-white" />
+            <p className="mt-2 text-[1.35rem] font-extrabold uppercase tracking-wide text-white">{isFav ? 'Favourites' : FULL[id] || mod?.label}</p>
           </div>
-          <div className="hidden w-72 shrink-0 flex-col justify-center rounded-[var(--radius-xl,12px)] p-5 lg:flex" style={{ background: 'rgba(255,255,255,.45)' }}>
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em]" style={{ color: th.accent }}>About</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">{isFav ? 'Pages you starred. Click a star in any menu to add or remove one.' : mod?.description}</p>
+          <div className="hidden w-72 shrink-0 flex-col justify-center rounded-[var(--radius-xl,12px)] p-5 lg:flex" style={{ background: 'rgba(0,0,0,.12)' }}>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/70">About</p>
+            <p className="mt-2 text-sm leading-relaxed text-white">{isFav ? 'Pages you starred. Click a star in any menu to add or remove one.' : mod?.description}</p>
             {first && !isFav && (
-              <button onClick={() => go(first)} className="mt-4 w-fit rounded-[var(--radius-lg,8px)] border px-3 py-1.5 text-xs font-bold uppercase tracking-wide" style={{ borderColor: th.accent, color: th.accent }}>
-                Open {(FULL[id] || mod?.label || '').toLowerCase()}
+              <button onClick={() => go(first)} className="mt-4 w-fit rounded-[var(--radius-lg,8px)] border border-white px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white hover:bg-white/10">
+                Open
               </button>
             )}
           </div>
           <div className="min-w-0 flex-1 overflow-y-auto">
-            {links.length === 0 ? <p className="p-4 text-sm text-slate-500">No favourites yet. Click the star beside any page in the menu to keep it here.</p> : (
+            {links.length === 0 ? <p className="p-4 text-sm text-white/80">No favourites yet. Click the star beside any page in the menu to keep it here.</p> : (
               <ul className="grid grid-cols-2 gap-x-6 gap-y-1 xl:grid-cols-3">
                 {links.map((l) => {
                   const cur = isCurrent(l.href);
                   const starred = !!l.href && favourites.has(l.href);
                   return (
-                    <li key={l.key} className={`group flex items-center gap-1 rounded-[var(--radius-lg,8px)] ${cur ? 'bg-white shadow-sm' : 'hover:bg-white/60'}`}>
-                      <button onClick={() => go(l)} className="flex min-w-0 flex-1 items-center gap-1.5 px-2.5 py-2 text-left text-[15px]" style={{ color: cur ? th.accent : '#334155', fontWeight: cur ? 600 : 400 }}>
-                        <ChevronRight size={14} style={{ color: th.accent }} className="shrink-0" /><span className="truncate">{l.label}</span>
+                    <li key={l.key} className={`group flex items-center gap-1 rounded-[var(--radius-lg,8px)] ${cur ? 'bg-white/15' : ''}`}>
+                      <button onClick={() => go(l)} className={`flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left text-base tracking-wider ${cur ? 'font-bold text-white' : 'text-white/80 hover:text-white'}`}>
+                        <span aria-hidden="true" className="shrink-0 text-xs">&gt;</span><span className="truncate">{l.label}</span>
                       </button>
                       {l.href && (
                         <button onClick={() => star(l)} aria-label={starred ? `Remove ${l.label} from favourites` : `Add ${l.label} to favourites`} aria-pressed={starred}
-                          className="mr-1 rounded p-1" style={{ color: starred ? '#d97706' : '#94a3b8' }}>
+                          className={`mr-1 rounded p-1 ${starred ? 'text-white' : 'text-white/60 hover:text-white'}`}>
                           <Star size={15} fill={starred ? 'currentColor' : 'none'} />
                         </button>
                       )}
@@ -270,55 +272,56 @@ export default function TopNav() {
 
   const th = openId ? THEMES[openId] || THEMES.more : null;
   return (
-    <div ref={root} className="relative hidden md:block" onMouseEnter={keepOpen} onMouseLeave={scheduleClose} data-testid="top-nav">
-      <nav aria-label="Main menu" className="px-4 py-2 sm:px-8" style={{ background: 'linear-gradient(to right, color-mix(in srgb, var(--app-accent-strong) 60%, #000), var(--app-accent-strong), var(--app-accent))', borderTop: '1px solid rgba(255,255,255,.12)' }}>
+    <div ref={root} className="relative hidden md:block" onMouseEnter={keepOpen} onMouseLeave={scheduleClose} data-testid="top-nav"
+      onMouseOver={(e) => { if (openId && !(e.target as HTMLElement).closest?.('[data-menu-keep]')) setOpenId(null); }}>
+      <nav aria-label="Main menu" className="px-4 py-0 sm:px-8" style={{ background: 'linear-gradient(to right, color-mix(in srgb, var(--app-accent-strong) 60%, #000), var(--app-accent-strong), var(--app-accent))', borderTop: '1px solid rgba(255,255,255,.12)' }}>
         <div className="flex items-center">
           {/* An empty block as wide as the right-hand buttons keeps the tabs in the middle of the whole bar */}
           <div style={{ width: rightWidth }} className="shrink-0" aria-hidden="true" />
           <div ref={tabsBox} className="relative flex min-w-0 flex-1 items-center justify-center" style={{ gap: 'clamp(2px, 0.95vw, 16px)' }}>
             {/* Invisible copy of every tab, only to measure widths */}
             <div ref={measure} aria-hidden="true" className="pointer-events-none invisible absolute left-0 top-0 flex h-0 overflow-hidden whitespace-nowrap" style={{ gap: 'clamp(2px, 0.95vw, 16px)' }}>
-              {modules.map((m) => <span key={m.id} className="font-medium" style={{ fontSize: 'clamp(13px, 1.03vw, 15px)', padding: '8px clamp(8px, 0.78vw, 14px)' }}>{m.label}</span>)}
+              {modules.map((m) => <span key={m.id} className="font-medium" style={{ fontSize: 'clamp(13px, 1.03vw, 15px)', padding: '14px clamp(10px, 0.9vw, 18px)' }}>{m.label}</span>)}
             </div>
             {shown.map((m) => {
               const current = activeModule === m.id;
               return (
-                <div key={m.id} className="relative" onMouseEnter={() => open(m.id)}>
+                <div key={m.id} className="relative" data-menu-keep onMouseEnter={() => open(m.id)}>
                   <button type="button" aria-haspopup="true" aria-expanded={openId === m.id} aria-current={current ? 'page' : undefined}
                     onPointerDown={(e) => { pointer.current = e.pointerType === 'touch' ? 'touch' : 'mouse'; }} onClick={(e) => clickTab(m, e)}
                     className={tabClass(m.id, false)} style={current && openId !== m.id ? { ...tabStyle(m.id), background: '#fff', color: (THEMES[m.id] || THEMES.more).accent } : tabStyle(m.id)}>
                     {m.label}
                   </button>
-                  {openId === m.id && th && <span aria-hidden="true" className="absolute left-1/2 top-full -translate-x-1/2 border-x-8 border-t-8 border-x-transparent" style={{ borderTopColor: th.panel }} />}
+                  {openId === m.id && th && <><span data-menu-keep aria-hidden="true" className="absolute inset-x-0 top-full h-3" /></>}
                 </div>
               );
             })}
             {hasMore && (
-              <div className="relative" onMouseEnter={() => open('more')}>
+              <div className="relative" data-menu-keep onMouseEnter={() => open('more')}>
                 <button type="button" aria-haspopup="true" aria-expanded={openId === 'more'} className={tabClass('more', false)} style={tabStyle('more')}>
                   <span className="inline-flex items-center gap-1">More <MoreHorizontal size={14} /></span>
                 </button>
-                {openId === 'more' && th && <span aria-hidden="true" className="absolute left-1/2 top-full -translate-x-1/2 border-x-8 border-t-8 border-x-transparent" style={{ borderTopColor: th.panel }} />}
+                {openId === 'more' && th && <><span data-menu-keep aria-hidden="true" className="absolute inset-x-0 top-full h-3" /></>}
               </div>
             )}
           </div>
           <div ref={rightBox} className="flex shrink-0 items-center gap-1 text-white">
-            <div className="relative" onMouseEnter={() => open('favourites')}>
-              <button type="button" aria-label="Favourites" aria-haspopup="true" aria-expanded={openId === 'favourites'} className="inline-flex items-center gap-1.5 rounded-[var(--radius-lg,8px)] px-2.5 py-2 text-sm hover:bg-white/10"
+            <div className="relative" data-menu-keep onMouseEnter={() => open('favourites')}>
+              <button type="button" aria-label="Favourites" aria-haspopup="true" aria-expanded={openId === 'favourites'} className="inline-flex items-center gap-1.5 rounded-none px-3 py-[14px] text-sm hover:bg-white/10"
                 style={openId === 'favourites' ? tabStyle('favourites') : undefined}>
                 <Star size={16} /><span className="hidden 2xl:inline">Favourites</span>
               </button>
-              {openId === 'favourites' && th && <span aria-hidden="true" className="absolute left-1/2 top-full -translate-x-1/2 border-x-8 border-t-8 border-x-transparent" style={{ borderTopColor: th.panel }} />}
+              {openId === 'favourites' && th && <><span data-menu-keep aria-hidden="true" className="absolute inset-x-0 top-full h-3" /></>}
             </div>
             <button type="button" onClick={() => setNavLayout(navLayout === 'top' ? 'side' : 'top')} aria-label="Switch to the side menu" title="Switch to the side menu"
-              className="inline-flex items-center gap-1.5 rounded-[var(--radius-lg,8px)] px-2.5 py-2 text-sm hover:bg-white/10">
+              className="inline-flex items-center gap-1.5 rounded-none px-3 py-[14px] text-sm hover:bg-white/10">
               <PanelLeft size={16} /><span className="hidden 2xl:inline">Sidebar</span>
             </button>
           </div>
         </div>
       </nav>
       {openId && (
-        <div role="region" aria-label={`${openId} pages`} className="absolute inset-x-0 top-full z-50 border-b border-black/5" style={{ boxShadow: '0 24px 40px -24px rgba(15,23,42,.35)' }}>
+        <div role="region" data-menu-keep aria-label={`${openId} pages`} className="absolute inset-x-0 top-full z-50 border-b border-black/5" style={{ boxShadow: '0 24px 40px -24px rgba(15,23,42,.35)' }}>
           {panelFor(openId)}
         </div>
       )}

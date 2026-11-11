@@ -1,0 +1,7 @@
+﻿Employee number *,Type *,First day *,Last day *,Day part,Status,Reason
+WK-E-007,sick,2026-11-10,2026-11-11,full,approved,インフルエンザ
+WK-E-010,annual,2026-10-23,2026-10-23,full,approved,年次有給休暇
+WK-E-013,professional,2026-11-05,2026-11-05,full,approved,研修（教育委員会）
+WK-E-008,sick,2026-10-14,2026-10-15,full,approved,通院
+WK-E-015,annual,2026-11-16,2026-11-18,full,pending,年次有給休暇
+WK-E-018,bereavement,2026-10-19,2026-10-21,full,approved,忌引

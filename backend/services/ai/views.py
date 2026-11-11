@@ -21,12 +21,16 @@ import logging
 import time
 
 from asgiref.sync import sync_to_async
+from django.db import transaction
 from django.http import StreamingHttpResponse
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes, renderer_classes
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 from rest_framework.response import Response
 
+from services.core.audit import chain as audit_chain
+
+from .actions import basis_hash, build_record
 from .agent import run_agent
 from .context import AIContext
 from .llm import LLMError, get_llm_client
@@ -158,14 +162,27 @@ def _answer_events(ctx, conversation, history, *, stream):
         reply = offline_answer(history[-1]["content"], ctx)
         sources = [{"id": k, "title": v} for k, v in ctx.extra.get("sources", {}).items()]
 
-    msg = AIMessage.objects.create(
-        conversation=conversation, role="assistant", content=reply, tool_calls=tool_log,
-        provider=llm.provider if llm and not offline else "", model=model, offline=offline, sources=sources,
-        input_tokens=usage.input_tokens if usage else 0,
-        output_tokens=usage.output_tokens if usage else 0,
-        cached_input_tokens=usage.cached_input_tokens if usage else 0,
-        latency_ms=int((time.monotonic() - started) * 1000),
-    )
+    try:
+        with transaction.atomic():                 # the answer and its decision record are saved together, or not at all
+            msg = AIMessage.objects.create(
+                conversation=conversation, role="assistant", content=reply, tool_calls=tool_log,
+                provider=llm.provider if llm and not offline else "", model=model, offline=offline, sources=sources,
+                input_tokens=usage.input_tokens if usage else 0,
+                output_tokens=usage.output_tokens if usage else 0,
+                cached_input_tokens=usage.cached_input_tokens if usage else 0,
+                latency_ms=int((time.monotonic() - started) * 1000),
+            )
+            ctx.extra.setdefault("user_message", history[-1]["content"])       # the offline answer has no model run to have set it
+            record = build_record(ctx)
+            record["provider"], record["model"] = (llm.provider if llm and not offline else ""), model
+            audit_chain.append(user=ctx.user, school=ctx.tenant, action="CREATE", resource_type="ai.chat.answer", resource_id=msg.id,
+                               new_data={"actor": getattr(ctx.user, "full_name", "") or ctx.user.email, "status": "answered",
+                                         "answer": reply, "offline": offline, "basis": record, "basis_sha256": basis_hash(record)})
+    except audit_chain.AuditWriteError:
+        logger.exception("Could not record a chat answer, so it was not shown")
+        yield {"type": "done", "reply": "This answer could not be recorded, so it is not shown. Please try again.", "offline": True,
+               "conversation_id": str(conversation.id), "message_id": "", "sources": [], "requests": []}
+        return
     conversation.save(update_fields=["updated_at"])
     if usage:
         record_usage(ctx, FEATURE, llm.provider, model, usage)

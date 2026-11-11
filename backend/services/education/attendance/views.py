@@ -195,12 +195,14 @@ def attendance_summary(request):
         present = school_records.filter(status='present').count()
         absent = school_records.filter(status='absent').count()
         late = school_records.filter(status='late').count()
-        
+        excused = total_records - present - absent - late      # excused absences and early dismissals: in the total, not in the three above
+
         return Response({
             'total_records': total_records,
             'present': present,
             'absent': absent,
             'late': late,
+            'excused': excused,
             'attendance_rate': round(((present + late) / total_records * 100), 1) if total_records > 0 else 0
         })
     except Exception as e:

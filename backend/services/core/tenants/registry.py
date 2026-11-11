@@ -26,6 +26,8 @@ DIRECT = [
     'education_students.MedicationLog',
     'education_safety.SafetyIncident',
     'education_interventions.Intervention',
+    'education_records.CumulativeRecord',
+    'education_records.CumulativeYear',
     'education_briefs.DailyBrief',
     'education_briefs.BriefRollup',
     'education_briefs.BriefSettings',

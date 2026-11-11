@@ -1,215 +1,84 @@
 ﻿Student number *,Allergies,Severe allergy (yes/no),Medical conditions,Medications,Dietary restrictions,Doctor,Doctor phone,Insurance provider,Insurance policy number,Emergency treatment consent (yes/no),Notes
-MG26-001,None known,no,,,,Dr. Lee,555-381-1280,Cigna,POL-228881,yes,
-MG26-002,None known,no,,,,Dr. Thomas,555-625-2686,Cigna,POL-706073,yes,
-MG26-003,None known,no,,,,Dr. Mitchell,555-856-2232,BlueCross,POL-297230,yes,
-MG26-004,None known,no,,,,Dr. Roberts,555-136-8713,Cigna,POL-205078,yes,
-MG26-005,None known,no,,,,Dr. Hill,555-763-1444,Medicaid,POL-855180,yes,
-MG26-006,None known,no,,,,Dr. Walker,555-743-2001,Aetna,POL-497310,yes,
-MG26-007,None known,no,,,,Dr. Perez,555-952-7016,Cigna,POL-551751,yes,
-MG26-008,None known,no,,,,Dr. Rivera,555-521-9210,Cigna,POL-865247,yes,
-MG26-009,Peanuts,no,ADHD,,Vegetarian,Dr. Miller,555-538-2853,United,POL-583014,yes,
-MG26-010,None known,no,Type 1 diabetes,,No pork,Dr. Harris,555-191-8206,BlueCross,POL-333608,yes,Care plan on file with the school nurse
-MG26-011,Penicillin,no,,,No pork,Dr. Sanchez,555-298-9497,United,POL-426449,yes,
-MG26-012,Shellfish,yes,Eczema,EpiPen,Vegetarian,Dr. Nguyen,555-857-4524,Cigna,POL-988490,yes,Care plan on file with the school nurse
-MG26-013,None known,no,,,,Dr. Wright,555-444-6945,United,POL-144035,yes,
-MG26-014,None known,no,,,,Dr. Thomas,555-891-5153,Medicaid,POL-535971,yes,
-MG26-015,Tree nuts,no,ADHD,,Gluten free,Dr. Ramirez,555-978-2232,Aetna,POL-208397,yes,
-MG26-016,None known,no,,,,Dr. White,555-748-8960,BlueCross,POL-148148,yes,
-MG26-017,None known,no,,,,Dr. Wilson,555-363-2936,Medicaid,POL-638455,yes,
-MG26-018,None known,no,,,,Dr. Torres,555-480-6526,Aetna,POL-943497,yes,
-MG26-019,None known,no,,,,Dr. Gomez,555-790-3243,Medicaid,POL-448876,yes,
-MG26-020,None known,no,,,,Dr. Adams,555-440-9406,Medicaid,POL-305606,yes,
-MG26-021,None known,no,,,,Dr. Anderson,555-243-7180,Medicaid,POL-887154,yes,
-MG26-022,None known,no,,,,Dr. Brown,555-729-6580,BlueCross,POL-794102,yes,
-MG26-023,None known,no,,,,Dr. Green,555-111-3273,United,POL-609349,yes,
-MG26-024,None known,no,,,,Dr. Martinez,555-185-7737,Aetna,POL-194216,yes,
-MG26-025,None known,no,,,,Dr. Martin,555-841-7882,BlueCross,POL-345719,yes,
-MG26-026,None known,no,,,Gluten free,Dr. Campbell,555-964-6202,Medicaid,POL-500613,yes,
-MG26-027,None known,no,,,,Dr. Martin,555-890-7868,Aetna,POL-133327,yes,
-MG26-028,None known,no,,,,Dr. Lee,555-663-6298,Medicaid,POL-537869,yes,
-MG26-029,Penicillin,yes,ADHD,EpiPen,Gluten free,Dr. Ramirez,555-202-7758,Aetna,POL-447356,yes,Care plan on file with the school nurse
-MG26-030,None known,no,,,,Dr. Ramirez,555-841-7251,Cigna,POL-863968,yes,
-MG26-031,None known,no,,,,Dr. White,555-886-1183,United,POL-903308,yes,
-MG26-032,None known,no,,,,Dr. Clark,555-346-6057,Medicaid,POL-922388,yes,
-MG26-033,Penicillin,no,Eczema,,No pork,Dr. Carter,555-657-1793,BlueCross,POL-545200,yes,
-MG26-034,None known,no,,,,Dr. Allen,555-345-6765,Medicaid,POL-551203,yes,
-MG26-035,None known,no,,,,Dr. Sanchez,555-251-7395,Medicaid,POL-227600,yes,
-MG26-036,None known,no,,,,Dr. Hill,555-847-2367,Aetna,POL-132069,yes,
-MG26-037,None known,no,,,,Dr. Rivera,555-374-2228,Medicaid,POL-601434,yes,
-MG26-038,None known,no,,,,Dr. Miller,555-126-1209,Cigna,POL-825582,yes,
-MG26-039,Eggs,no,,,Vegetarian,Dr. Evans,555-225-5284,Aetna,POL-729863,yes,
-MG26-040,None known,no,,,,Dr. Hall,555-679-3940,Cigna,POL-192829,yes,
-MG26-041,None known,no,,,,Dr. Smith,555-417-1799,Cigna,POL-612557,yes,
-MG26-042,None known,no,,,,Dr. Perez,555-391-9703,United,POL-120309,yes,
-MG26-043,None known,no,,,,Dr. Garcia,555-698-7331,Cigna,POL-516899,yes,
-MG26-044,None known,no,,,,Dr. Evans,555-621-4705,BlueCross,POL-647565,yes,
-MG26-045,None known,no,,,,Dr. Clark,555-353-2581,Cigna,POL-437255,yes,
-MG26-046,None known,no,,,,Dr. Smith,555-256-6576,Cigna,POL-414023,yes,
-MG26-047,None known,no,,,,Dr. Anderson,555-186-2598,United,POL-767477,yes,
-MG26-048,None known,no,,,,Dr. Smith,555-478-6222,Cigna,POL-452155,yes,
-MG26-049,None known,no,,,,Dr. Martinez,555-924-1136,Cigna,POL-274602,yes,
-MG26-050,None known,no,,,,Dr. Lee,555-530-9736,United,POL-723934,yes,
-MG26-051,Tree nuts,yes,Asthma,EpiPen,Vegetarian,Dr. Miller,555-803-6560,United,POL-659211,yes,Care plan on file with the school nurse
-MG26-052,None known,no,,,,Dr. Baker,555-796-5228,Medicaid,POL-494037,yes,
-MG26-053,None known,no,,,,Dr. Brown,555-280-7551,United,POL-217943,yes,
-MG26-054,None known,no,,,,Dr. Carter,555-526-5245,BlueCross,POL-770641,yes,
-MG26-055,Shellfish,no,Type 1 diabetes,,,Dr. Moore,555-145-8637,Cigna,POL-639290,yes,Care plan on file with the school nurse
-MG26-056,None known,no,,,,Dr. Garcia,555-714-9010,Medicaid,POL-458020,yes,
-MG26-057,Dairy,yes,Type 1 diabetes,EpiPen,No pork,Dr. White,555-715-7618,Cigna,POL-672539,yes,Care plan on file with the school nurse
-MG26-058,None known,no,,,,Dr. Campbell,555-811-7404,BlueCross,POL-691599,yes,
-MG26-059,None known,no,,,,Dr. Taylor,555-916-5097,Medicaid,POL-210827,yes,
-MG26-060,None known,no,,,,Dr. Allen,555-634-6358,Aetna,POL-677414,yes,
-MG26-061,None known,no,,,,Dr. Wilson,555-729-7647,Aetna,POL-383353,yes,
-MG26-062,None known,no,,,,Dr. Hall,555-737-9809,United,POL-121252,yes,
-MG26-063,None known,no,Asthma,Inhaler as needed,Vegetarian,Dr. Scott,555-520-2396,Aetna,POL-386666,yes,Care plan on file with the school nurse
-MG26-064,None known,no,Type 1 diabetes,,No pork,Dr. Lee,555-349-9556,Medicaid,POL-133192,yes,Care plan on file with the school nurse
-MG26-065,None known,no,,,,Dr. Wright,555-156-7713,Medicaid,POL-625059,yes,
-MG26-066,None known,no,,,,Dr. Davis,555-731-1585,Aetna,POL-874254,yes,
-MG26-067,None known,no,,,,Dr. Anderson,555-610-2361,Medicaid,POL-253432,yes,
-MG26-068,None known,no,,,,Dr. Martin,555-901-4826,Aetna,POL-743470,yes,
-MG26-069,None known,no,,,,Dr. Mitchell,555-739-7432,Medicaid,POL-539618,yes,
-MG26-070,Dairy,yes,Eczema,EpiPen,,Dr. Roberts,555-590-1606,Cigna,POL-613272,yes,Care plan on file with the school nurse
-MG26-071,Shellfish,no,Asthma,Inhaler as needed,Vegetarian,Dr. Smith,555-607-4744,Medicaid,POL-899722,yes,Care plan on file with the school nurse
-MG26-072,None known,no,,,,Dr. Martinez,555-336-3025,BlueCross,POL-313189,yes,
-MG26-073,None known,no,,,,Dr. Wright,555-963-1650,Medicaid,POL-150591,yes,
-MG26-074,None known,no,,,,Dr. Sanchez,555-596-5315,United,POL-208839,yes,
-MG26-075,Dairy,no,,,Gluten free,Dr. Baker,555-819-6662,BlueCross,POL-740417,yes,
-MG26-076,Tree nuts,yes,ADHD,EpiPen,,Dr. Perez,555-119-6282,Cigna,POL-169002,yes,Care plan on file with the school nurse
-MG26-077,None known,no,,,,Dr. Campbell,555-820-4709,Cigna,POL-754439,yes,
-MG26-078,None known,no,,,,Dr. Roberts,555-401-7904,Aetna,POL-184288,yes,
-MG26-079,None known,no,,,,Dr. Martinez,555-561-8898,Medicaid,POL-284844,yes,
-MG26-080,None known,no,,,,Dr. King,555-148-2519,BlueCross,POL-614785,yes,
-MG26-081,None known,no,,,,Dr. Rivera,555-937-5521,Cigna,POL-545378,yes,
-MG26-082,Shellfish,yes,ADHD,EpiPen,,Dr. Clark,555-837-9022,Medicaid,POL-161122,yes,Care plan on file with the school nurse
-MG26-083,Shellfish,no,Eczema,,Vegetarian,Dr. Miller,555-886-6594,Cigna,POL-371753,yes,
-MG26-084,None known,no,,,,Dr. Carter,555-539-1422,Medicaid,POL-130790,yes,
-MG26-085,None known,no,ADHD,,,Dr. Taylor,555-291-5429,Cigna,POL-540559,yes,
-MG26-086,None known,no,,,,Dr. Smith,555-422-5250,Aetna,POL-871977,yes,
-MG26-087,None known,no,,,,Dr. Martinez,555-431-5092,BlueCross,POL-897872,yes,
-MG26-088,Penicillin,yes,Type 1 diabetes,EpiPen,,Dr. Martinez,555-699-5474,Aetna,POL-268106,yes,Care plan on file with the school nurse
-MG26-089,None known,no,,,,Dr. Evans,555-403-5564,Cigna,POL-921631,yes,
-MG26-090,None known,no,,,,Dr. Taylor,555-950-4077,Medicaid,POL-250318,yes,
-MG26-091,None known,no,,,,Dr. Gomez,555-857-3642,Medicaid,POL-329935,yes,
-MG26-092,None known,no,,,,Dr. Thompson,555-911-9216,Cigna,POL-151783,yes,
-MG26-093,Tree nuts,yes,,EpiPen,,Dr. Wilson,555-984-9280,Cigna,POL-715958,yes,Care plan on file with the school nurse
-MG26-094,Eggs,no,ADHD,,Vegetarian,Dr. Wilson,555-332-1647,Aetna,POL-459018,yes,
-MG26-095,Dairy,no,Type 1 diabetes,,No pork,Dr. Green,555-145-9942,Cigna,POL-473932,yes,Care plan on file with the school nurse
-MG26-096,None known,no,,,,Dr. Thomas,555-651-4877,Medicaid,POL-710882,yes,
-MG26-097,None known,no,,,,Dr. Scott,555-924-6080,BlueCross,POL-555036,yes,
-MG26-098,None known,no,,,,Dr. Thompson,555-172-4497,Aetna,POL-113261,yes,
-MG26-099,None known,no,,,,Dr. Clark,555-755-5063,United,POL-369714,yes,
-MG26-100,None known,no,,,,Dr. Perez,555-640-9494,Medicaid,POL-831949,yes,
-MG26-101,None known,no,,,,Dr. Garcia,555-591-5325,BlueCross,POL-931858,no,
-MG26-102,None known,no,,,,Dr. Garcia,555-731-5643,United,POL-154471,yes,
-MG26-103,None known,no,,,,Dr. Clark,555-384-3284,United,POL-626197,yes,
-MG26-104,None known,no,,,,Dr. Wright,555-298-6696,Aetna,POL-211953,yes,
-MG26-105,None known,no,,,,Dr. Phillips,555-197-8221,Cigna,POL-704415,yes,
-MG26-106,None known,no,,,,Dr. Phillips,555-918-6533,BlueCross,POL-771822,yes,
-MG26-107,Tree nuts,yes,Asthma,EpiPen,,Dr. Miller,555-165-2769,Cigna,POL-469142,yes,Care plan on file with the school nurse
-MG26-108,None known,no,,,,Dr. Thompson,555-871-6325,Medicaid,POL-889311,yes,
-MG26-109,Dairy,no,,,No pork,Dr. Thomas,555-326-1170,Medicaid,POL-516212,yes,
-MG26-110,None known,no,,,,Dr. Martin,555-308-3707,Medicaid,POL-835249,yes,
-MG26-111,None known,no,,,,Dr. Martin,555-359-7224,Cigna,POL-761534,no,
-MG26-112,None known,no,,,,Dr. Wright,555-104-6433,BlueCross,POL-108684,yes,
-MG26-113,None known,no,,,,Dr. Ramirez,555-257-1001,BlueCross,POL-315241,yes,
-MG26-114,Bee stings,no,Type 1 diabetes,,,Dr. Martinez,555-755-6648,BlueCross,POL-174281,yes,Care plan on file with the school nurse
-MG26-115,None known,no,Eczema,,,Dr. Hall,555-256-7289,Aetna,POL-302809,no,
-MG26-116,None known,no,,,,Dr. Roberts,555-514-8428,United,POL-884242,yes,
-MG26-117,None known,no,,,,Dr. Nguyen,555-898-1950,United,POL-934161,yes,
-MG26-118,Dairy,no,Asthma,Inhaler as needed,,Dr. Johnson,555-610-8171,Medicaid,POL-375146,yes,Care plan on file with the school nurse
-MG26-119,None known,no,,,,Dr. Ramirez,555-458-6251,United,POL-236099,yes,
-MG26-120,Penicillin,no,Eczema,,No pork,Dr. Hall,555-608-8187,United,POL-905479,yes,
-MG26-121,None known,no,,,,Dr. Martin,555-618-2992,BlueCross,POL-278127,yes,
-MG26-122,None known,no,,,,Dr. Flores,555-906-4605,Cigna,POL-905532,yes,
-MG26-123,None known,no,,,,Dr. Jones,555-763-9837,United,POL-343319,yes,
-MG26-124,None known,no,,,,Dr. Thompson,555-391-7936,Cigna,POL-393997,yes,
-MG26-125,Shellfish,yes,ADHD,EpiPen,Vegetarian,Dr. Roberts,555-327-1450,Aetna,POL-154249,yes,Care plan on file with the school nurse
-MG26-126,None known,no,Type 1 diabetes,,No pork,Dr. Jackson,555-949-6795,United,POL-967232,yes,Care plan on file with the school nurse
-MG26-127,None known,no,,,,Dr. Wilson,555-114-8738,BlueCross,POL-129531,yes,
-MG26-128,None known,no,Eczema,,,Dr. Wright,555-101-4292,BlueCross,POL-834354,yes,
-MG26-129,None known,no,,,,Dr. Ramirez,555-880-2193,Medicaid,POL-546217,yes,
-MG26-130,None known,no,,,,Dr. Thompson,555-185-6130,Cigna,POL-919423,yes,
-MG26-131,None known,no,,,,Dr. Phillips,555-302-7771,Aetna,POL-452811,yes,
-MG26-132,None known,no,,,,Dr. Anderson,555-546-5887,BlueCross,POL-647172,yes,
-MG26-133,None known,no,,,,Dr. Lewis,555-274-2743,Cigna,POL-931806,yes,
-MG26-134,None known,no,,,,Dr. King,555-846-2612,Aetna,POL-770216,yes,
-MG26-135,None known,no,,,,Dr. Gomez,555-407-7441,Aetna,POL-250206,yes,
-MG26-136,None known,no,,,,Dr. Williams,555-263-3097,Medicaid,POL-917977,yes,
-MG26-137,None known,no,,,,Dr. Harris,555-912-9812,Medicaid,POL-652683,yes,
-MG26-138,None known,no,,,,Dr. Sanchez,555-189-1389,Medicaid,POL-662629,yes,
-MG26-139,None known,no,,,,Dr. Jackson,555-253-6234,Medicaid,POL-363808,yes,
-MG26-140,None known,no,,,,Dr. Campbell,555-656-4925,Cigna,POL-408082,yes,
-MG26-141,Shellfish,no,Type 1 diabetes,,,Dr. Anderson,555-357-4840,United,POL-333325,yes,Care plan on file with the school nurse
-MG26-142,None known,no,,,,Dr. Mitchell,555-900-6011,United,POL-925441,yes,
-MG26-143,None known,no,,,,Dr. Campbell,555-744-9805,Cigna,POL-273028,yes,
-MG26-144,None known,no,,,,Dr. Jones,555-440-9499,Medicaid,POL-823234,yes,
-MG26-145,None known,no,,,No pork,Dr. Moore,555-795-9036,United,POL-222295,yes,
-MG26-146,None known,no,,,,Dr. Rodriguez,555-737-5979,Aetna,POL-487216,yes,
-MG26-147,Tree nuts,yes,,EpiPen,,Dr. Clark,555-364-6675,Cigna,POL-775706,yes,Care plan on file with the school nurse
-MG26-148,Tree nuts,yes,Eczema,EpiPen,,Dr. Young,555-361-6243,Medicaid,POL-242683,yes,Care plan on file with the school nurse
-MG26-149,None known,no,,,,Dr. Brown,555-239-4673,Aetna,POL-455365,yes,
-MG26-150,Bee stings,no,Type 1 diabetes,,Vegetarian,Dr. Thomas,555-357-9749,Aetna,POL-637096,yes,Care plan on file with the school nurse
-MG26-151,None known,no,,,,Dr. Campbell,555-488-6065,Aetna,POL-862332,yes,
-MG26-152,Shellfish,no,ADHD,,No pork,Dr. Moore,555-993-5060,Medicaid,POL-297517,yes,
-MG26-153,None known,no,,,,Dr. Wilson,555-959-1203,Aetna,POL-249648,yes,
-MG26-154,Tree nuts,no,Asthma,Inhaler as needed,Gluten free,Dr. Nelson,555-593-2317,Cigna,POL-413886,yes,Care plan on file with the school nurse
-MG26-155,None known,no,,,,Dr. Clark,555-155-5802,Aetna,POL-194988,yes,
-MG26-156,None known,no,,,,Dr. Phillips,555-294-8667,United,POL-624635,yes,
-MG26-157,None known,no,,,,Dr. King,555-353-3348,United,POL-168065,yes,
-MG26-158,None known,no,,,,Dr. Williams,555-776-2806,United,POL-229638,yes,
-MG26-159,Bee stings,no,Type 1 diabetes,,No pork,Dr. Torres,555-830-4183,Cigna,POL-792999,yes,Care plan on file with the school nurse
-MG26-160,None known,no,,,,Dr. Williams,555-418-1205,United,POL-171313,yes,
-MG26-161,Peanuts,no,Type 1 diabetes,,No pork,Dr. Carter,555-652-7906,Aetna,POL-854207,yes,Care plan on file with the school nurse
-MG26-162,None known,no,,,,Dr. Wright,555-400-9956,Cigna,POL-449682,yes,
-MG26-163,None known,no,,,,Dr. Garcia,555-112-6974,Medicaid,POL-624850,yes,
-MG26-164,None known,no,,,,Dr. Taylor,555-393-2271,United,POL-147949,yes,
-MG26-165,None known,no,,,,Dr. Jones,555-322-7860,Aetna,POL-409154,yes,
-MG26-166,None known,no,,,,Dr. Moore,555-242-8973,Medicaid,POL-506715,yes,
-MG26-167,None known,no,,,,Dr. Taylor,555-155-6776,United,POL-512580,yes,
-MG26-168,None known,no,,,,Dr. Moore,555-298-8677,Cigna,POL-477170,yes,
-MG26-169,None known,no,,,,Dr. Nguyen,555-973-8766,BlueCross,POL-255694,yes,
-MG26-170,None known,no,,,,Dr. Hall,555-748-3442,Cigna,POL-876081,yes,
-MG26-171,Shellfish,yes,Type 1 diabetes,EpiPen,,Dr. Thompson,555-153-8599,Medicaid,POL-297553,yes,Care plan on file with the school nurse
-MG26-172,None known,no,,,,Dr. Rodriguez,555-415-2552,Cigna,POL-911848,yes,
-MG26-173,Penicillin,no,ADHD,,,Dr. Clark,555-467-5735,BlueCross,POL-493139,yes,
-MG26-174,None known,no,,,,Dr. Thomas,555-594-5300,BlueCross,POL-804159,yes,
-MG26-175,None known,no,,,Vegetarian,Dr. Baker,555-394-1917,United,POL-393146,yes,
-MG26-176,None known,no,,,,Dr. Taylor,555-692-8968,Cigna,POL-173503,yes,
-MG26-177,None known,no,,,,Dr. Johnson,555-755-6173,BlueCross,POL-227295,yes,
-MG26-178,None known,no,,,,Dr. Jones,555-418-2654,United,POL-528375,yes,
-MG26-179,None known,no,,,,Dr. Garcia,555-367-5252,Medicaid,POL-418201,yes,
-MG26-180,Dairy,no,Eczema,,,Dr. Robinson,555-655-4522,United,POL-159969,yes,
-MG26-181,None known,no,,,,Dr. Nguyen,555-349-8116,Cigna,POL-680968,yes,
-MG26-182,None known,no,,,,Dr. Gomez,555-657-3340,Medicaid,POL-437669,yes,
-MG26-183,None known,no,,,,Dr. Baker,555-916-8204,Aetna,POL-757720,yes,
-MG26-184,None known,no,,,,Dr. Sanchez,555-643-5823,United,POL-812296,yes,
-MG26-185,None known,no,,,,Dr. Wilson,555-911-8128,Cigna,POL-418857,yes,
-MG26-186,Penicillin,yes,Type 1 diabetes,EpiPen,,Dr. Clark,555-474-9036,United,POL-163093,yes,Care plan on file with the school nurse
-MG26-187,None known,no,,,,Dr. Roberts,555-716-7215,Cigna,POL-286383,yes,
-MG26-188,None known,no,,,,Dr. Wright,555-563-6687,BlueCross,POL-467218,yes,
-MG26-189,None known,no,,,,Dr. Baker,555-799-8773,Cigna,POL-594129,no,
-MG26-190,None known,no,,,,Dr. King,555-571-9632,Cigna,POL-815198,yes,
-MG26-191,Bee stings,no,ADHD,,No pork,Dr. Adams,555-457-2918,Medicaid,POL-903771,yes,
-MG26-192,None known,no,,,,Dr. Johnson,555-637-6001,United,POL-922248,yes,
-MG26-193,Penicillin,no,,,,Dr. Carter,555-975-7045,Cigna,POL-338067,yes,
-MG26-194,None known,no,,,,Dr. Davis,555-230-6846,Cigna,POL-818296,yes,
-MG26-195,None known,no,,,,Dr. Williams,555-280-3150,Aetna,POL-699203,no,
-MG26-196,Eggs,no,Eczema,,Vegetarian,Dr. Lewis,555-986-7048,Cigna,POL-408231,yes,
-MG26-197,None known,no,,,,Dr. Wilson,555-266-6799,United,POL-848745,yes,
-MG26-198,None known,no,,,,Dr. Garcia,555-632-8290,Medicaid,POL-776314,yes,
-MG26-199,None known,no,,,,Dr. Johnson,555-168-3112,Cigna,POL-923334,yes,
-MG26-200,None known,no,,,,Dr. Martinez,555-966-4143,Aetna,POL-435339,yes,
-MG26-201,None known,no,,,,Dr. King,555-488-9793,United,POL-398950,yes,
-MG26-202,None known,no,,,,Dr. Ramirez,555-437-1429,BlueCross,POL-187386,yes,
-MG26-203,None known,no,,,,Dr. Taylor,555-694-8859,United,POL-738399,yes,
-MG26-204,None known,no,,,,Dr. Hill,555-191-2849,Medicaid,POL-188381,yes,
-MG26-205,None known,no,,,,Dr. Jones,555-819-3940,United,POL-723099,yes,
-MG26-206,None known,no,,,,Dr. Garcia,555-743-6570,Aetna,POL-201364,yes,
-MG26-207,None known,no,,,,Dr. Thomas,555-141-7137,United,POL-214186,yes,
-MG26-208,Peanuts,no,Eczema,,No pork,Dr. Walker,555-289-4260,Aetna,POL-978424,yes,
-MG26-209,Bee stings,no,ADHD,,,Dr. Williams,555-296-1433,Aetna,POL-361372,yes,
-MG26-210,Eggs,no,Asthma,Inhaler as needed,Vegetarian,Dr. Johnson,555-582-5111,BlueCross,POL-566236,yes,Care plan on file with the school nurse
-MG26-211,None known,no,,,,Dr. King,555-285-9441,Aetna,POL-688792,yes,
-MG26-212,None known,no,,,,Dr. Young,555-246-4365,Medicaid,POL-614462,yes,
-MG26-213,None known,no,,,,Dr. Garcia,555-252-2169,Medicaid,POL-515033,yes,
-MG26-214,None known,no,,,,Dr. Jones,555-298-5443,BlueCross,POL-395893,yes,
+MG26-001,None known,no,ADHD,,Gluten free,Dr. Thompson,555-283-6042,United,POL-400049,yes,
+MG26-002,None known,no,,,,Dr. Walker,555-669-8086,Aetna,POL-193765,yes,
+MG26-003,Penicillin,no,ADHD,,Gluten free,Dr. Flores,555-886-9023,Cigna,POL-909774,yes,
+MG26-004,Bee stings,no,Type 1 diabetes,,,Dr. Gomez,555-374-4057,BlueCross,POL-582322,yes,Care plan on file with the school nurse
+MG26-005,None known,no,,,,Dr. Roberts,555-892-4694,Cigna,POL-752475,yes,
+MG26-006,None known,no,Asthma,Inhaler as needed,Vegetarian,Dr. Mitchell,555-193-1757,Cigna,POL-974086,yes,Care plan on file with the school nurse
+MG26-007,None known,no,,,,Dr. Allen,555-444-2102,United,POL-650832,yes,
+MG26-008,Penicillin,no,Eczema,,Vegetarian,Dr. Davis,555-822-1903,Medicaid,POL-235797,yes,
+MG26-009,None known,no,,,,Dr. White,555-929-6203,Aetna,POL-378144,yes,
+MG26-010,Tree nuts,yes,Type 1 diabetes,EpiPen,Gluten free,Dr. Lee,555-894-8881,Cigna,POL-582140,no,Care plan on file with the school nurse
+MG26-011,None known,no,Asthma,Inhaler as needed,,Dr. Lee,555-923-5364,United,POL-108284,yes,Care plan on file with the school nurse
+MG26-012,None known,no,,,,Dr. Garcia,555-732-7066,United,POL-891879,yes,
+MG26-013,Peanuts,yes,,EpiPen,,Dr. Brown,555-116-1703,Cigna,POL-765551,yes,Care plan on file with the school nurse
+MG26-014,Bee stings,yes,Asthma,EpiPen,,Dr. Green,555-210-8269,BlueCross,POL-308405,yes,Care plan on file with the school nurse
+MG26-015,Tree nuts,no,Eczema,,,Dr. Clark,555-563-1538,Aetna,POL-137949,yes,
+MG26-016,Shellfish,no,Eczema,,,Dr. Robinson,555-827-7550,BlueCross,POL-210230,yes,
+MG26-017,Peanuts,yes,Asthma,EpiPen,,Dr. Anderson,555-129-5019,Medicaid,POL-351953,yes,Care plan on file with the school nurse
+MG26-018,Peanuts,yes,Type 1 diabetes,EpiPen,,Dr. Smith,555-107-6068,Aetna,POL-508995,yes,Care plan on file with the school nurse
+MG26-019,None known,no,,,,Dr. Young,555-188-8059,United,POL-203370,yes,
+MG26-020,None known,no,,,,Dr. Sanchez,555-282-5011,BlueCross,POL-185683,yes,
+MG26-021,None known,no,,,,Dr. Rodriguez,555-528-8215,BlueCross,POL-636017,yes,
+MG26-022,None known,no,,,,Dr. Martinez,555-894-8360,United,POL-121352,yes,
+MG26-023,None known,no,,,Gluten free,Dr. Carter,555-733-3777,Aetna,POL-723530,yes,
+MG26-024,None known,no,,,,Dr. Jones,555-852-4117,Aetna,POL-615146,yes,
+MG26-025,None known,no,,,,Dr. Rodriguez,555-598-2650,Medicaid,POL-539879,yes,
+MG26-026,Shellfish,no,Asthma,Inhaler as needed,Gluten free,Dr. Adams,555-208-5784,United,POL-124276,yes,Care plan on file with the school nurse
+MG26-027,None known,no,,,,Dr. King,555-943-6583,Cigna,POL-372404,yes,
+MG26-028,Tree nuts,no,Eczema,,Vegetarian,Dr. Miller,555-504-9164,United,POL-924518,yes,
+MG26-029,Shellfish,yes,Type 1 diabetes,EpiPen,No pork,Dr. Taylor,555-360-9991,BlueCross,POL-244845,yes,Care plan on file with the school nurse
+MG26-030,Tree nuts,no,ADHD,,No pork,Dr. Lewis,555-927-3481,Medicaid,POL-951244,yes,
+MG26-031,Bee stings,yes,,EpiPen,,Dr. Smith,555-640-3197,Cigna,POL-261839,yes,Care plan on file with the school nurse
+MG26-032,None known,no,,,,Dr. Johnson,555-864-5818,Aetna,POL-523078,yes,
+MG26-033,Penicillin,yes,Eczema,EpiPen,,Dr. Campbell,555-916-6977,BlueCross,POL-500664,yes,Care plan on file with the school nurse
+MG26-034,Shellfish,no,Asthma,Inhaler as needed,Gluten free,Dr. Rivera,555-668-8368,BlueCross,POL-413139,yes,Care plan on file with the school nurse
+MG26-035,None known,no,,,,Dr. Davis,555-573-9781,BlueCross,POL-960347,yes,
+MG26-036,None known,no,,,,Dr. Moore,555-867-3346,Cigna,POL-286675,yes,
+MG26-037,None known,no,,,,Dr. Clark,555-862-8161,Aetna,POL-776618,yes,
+MG26-038,None known,no,,,,Dr. Rodriguez,555-579-7486,BlueCross,POL-774192,yes,
+MG26-039,Eggs,yes,,EpiPen,,Dr. Anderson,555-196-4119,Medicaid,POL-462251,yes,Care plan on file with the school nurse
+MG26-040,None known,no,,,,Dr. Allen,555-142-1325,Aetna,POL-234332,yes,
+MG26-041,Dairy,no,,,,Dr. Martin,555-326-3072,United,POL-409981,yes,
+MG26-042,Tree nuts,no,Type 1 diabetes,,Vegetarian,Dr. Davis,555-153-1865,United,POL-303088,yes,Care plan on file with the school nurse
+MG26-043,None known,no,Asthma,Inhaler as needed,No pork,Dr. Jones,555-760-3030,Aetna,POL-899483,yes,Care plan on file with the school nurse
+MG26-044,Penicillin,yes,ADHD,EpiPen,Vegetarian,Dr. Jones,555-527-6550,Medicaid,POL-484997,yes,Care plan on file with the school nurse
+MG26-045,None known,no,Eczema,,,Dr. Evans,555-207-6321,Cigna,POL-328298,yes,
+MG26-046,Penicillin,yes,ADHD,EpiPen,,Dr. Martinez,555-281-6747,BlueCross,POL-264092,yes,Care plan on file with the school nurse
+MG26-047,Penicillin,no,Asthma,Inhaler as needed,,Dr. Garcia,555-378-9712,Aetna,POL-730369,yes,Care plan on file with the school nurse
+MG26-048,None known,no,,,Vegetarian,Dr. Davis,555-681-1288,Medicaid,POL-239728,yes,
+MG26-049,None known,no,,,,Dr. Scott,555-512-2078,Aetna,POL-493161,yes,
+MG26-050,None known,no,,,,Dr. Roberts,555-216-3142,Aetna,POL-283475,yes,
+MG26-051,None known,no,,,No pork,Dr. Thomas,555-600-9721,United,POL-609111,yes,
+MG26-052,Dairy,yes,Asthma,EpiPen,Vegetarian,Dr. Wilson,555-393-7348,Medicaid,POL-821334,yes,Care plan on file with the school nurse
+MG26-053,Eggs,no,Type 1 diabetes,,No pork,Dr. Lee,555-954-2154,Aetna,POL-743987,yes,Care plan on file with the school nurse
+MG26-054,None known,no,,,,Dr. Baker,555-601-6086,Cigna,POL-867511,yes,
+MG26-055,Penicillin,no,Asthma,Inhaler as needed,No pork,Dr. Garcia,555-329-4728,United,POL-859488,yes,Care plan on file with the school nurse
+MG26-056,Eggs,no,Asthma,Inhaler as needed,Vegetarian,Dr. Allen,555-111-7767,BlueCross,POL-454172,yes,Care plan on file with the school nurse
+MG26-057,Eggs,no,ADHD,,Gluten free,Dr. Wilson,555-498-9909,United,POL-587198,yes,
+MG26-058,None known,no,,,,Dr. Nelson,555-874-7574,Cigna,POL-366988,yes,
+MG26-059,None known,no,Type 1 diabetes,,,Dr. Jackson,555-570-3925,BlueCross,POL-428600,yes,Care plan on file with the school nurse
+MG26-060,Bee stings,yes,ADHD,EpiPen,No pork,Dr. Ramirez,555-794-1067,United,POL-455497,yes,Care plan on file with the school nurse
+MG26-061,None known,no,,,,Dr. Green,555-490-6798,BlueCross,POL-528913,yes,
+MG26-062,None known,no,,,,Dr. Nguyen,555-159-9184,Medicaid,POL-649451,yes,
+MG26-063,Tree nuts,no,ADHD,,,Dr. Williams,555-694-9728,United,POL-529728,yes,
+MG26-064,Eggs,yes,,EpiPen,,Dr. Davis,555-106-1425,Medicaid,POL-642770,yes,Care plan on file with the school nurse
+MG26-065,Bee stings,no,Asthma,Inhaler as needed,Gluten free,Dr. Rodriguez,555-271-1204,United,POL-117708,yes,Care plan on file with the school nurse
+MG26-066,None known,no,,,,Dr. Baker,555-922-7952,Medicaid,POL-251813,no,
+MG26-067,None known,no,,,,Dr. Torres,555-367-6119,Aetna,POL-622467,yes,
+MG26-068,Penicillin,yes,Eczema,EpiPen,,Dr. Lee,555-975-5365,Aetna,POL-165744,yes,Care plan on file with the school nurse
+MG26-069,Bee stings,no,Type 1 diabetes,,No pork,Dr. Lee,555-315-3713,Aetna,POL-218505,yes,Care plan on file with the school nurse
+MG26-070,Tree nuts,no,Eczema,,,Dr. Perez,555-193-7100,Aetna,POL-896536,no,
+MG26-071,None known,no,,,,Dr. Thompson,555-552-7457,United,POL-239762,yes,
+MG26-072,Shellfish,no,Asthma,Inhaler as needed,Gluten free,Dr. Williams,555-916-4440,Aetna,POL-276483,yes,Care plan on file with the school nurse
+MG26-073,Shellfish,no,Eczema,,,Dr. Wilson,555-576-2468,Aetna,POL-651819,yes,
+MG26-074,None known,no,ADHD,,Vegetarian,Dr. Gomez,555-600-2487,Cigna,POL-797095,yes,
+MG26-075,Bee stings,no,ADHD,,Gluten free,Dr. Clark,555-253-3965,BlueCross,POL-614772,yes,
+MG26-076,None known,no,,,,Dr. Harris,555-494-6262,United,POL-696674,yes,
+MG26-077,Tree nuts,no,Eczema,,Vegetarian,Dr. White,555-254-8043,BlueCross,POL-842286,yes,
+MG26-078,Bee stings,no,Type 1 diabetes,,,Dr. Jones,555-399-7140,Medicaid,POL-892081,yes,Care plan on file with the school nurse
+MG26-079,Eggs,yes,,EpiPen,Vegetarian,Dr. Baker,555-645-5658,Cigna,POL-875259,yes,Care plan on file with the school nurse
+MG26-080,Penicillin,yes,Eczema,EpiPen,Vegetarian,Dr. Carter,555-633-6299,BlueCross,POL-398101,yes,Care plan on file with the school nurse
+MG26-081,Tree nuts,no,Asthma,Inhaler as needed,,Dr. Clark,555-538-1696,Cigna,POL-902665,yes,Care plan on file with the school nurse
+MG26-082,None known,no,ADHD,,Gluten free,Dr. Roberts,555-173-6433,Medicaid,POL-541382,yes,
+MG26-083,Shellfish,no,Asthma,Inhaler as needed,Vegetarian,Dr. Carter,555-392-5308,Cigna,POL-497248,yes,Care plan on file with the school nurse

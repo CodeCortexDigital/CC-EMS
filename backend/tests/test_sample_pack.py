@@ -39,14 +39,14 @@ def test_the_pack_loads_with_no_problems_and_makes_a_sound_school():
     school = School.objects.create(tenant_code='SPK', name='Pack Test School', subdomain='pack-test', is_active=True)
     results = loader.load(PACK, school, 'update')
     assert sum(r['error'] for r in results.values()) == 0
-    assert {k: v['ready'] + v['update'] for k, v in results.items()}['students'] == 214
+    assert {k: v['ready'] + v['update'] for k, v in results.items()}['students'] == 83
     with use_tenant(school):
-        assert Student.objects.count() == 214 and Teacher.objects.count() == 24
-        assert Household.objects.count() < 214                                     # siblings share a household
+        assert Student.objects.count() == 83 and Teacher.objects.count() == 24
+        assert Household.objects.count() < 83                                     # siblings share a household
         from services.education.behaviour.models import BehaviourIncident, BehaviourRating
         from services.education.students.models import StudentHealth
-        assert StudentHealth.objects.count() == 214                                 # every student has a health record
-        assert BehaviourIncident.objects.count() > 100 and BehaviourRating.objects.count() == 428
+        assert StudentHealth.objects.count() == 83                                 # every student has a health record
+        assert BehaviourIncident.objects.count() > 100 and BehaviourRating.objects.count() == 166
         entries = list(TimetableEntry.objects.select_related('teacher', 'class_subject__subject'))
         assert len(entries) == 260
         for key in (lambda e: (e.teacher_id, e.day_of_week, e.period_id), lambda e: (e.classroom_id, e.day_of_week, e.period_id),
@@ -71,7 +71,7 @@ def test_seed_demo_pack_links_the_demo_logins(monkeypatch):
     school = School.objects.get(tenant_code='MGA')
     User = get_user_model()
     with use_tenant(school):
-        assert Student.objects.count() == 214
+        assert Student.objects.count() == 83
         teacher = Teacher.objects.get(email='teacher@code.com')
         assert teacher.role == 'Teacher' and teacher.subjects.filter(code='MATH').exists()
         assert Student.objects.get(email='student@code.com').current_class.name == 'Grade 8'
@@ -87,4 +87,4 @@ def test_seed_demo_pack_links_the_demo_logins(monkeypatch):
     with use_tenant(school):
         assert LessonPlan.objects.count() == 1
     with use_tenant(school):
-        assert Student.objects.count() == 214
+        assert Student.objects.count() == 83

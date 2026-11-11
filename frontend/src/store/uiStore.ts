@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-/** Where the main menu sits: along the top (the default for staff roles) or down the side. Remembered per computer. */
+/** Where the main menu sits: down the side (the default) or along the top for staff roles. Remembered per computer. */
 export type NavLayout = 'top' | 'side';
 /** The side menu: pinned open, pinned collapsed, or free (opens when the pointer is on it). */
 export type SidebarLock = 'open' | 'closed' | 'none';
@@ -31,7 +31,7 @@ export const useUIStore = create<UIState>()(
       setSidebarCollapsed: (collapsed) => set({
         sidebarCollapsed: collapsed
       }),
-      navLayout: 'top',
+      navLayout: 'side',
       setNavLayout: (navLayout) => set({ navLayout }),
       sidebarLock: 'none',
       setSidebarLock: (sidebarLock) => set({ sidebarLock }),
