@@ -64,4 +64,4 @@ The site runs as `APP_ENV=staging` (no real email or payments).
 ## Notes
 - A free Render service sleeps after about 15 minutes idle; open the backend address a few minutes before he looks.
 - Wrong or half-loaded data: set `DEMO_RESET=1`, redeploy, wait, then remove the variable.
-- Server-made PDFs (invoices) do not show Japanese yet (browser-print pages, including 指導要録, do). Say so if he opens an invoice PDF.
+- Server-made PDFs (invoices, receipts, result cards, finance reports) now show Japanese.
