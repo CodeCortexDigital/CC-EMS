@@ -132,6 +132,9 @@ import InterventionsPage from '@/pages/education/interventions/InterventionsPage
 import CumulativeRecordsPage from '@/pages/education/records/RecordsPage'
 import RecordEditorPage from '@/pages/education/records/RecordEditorPage'
 import RecordPrintPage from '@/pages/education/records/RecordPrintPage'
+import TermReportsPage from '@/pages/education/records/TermReportsPage'
+import TermReportEditorPage from '@/pages/education/records/TermReportEditorPage'
+import TermReportPrintPage from '@/pages/education/records/TermReportPrintPage'
 import FamilyBillingPage from '@/pages/education/finance/FamilyBillingPage'
 import PaymentPlansPage from '@/pages/education/finance/PaymentPlansPage'
 import OnlinePaymentsPage from '@/pages/education/finance/OnlinePaymentsPage'
@@ -661,6 +664,9 @@ function App() {
                 <Route path="education/records" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><CumulativeRecordsPage /></RoleBasedRoute>} />
                 <Route path="education/records/:id" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><RecordEditorPage /></RoleBasedRoute>} />
                 <Route path="education/records/:id/print" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><RecordPrintPage /></RoleBasedRoute>} />
+                <Route path="education/term-reports" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><TermReportsPage /></RoleBasedRoute>} />
+                <Route path="education/term-reports/:id" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><TermReportEditorPage /></RoleBasedRoute>} />
+                <Route path="education/term-reports/:id/print" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><TermReportPrintPage /></RoleBasedRoute>} />
                 <Route path="education/briefs" element={<RoleBasedRoute allowedRoles={['admin']}><BriefsPage /></RoleBasedRoute>} />
                 <Route path="education/ai-governance" element={<RoleBasedRoute allowedRoles={['admin']}><AiGovernancePage /></RoleBasedRoute>} />
                 <Route path="education/forms" element={<RoleBasedRoute allowedRoles={['admin', 'manager']}><FormsPage /></RoleBasedRoute>} />

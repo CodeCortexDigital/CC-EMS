@@ -28,6 +28,8 @@ DIRECT = [
     'education_interventions.Intervention',
     'education_records.CumulativeRecord',
     'education_records.CumulativeYear',
+    'education_records.TermReportLayout',
+    'education_records.TermReport',
     'education_briefs.DailyBrief',
     'education_briefs.BriefRollup',
     'education_briefs.BriefSettings',

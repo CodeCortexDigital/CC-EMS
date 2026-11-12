@@ -33,6 +33,7 @@ REVIEWED = {
     'core_privacy.ConsentType': 'the privacy screens filter by school',
     'core_privacy.ConsentRecord': 'the privacy screens filter by school',
     'core_privacy.PrivacyRequest': 'the privacy screens filter by request.tenant',
+    'core_privacy.DataHandlingEntry': 'the register screen filters by request.tenant (tests/test_data_register.py: another school sees none and cannot delete)',
     'core_support.SupportTicket': 'the support screens filter by school',
     'ai.AIActionEffect': 'reached only through its request, which every AI screen filters by the signed-in school',
     'analytics.RiskScanRun': 'listed only through the risk model card and scan screens, which filter by the signed-in school',
