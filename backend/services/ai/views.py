@@ -33,6 +33,7 @@ from services.core.audit import chain as audit_chain
 from .actions import basis_hash, build_record
 from .agent import run_agent
 from .context import AIContext
+from .controls import AINotReady, check_ready
 from .llm import LLMError, get_llm_client
 from .models import AIActionRequest, AIConversation, AIMessage
 from .offline import offline_answer
@@ -47,9 +48,13 @@ MAX_MESSAGE_CHARS = 4000
 
 
 class ChatRequestError(Exception):
-    def __init__(self, message, status=400):
+    def __init__(self, message, status=400, code=''):
         super().__init__(message)
         self.status = status
+        self.code = code
+
+    def body(self) -> dict:
+        return {"error": str(self), **({"code": self.code} if self.code else {})}
 
 
 def _prepare(request):
@@ -74,6 +79,10 @@ def _prepare(request):
         raise ChatRequestError("message required")
     text = text.strip()[:MAX_MESSAGE_CHARS]
 
+    try:
+        check_ready(ctx)                            # the school's AI controls: the person's notice, the provider's no-training record
+    except AINotReady as exc:
+        raise ChatRequestError(str(exc), 403, code=exc.code) from exc
     try:
         check_rate_limit(ctx, FEATURE)
         check_token_budget(ctx)
@@ -197,7 +206,7 @@ def ai_chat(request):
     try:
         ctx, conversation, history = _prepare(request)
     except ChatRequestError as exc:
-        return Response({"error": str(exc)}, status=exc.status)
+        return Response(exc.body(), status=exc.status)
     done = None
     for event in _answer_events(ctx, conversation, history, stream=False):
         if event["type"] == "done":
@@ -224,7 +233,7 @@ def ai_chat_stream(request):
     try:
         ctx, conversation, history = _prepare(request)
     except ChatRequestError as exc:
-        return Response({"error": str(exc)}, status=exc.status)
+        return Response(exc.body(), status=exc.status)
 
     events = _answer_events(ctx, conversation, history, stream=True)
     response = StreamingHttpResponse(_sse(events), content_type="text/event-stream")

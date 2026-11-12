@@ -43,7 +43,7 @@ export type AiStreamEvent =
 
 export class AiRequestError extends Error {
   /** `explained`: the server sent a user-facing reason (limits, permissions…). */
-  constructor(message: string, public status: number, public explained = false) {
+  constructor(message: string, public status: number, public explained = false, public code = '') {
     super(message);
   }
 }
@@ -79,14 +79,16 @@ export async function streamAiMessage(
   if (!res.ok || !res.body) {
     let detail = 'The assistant is unavailable right now.';
     let explained = false;
+    let code = '';
     try {
       const body = await res.json();
       if (body?.error && res.status < 500) {
         detail = body.error;
         explained = true;
+        code = body.code || '';
       }
     } catch { /* not JSON */ }
-    throw new AiRequestError(detail, res.status, explained);
+    throw new AiRequestError(detail, res.status, explained, code);
   }
 
   const reader = res.body.getReader();
@@ -105,6 +107,12 @@ export async function streamAiMessage(
     }
   }
 }
+
+export interface AiUserNotice { version: number; text: string; accepted: boolean; required: boolean }
+
+/** The AI use notice each person accepts before their first use, when the school requires it. */
+export const getAiUserNotice = async (): Promise<AiUserNotice> => (await api.get<AiUserNotice>('/ai/user-notice/')).data;
+export const acceptAiUserNotice = async (): Promise<AiUserNotice> => (await api.post<AiUserNotice>('/ai/user-notice/')).data;
 
 export const listConversations = async (): Promise<AiConversation[]> =>
   (await api.get<AiConversation[]>('/ai/conversations/')).data;

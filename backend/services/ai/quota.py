@@ -62,7 +62,16 @@ def requires_feature(name: str):
 
 
 def check_rate_limit(ctx: AIContext, feature: str) -> None:
-    """Fixed-window per-user request limit (AI_RATE_LIMIT requests / AI_RATE_WINDOW seconds)."""
+    """Fixed-window per-user request limit (AI_RATE_LIMIT requests / AI_RATE_WINDOW seconds).
+    Every AI request that reaches a provider calls this first, so it is also where the school's AI controls are enforced
+    (controls.check_ready: the person's use notice, the provider's no-training record). Those refusals are AIQuotaExceeded too, so each
+    caller already turns them into a message."""
+    from .controls import AINotReady, check_ready
+
+    try:
+        check_ready(ctx)
+    except AINotReady as exc:
+        raise AIQuotaExceeded(str(exc)) from exc
     limit = getattr(settings, "AI_RATE_LIMIT", 30)
     window = getattr(settings, "AI_RATE_WINDOW", 600)
     if not limit:

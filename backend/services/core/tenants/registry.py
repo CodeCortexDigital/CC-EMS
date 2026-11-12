@@ -151,6 +151,7 @@ DIRECT = [
     'education_hr.PayrollProfile',
     'ai.AIConversation',
     'ai.AIUsage',
+    'ai.AIUserNotice',
     'ai.KnowledgeDocument',
     'employee.EmployeeTask',
     'employee.Timesheet',

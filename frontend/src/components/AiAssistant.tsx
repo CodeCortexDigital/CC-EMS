@@ -4,7 +4,7 @@ import {
   History, Plus, Square, Copy, Check, ThumbsUp, ThumbsDown, Trash2, Search,
 } from 'lucide-react';
 import {
-  AiConversation, AiRequestError, ChatMessage, deleteConversation, getConversation,
+  acceptAiUserNotice, AiConversation, AiRequestError, ChatMessage, deleteConversation, getAiUserNotice, getConversation,
   listConversations, sendAiMessage, sendFeedback, streamAiMessage,
 } from '@/services/ai.service';
 import MarkdownText from '@/components/MarkdownText';
@@ -148,6 +148,8 @@ export default function AiAssistant({ mode = 'admin' }: { mode?: ChatMode }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // The school asks each person to accept the AI use notice first; the question waits here until they have.
+  const [notice, setNotice] = useState<{ text: string; question: string } | null>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -205,6 +207,9 @@ export default function AiAssistant({ mode = 'admin' }: { mode?: ChatMode }) {
     } catch (err) {
       if (controller.signal.aborted) {
         patchLast((m) => ({ ...m, content: (m.content ? `${m.content}\n\n` : '') + '_(stopped)_' }));
+      } else if (err instanceof AiRequestError && err.code === 'ai_notice_required') {
+        setMessages((prev) => prev.slice(0, -2));
+        try { setNotice({ text: (await getAiUserNotice()).text, question: q }); } catch { setNotice({ text: err.message, question: q }); }
       } else if (err instanceof AiRequestError && err.explained) {
         patchLast((m) => ({ ...m, content: err.message }));
       } else if (!gotEvent) {
@@ -232,6 +237,13 @@ export default function AiAssistant({ mode = 'admin' }: { mode?: ChatMode }) {
   };
 
   const stop = () => abortRef.current?.abort();
+
+  const acceptNotice = async () => {
+    const waiting = notice?.question;
+    try { await acceptAiUserNotice(); } catch { return; }
+    setNotice(null);
+    if (waiting) send(waiting);
+  };
 
   const newChat = () => {
     stop();
@@ -527,6 +539,17 @@ export default function AiAssistant({ mode = 'admin' }: { mode?: ChatMode }) {
               </div>
             )}
           </div>
+
+          {notice && (
+            <div role="alertdialog" aria-label="AI use notice" className="mx-4 mb-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-slate-700">
+              <p className="font-semibold mb-1">Before you use the AI assistant</p>
+              <p className="leading-relaxed">{notice.text}</p>
+              <div className="mt-2 flex gap-2">
+                <button type="button" className="rounded-lg bg-purple-600 px-3 py-1.5 text-white font-semibold" onClick={acceptNotice}>I have read this and accept</button>
+                <button type="button" className="rounded-lg border border-slate-300 px-3 py-1.5" onClick={() => setNotice(null)}>Not now</button>
+              </div>
+            </div>
+          )}
 
           <form
             onSubmit={(e) => {

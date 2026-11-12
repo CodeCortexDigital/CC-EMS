@@ -12,6 +12,7 @@ export interface TrainingConfirmation {
   confirmed: boolean; provider: string; confirmed_by: string; confirmed_on: string; reference: string;
   recorded_by: string; recorded_at: string | null; provider_mismatch: boolean;
 }
+export interface AiControls { require_user_notice: boolean; require_training: boolean; mask_names: boolean; accepted_by: number; notice_version: number }
 export interface AiSettings {
   ai_enabled: boolean;
   approval: ApprovalRule;
@@ -20,6 +21,7 @@ export interface AiSettings {
   features: AiFeature[];
   usage: AiUsage;
   training: TrainingConfirmation;
+  controls: AiControls;
   always_masked: string[];
   notice: { version: number; text: string; accepted: boolean; accepted_at: string | null; accepted_by: string | null };
 }
@@ -31,6 +33,7 @@ const aiSettings = {
   async setApproval(required: 1 | 2, approvers: string[]): Promise<AiSettings> { return (await api.put('/ai/settings/', { approval: { required, approvers } })).data; },
   async saveTraining(body: { provider: string; confirmed_by: string; confirmed_on: string; reference: string }): Promise<AiSettings> { return (await api.post('/ai/settings/training-confirmation/', body)).data; },
   async clearTraining(): Promise<AiSettings> { return (await api.delete('/ai/settings/training-confirmation/')).data; },
+  async setControl(change: Partial<Pick<AiControls, 'require_user_notice' | 'require_training' | 'mask_names'>>): Promise<AiSettings> { return (await api.put('/ai/settings/controls/', change)).data; },
   async acceptNotice(): Promise<AiSettings> { return (await api.post('/ai/settings/accept-notice/')).data; },
 };
 

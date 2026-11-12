@@ -7843,5 +7843,17 @@
 "Nobody in this group.": "このグループに該当者はいません。",
 "Not yet": "未確認",
 "Children": "子ども",
-"Could not load the delivery record.": "確認状況を読み込めませんでした。"
+"Could not load the delivery record.": "確認状況を読み込めませんでした。",
+"Rules for using AI at your school": "学校でのAI利用ルール",
+"These are off until you switch them on, so nothing stops without warning. Each change is recorded with your name and time. They apply while an AI provider is connected.": "オンにするまでは無効です。変更は担当者名と日時とともに記録されます。AIプロバイダーが接続されている間に適用されます。",
+"Everyone accepts the AI use notice first": "全員が最初にAI利用上の注意に同意する",
+"Pause AI until the provider’s no-training confirmation is recorded": "プロバイダーの「学習に使わない」確認を記録するまでAIを停止する",
+"No AI request is sent while the record above is missing, or is for a different provider than the one in use.": "上の記録がない間、または使用中のプロバイダーと異なる場合は、AIへの送信を行いません。",
+"Replace student names before anything is sent": "送信前に生徒の氏名を置き換える",
+"Student names in questions and in the school information the AI reads are replaced by codes and put back in the answer. Only names as written in the student record are replaced, and an answer that shows a real name is marked in its record.": "質問やAIが読む学校情報の中の生徒氏名はコードに置き換えられ、回答では元の氏名に戻されます。置き換えは生徒名簿の表記どおりの氏名のみで、実名が回答に現れた場合は記録に印が付きます。",
+"Before you use the AI assistant": "AIアシスタントをご利用になる前に",
+"Not now": "今はしない",
+"Switched on.": "オンにしました。",
+"Switched off.": "オフにしました。",
+"Before you use the AI assistant: what you type, and the school information it looks up to answer you, is sent to an outside AI provider. Do not type names, ID numbers or health details of students unless you need to; names are replaced before they are sent when your school has switched that on. The AI can be wrong. Everything it writes is a draft that you check before you use it; you remain responsible for it. Your questions and its answers are kept in the school's records and can be reviewed by the school. The provider has confirmed in writing that what is sent is not used to train its models (the school keeps that record).": "AIアシスタントをご利用になる前に: 入力した内容と、回答のために調べた学校の情報は、外部のAIプロバイダーに送信されます。必要な場合を除き、生徒の氏名・ID番号・健康に関する情報は入力しないでください(学校が設定した場合、氏名は送信前に置き換えられます)。AIは誤ることがあります。AIが書いた内容はすべて下書きであり、使用前に必ずご自身で確認してください。内容の責任はご自身にあります。質問と回答は学校の記録として保管され、学校が確認することがあります。送信内容がAIモデルの学習に使われないことは、プロバイダーから書面で確認されています(学校がその記録を保管しています)。"
 }

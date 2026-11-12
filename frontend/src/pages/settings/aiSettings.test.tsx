@@ -29,6 +29,7 @@ const base = {
            by_feature: [{ feature: 'ai_lesson_plans', label: 'Lesson plans', requests: 5, tokens: 600 }] },
   training: { confirmed: false, provider: '', confirmed_by: '', confirmed_on: '', reference: '', recorded_by: '', recorded_at: null, provider_mismatch: false },
   always_masked: ['Birth dates'],
+  controls: { require_user_notice: false, require_training: false, mask_names: false, accepted_by: 2, notice_version: 1 },
   notice: { version: 1, text: 'AI features send text to a provider. Everything is a draft.', accepted: false, accepted_at: null, accepted_by: null },
 };
 
@@ -135,3 +136,30 @@ describe('AI provider training confirmation', () => {
     expect(await screen.findByText(/different AI provider than the one confirmed/)).toBeTruthy();
   });
 });
+
+describe('Rules for using AI', () => {
+  it('shows the three rules switched off, with how many people have accepted the notice', async () => {
+    render(<AiSettingsPage />);
+    expect(await screen.findByText(/2 people have accepted it so far/)).toBeTruthy();
+    for (const name of [/Everyone accepts the AI use notice first/, /Pause AI until the provider/, /Replace student names before anything is sent/]) {
+      expect((screen.getByRole('switch', { name }) as HTMLInputElement).checked).toBe(false);
+    }
+  });
+
+  it('switching one on sends just that rule and shows the saved state', async () => {
+    put.mockResolvedValue({ data: { ...base, controls: { ...base.controls, mask_names: true } } });
+    render(<AiSettingsPage />);
+    fireEvent.click(await screen.findByRole('switch', { name: /Replace student names/ }));
+    await waitFor(() => expect(put).toHaveBeenCalledWith('/ai/settings/controls/', { mask_names: true }));
+    await waitFor(() => expect((screen.getByRole('switch', { name: /Replace student names/ }) as HTMLInputElement).checked).toBe(true));
+    expect(toast.success).toHaveBeenCalledWith('Switched on.');
+  });
+
+  it('says why when a rule could not be saved', async () => {
+    put.mockRejectedValue({ response: { data: { error: 'The change could not be recorded, so it was not saved. Try again.' } } });
+    render(<AiSettingsPage />);
+    fireEvent.click(await screen.findByRole('switch', { name: /Pause AI until/ }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('The change could not be recorded, so it was not saved. Try again.'));
+  });
+});
+
