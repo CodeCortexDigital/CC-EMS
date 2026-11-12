@@ -83,7 +83,7 @@ def pack_code(pack: str) -> str:
     return SeedDemo.PACKS.get(pack, {}).get('code', SCHOOL_CODE)
 
 
-def add_demo_admin(school, email: str, password: str, name: str, say=lambda *_: None):
+def add_demo_admin(school, email: str, password: str, name: str, say=lambda *_: None, switch_off_public: bool = True):
     """A named administrator for one client's demo, with a password only that client is told (it comes from the environment, never from the repository).
 
     The two public administrator logins (admin@code.com, deputy@code.com) are switched off on this site, so the only way in as administrator is this account.
@@ -106,8 +106,9 @@ def add_demo_admin(school, email: str, password: str, name: str, say=lambda *_: 
     if member.role != 'admin' or not member.is_primary:
         member.role, member.is_primary = 'admin', True
         member.save(update_fields=['role', 'is_primary'])
-    User.objects.filter(email__in=('admin@code.com', 'deputy@code.com')).exclude(pk=user.pk).update(account_status=User.AccountStatus.INACTIVE)
-    say(f'Administrator {email} is ready; the public administrator logins are switched off.')
+    if switch_off_public:
+        User.objects.filter(email__in=('admin@code.com', 'deputy@code.com')).exclude(pk=user.pk).update(account_status=User.AccountStatus.INACTIVE)
+    say(f'Administrator {email} is ready' + ('; the public administrator logins are switched off.' if switch_off_public else '.'))
 
 
 class Command(BaseCommand):
@@ -140,6 +141,17 @@ class Command(BaseCommand):
             call_command('seed_demo', '--pack', opts['pack'], '--reset', stdout=self.stdout)
             school = School.objects.filter(tenant_code=code).first()
             keep_subscription_active(school)
+        for extra in [p.strip() for p in os.environ.get('DEMO_EXTRA_PACKS', '').split(',') if p.strip()]:
+            # More schools in the same database, each with its own administrator (see add_demo_school). Loaded once; later starts skip them.
+            extra_school = School.objects.filter(tenant_code=pack_code(extra)).first()
+            if extra_school is not None and Student.all_objects.filter(tenant=extra_school).exists() and not reset:
+                keep_subscription_active(extra_school)
+                if os.environ.get('DEMO_EXTRA_ADMIN_EMAIL') and os.environ.get('DEMO_EXTRA_ADMIN_PASSWORD'):    # a changed password takes effect on restart
+                    add_demo_admin(extra_school, os.environ['DEMO_EXTRA_ADMIN_EMAIL'].strip(), os.environ['DEMO_EXTRA_ADMIN_PASSWORD'],
+                                   os.environ.get('DEMO_EXTRA_ADMIN_NAME', '').strip(), self.stdout.write, switch_off_public=False)
+                self.stdout.write(f'{extra} is already loaded.')
+                continue
+            call_command('add_demo_school', '--pack', extra, stdout=self.stdout)
         if admin_email:
             add_demo_admin(school, admin_email, admin_password, os.environ.get('DEMO_ADMIN_NAME', '').strip(), self.stdout.write)
         elif not loaded:

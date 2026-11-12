@@ -33,12 +33,21 @@ const REMEMBER_KEY = 'login_remembered_username';
 
 // Demo accounts: shown only on a demo site, where VITE_DEMO_LOGINS=true is set in the build environment (never on a live site).
 const SHOW_DEMO_LOGINS = import.meta.env.VITE_DEMO_LOGINS === 'true';
-const DEMO_LOGINS: { label: string; email: string; password: string; role: LoginRole }[] = [
+// A client's own demo administrator is listed too: VITE_DEMO_ADMIN_EMAIL, VITE_DEMO_ADMIN_PASSWORD and (optionally) VITE_DEMO_ADMIN_LABEL in the
+// build environment. On a site that has only that client's school, VITE_DEMO_ADMIN_REPLACE=true lists it in place of the public administrator.
+// The password is then visible on the page, so use it only for a demo with sample data.
+const OWN_ADMIN = import.meta.env.VITE_DEMO_ADMIN_EMAIL && import.meta.env.VITE_DEMO_ADMIN_PASSWORD
+  ? { label: import.meta.env.VITE_DEMO_ADMIN_LABEL || 'Admin', email: String(import.meta.env.VITE_DEMO_ADMIN_EMAIL), password: String(import.meta.env.VITE_DEMO_ADMIN_PASSWORD), role: 'admin' as LoginRole }
+  : null;
+const PUBLIC_LOGINS: { label: string; email: string; password: string; role: LoginRole }[] = [
   { label: 'Admin', email: 'admin@code.com', password: 'Admin@123', role: 'admin' },
   { label: 'Teacher', email: 'teacher@code.com', password: 'Teacher@123', role: 'employee' },
   { label: 'Parent', email: 'parent@code.com', password: 'Parent@123', role: 'student' },
   { label: 'Student', email: 'student@code.com', password: 'Student@123', role: 'student' },
 ];
+export const DEMO_LOGINS = !OWN_ADMIN ? PUBLIC_LOGINS
+  : import.meta.env.VITE_DEMO_ADMIN_REPLACE === 'true' ? [OWN_ADMIN, ...PUBLIC_LOGINS.slice(1)]
+  : [...PUBLIC_LOGINS, OWN_ADMIN];
 
 function MicrosoftMark() {
   return (

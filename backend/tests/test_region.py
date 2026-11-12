@@ -57,7 +57,7 @@ def test_switching_region(rg):
     assert office.put(URL, {'week_start': 3}, format='json').status_code == 400
     assert _client(rg['teacher']).put(URL, {'region': 'pk'}, format='json').status_code == 403
     got = _client(rg['teacher']).get(URL).json()
-    assert got['locale']['region'] == 'uk' and {x['code'] for x in got['regions']} == {'pk', 'intl', 'uk', 'us'}
+    assert got['locale']['region'] == 'uk' and {x['code'] for x in got['regions']} == {'pk', 'intl', 'uk', 'us', 'jp'}
     assert got['date_formats'] == ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD']
 
 
