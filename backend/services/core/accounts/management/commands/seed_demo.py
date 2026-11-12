@@ -110,6 +110,12 @@ class Command(BaseCommand):
             self.stdout.write("Cumulative records skipped (the class was not found).")
             return
         self.stdout.write(f"Cumulative records made for {seed_demo_records(school, cls)} students of {cls.name}.")
+        from services.core.privacy.models import DataHandlingEntry
+        from services.core.privacy.register_defaults import rows
+
+        have = set(DataHandlingEntry.objects.filter(school=school).values_list("key", flat=True))
+        made = [DataHandlingEntry.objects.create(school=school, **r) for r in rows("ja") if r["key"] not in have]
+        self.stdout.write(f"Data handling register: {len(made)} lines added (Japanese).")
 
     def _seed_lesson_plan(self, M):
         """One saved lesson plan for the demo teacher, so the Lesson Planner is not empty when a visitor opens it."""

@@ -170,3 +170,28 @@ class IncidentUpdate(models.Model):
 
     class Meta:
         ordering = ['created_at']
+
+
+class DataHandlingEntry(models.Model):
+    """One line of the school's register of how it handles personal information (個人情報取扱台帳): what data, why, how it is
+    collected, how long it is kept, who it is given to and where it is stored. Sensitive data (要配慮個人情報) is flagged."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    school = models.ForeignKey('core_tenants.School', on_delete=models.CASCADE, related_name='data_handling_entries')
+    key = models.SlugField(max_length=40)
+    name = models.CharField(max_length=160)
+    data_items = models.TextField(blank=True)
+    purpose = models.TextField()
+    how_collected = models.TextField(blank=True)
+    retention = models.CharField(max_length=300, blank=True)
+    shared_with = models.TextField(blank=True)
+    storage_location = models.CharField(max_length=300, blank=True)
+    sensitive = models.BooleanField(default=False)
+    needs_consent = models.BooleanField(default=False)
+    position = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    reviewed_at = models.DateTimeField(default=timezone.now)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+
+    class Meta:
+        unique_together = [('school', 'key')]
+        ordering = ['position', 'name']

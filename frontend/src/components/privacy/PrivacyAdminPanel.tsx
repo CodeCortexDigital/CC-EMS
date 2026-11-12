@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertOctagon, Download, FileText, Loader2, Megaphone, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/Modal';
+import DataRegister from './DataRegister';
 import privacy, { ConsentTypeRow, ErasePreview, errorText, LegalDoc, PrivacyReq } from '@/services/privacy.service';
 
 const card = 'bg-white rounded-xl border border-slate-200 shadow-sm';
@@ -14,6 +15,7 @@ const TONE: Record<string, string> = { open: 'bg-sky-100 text-sky-800', in_progr
 export default function PrivacyAdminPanel() {
   return (
     <div className="space-y-4">
+      <DataRegister />
       <Requests />
       <ConsentSection />
       <Documents />
