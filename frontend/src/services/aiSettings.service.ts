@@ -8,6 +8,10 @@ export interface AiUsage {
 }
 export interface ApprovalCandidate { id: string; name: string; email: string; role: string }
 export interface ApprovalRule { required: 1 | 2; approvers: string[]; candidates: ApprovalCandidate[] }
+export interface TrainingConfirmation {
+  confirmed: boolean; provider: string; confirmed_by: string; confirmed_on: string; reference: string;
+  recorded_by: string; recorded_at: string | null; provider_mismatch: boolean;
+}
 export interface AiSettings {
   ai_enabled: boolean;
   approval: ApprovalRule;
@@ -15,6 +19,8 @@ export interface AiSettings {
   contact_details_shared: boolean;
   features: AiFeature[];
   usage: AiUsage;
+  training: TrainingConfirmation;
+  always_masked: string[];
   notice: { version: number; text: string; accepted: boolean; accepted_at: string | null; accepted_by: string | null };
 }
 
@@ -23,6 +29,8 @@ const aiSettings = {
   async setFeatures(features: Record<string, boolean>): Promise<AiSettings> { return (await api.put('/ai/settings/', { features })).data; },
   async setAiEnabled(ai_enabled: boolean): Promise<AiSettings> { return (await api.put('/ai/settings/', { ai_enabled })).data; },
   async setApproval(required: 1 | 2, approvers: string[]): Promise<AiSettings> { return (await api.put('/ai/settings/', { approval: { required, approvers } })).data; },
+  async saveTraining(body: { provider: string; confirmed_by: string; confirmed_on: string; reference: string }): Promise<AiSettings> { return (await api.post('/ai/settings/training-confirmation/', body)).data; },
+  async clearTraining(): Promise<AiSettings> { return (await api.delete('/ai/settings/training-confirmation/')).data; },
   async acceptNotice(): Promise<AiSettings> { return (await api.post('/ai/settings/accept-notice/')).data; },
 };
 

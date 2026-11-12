@@ -95,6 +95,23 @@ def notice_accepted(school) -> bool:
     return int(saved.get('version') or 0) >= NOTICE_VERSION
 
 
+def training_confirmation(school) -> dict:
+    """The school's record of the AI provider's written confirmation that inputs are not used to train its models
+    (MEXT generative-AI guidelines). Empty when none has been recorded."""
+    return dict(((getattr(school, 'settings_json', None) or {}).get('ai_training_confirmation') or {})) if school else {}
+
+
+def _training_payload(school, client) -> dict:
+    saved = training_confirmation(school)
+    in_use = (getattr(client, 'provider', '') or '').lower() if client else ''
+    named = str(saved.get('provider') or '').lower()
+    return {'confirmed': bool(saved), 'provider': saved.get('provider', ''), 'confirmed_by': saved.get('confirmed_by', ''),
+            'confirmed_on': saved.get('confirmed_on', ''), 'reference': saved.get('reference', ''),
+            'recorded_by': saved.get('recorded_by', ''), 'recorded_at': saved.get('recorded_at'),
+            # A confirmation for one provider says nothing about another: tell the school when the server uses a different one.
+            'provider_mismatch': bool(saved and in_use and named and in_use not in named and named not in in_use)}
+
+
 def _usage(school):
     start = timezone.localdate().replace(day=1)
     rows = AIUsage.objects.filter(tenant=school, date__gte=start)
@@ -125,6 +142,8 @@ def _payload(request):
         'approval': _approval_payload(school),
         'notice': {'version': NOTICE_VERSION, 'text': NOTICE_TEXT, 'accepted': notice_accepted(school),
                    'accepted_at': saved.get('accepted_at'), 'accepted_by': saved.get('accepted_by')},
+        'training': _training_payload(school, client),
+        'always_masked': ['Government ID numbers (US SSN style)', 'Birth dates', 'Health details', 'Passwords and tokens'],
     }
 
 
@@ -225,6 +244,50 @@ def accept_notice(request):
                                new_data={'notice_version': NOTICE_VERSION})
     except audit_chain.AuditWriteError:
         return Response({'error': 'The acceptance could not be recorded, so it was not saved. Try again.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    ctx.tenant.settings_json = fresh.settings_json
+    return Response(_payload(request))
+
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAIAdmin])
+def set_training_confirmation(request):
+    """POST {provider, confirmed_by, confirmed_on, reference}: record the provider's written confirmation that inputs are not used for
+    model training. DELETE: remove it. The change is recorded in the audit chain."""
+    from services.core.tenants.models import School
+
+    ctx = AIContext.from_request(request)
+    if ctx.tenant is None:
+        return Response({'error': 'No school selected.'}, status=status.HTTP_400_BAD_REQUEST)
+    record = None
+    if request.method == 'POST':
+        d = request.data if isinstance(request.data, dict) else {}
+        provider = str(d.get('provider') or '').strip()
+        on = str(d.get('confirmed_on') or '').strip()
+        if not provider:
+            return Response({'error': 'Say which AI provider gave the confirmation.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            from datetime import date as _date
+
+            _date.fromisoformat(on)
+        except ValueError:
+            return Response({'error': 'Give the date of the confirmation (YYYY-MM-DD).'}, status=status.HTTP_400_BAD_REQUEST)
+        record = {'provider': provider[:80], 'confirmed_by': str(d.get('confirmed_by') or '').strip()[:120], 'confirmed_on': on,
+                  'reference': str(d.get('reference') or '').strip()[:300], 'recorded_by': request.user.email, 'recorded_at': timezone.now().isoformat()}
+    try:
+        with transaction.atomic(), use_tenant(None):
+            fresh = School.objects.select_for_update().get(pk=ctx.tenant.pk)
+            was = (fresh.settings_json or {}).get('ai_training_confirmation')
+            sj = dict(fresh.settings_json or {})
+            if record:
+                sj['ai_training_confirmation'] = record
+            else:
+                sj.pop('ai_training_confirmation', None)
+            fresh.settings_json = sj
+            fresh.save(update_fields=['settings_json'])
+            audit_chain.append(user=request.user, school=ctx.tenant, action='UPDATE', resource_type='ai.settings.training_confirmation',
+                               new_data={'was': was, 'now': record})
+    except audit_chain.AuditWriteError:
+        return Response({'error': 'The change could not be recorded, so it was not saved. Try again.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     ctx.tenant.settings_json = fresh.settings_json
     return Response(_payload(request))
 

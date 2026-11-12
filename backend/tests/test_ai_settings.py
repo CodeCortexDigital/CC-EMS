@@ -7,7 +7,7 @@ from django.utils import timezone
 from services.ai.context import AIContext
 from services.ai.models import AIUsage
 from services.ai.quota import feature_enabled
-from services.ai.settings_api import FEATURES, NOTICE_VERSION, notice_accepted
+from services.ai.settings_api import FEATURES, NOTICE_VERSION, notice_accepted, training_confirmation
 from tests.safety_helpers import api, make_user, two_schools
 
 URL = '/api/v1/ai/settings/'
@@ -117,3 +117,46 @@ class TestNotice:
         world['a'].save()
         assert notice_accepted(world['a']) is False
         assert notice_accepted(None) is False
+
+
+class TestTrainingConfirmation:
+    URL = URL + 'training-confirmation/'
+    GOOD = {'provider': 'Anthropic', 'confirmed_by': 'Account manager', 'confirmed_on': '2026-11-01', 'reference': 'Email of 1 Nov, API terms'}
+
+    def test_starts_unconfirmed_then_records_who_and_when(self, world):
+        c = api(world['admin'])
+        assert c.get(URL).json()['training']['confirmed'] is False
+        t = c.post(self.URL, self.GOOD, format='json').json()['training']
+        assert t['confirmed'] is True and t['provider'] == 'Anthropic' and t['confirmed_on'] == '2026-11-01'
+        assert t['recorded_by'] == 'head@a.test' and t['recorded_at'] and t['provider_mismatch'] is False
+        world['a'].refresh_from_db()
+        assert training_confirmation(world['a'])['reference'].startswith('Email')
+
+    def test_needs_a_provider_and_a_real_date(self, world):
+        c = api(world['admin'])
+        assert c.post(self.URL, {**self.GOOD, 'provider': ' '}, format='json').status_code == 400
+        assert c.post(self.URL, {**self.GOOD, 'confirmed_on': 'yesterday'}, format='json').status_code == 400
+        assert c.get(URL).json()['training']['confirmed'] is False
+
+    def test_can_be_removed(self, world):
+        c = api(world['admin'])
+        c.post(self.URL, self.GOOD, format='json')
+        assert c.delete(self.URL).json()['training']['confirmed'] is False
+
+    def test_another_school_is_not_affected_and_only_admins_may_change_it(self, world):
+        api(world['admin']).post(self.URL, self.GOOD, format='json')
+        assert api(world['admin_b']).get(URL).json()['training']['confirmed'] is False
+        for who in ('teacher', 'parent'):
+            assert api(world[who]).post(self.URL, self.GOOD, format='json').status_code == 403
+            assert api(world[who]).delete(self.URL).status_code == 403
+        assert api().post(self.URL, self.GOOD, format='json').status_code == 401
+
+    def test_says_when_the_server_uses_a_different_provider(self, world):
+        api(world['admin']).post(self.URL, self.GOOD, format='json')
+        with mock.patch('services.ai.settings_api.get_llm_client', return_value=mock.Mock(provider='openai')):
+            assert api(world['admin']).get(URL).json()['training']['provider_mismatch'] is True
+        with mock.patch('services.ai.settings_api.get_llm_client', return_value=mock.Mock(provider='anthropic')):
+            assert api(world['admin']).get(URL).json()['training']['provider_mismatch'] is False
+
+    def test_lists_what_is_always_masked(self, world):
+        assert any('Birth' in m for m in api(world['admin']).get(URL).json()['always_masked'])
