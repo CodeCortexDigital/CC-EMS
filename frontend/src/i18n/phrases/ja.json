@@ -7746,5 +7746,16 @@
 "Ratings by subject": "教科の評価",
 "Behaviour (○ where it is a strength)": "行動の記録(よいところに○)",
 "Back to the report": "通知表に戻る",
-"It cannot be changed unless an administrator re-opens it.": "管理者が再び開かない限り、変更できません。"
+"It cannot be changed unless an administrator re-opens it.": "管理者が再び開かない限り、変更できません。",
+"調査書 (Report for high school admission)": "調査書(高等学校入学者選抜用)",
+"Made from the student's cumulative record. It can be issued once all three years have the principal's seal.": "生徒の指導要録から作成します。3学年すべてに校長の印がそろうと発行できます。",
+"Issued copy": "発行済みの写し",
+"Show the current preview": "現在のプレビューを表示",
+"It cannot be issued yet:": "まだ発行できません:",
+"Issue to (提出先)": "提出先",
+"High school name": "高等学校名",
+"Issue it": "発行する",
+"Issued so far": "発行履歴",
+"View this copy": "この写しを見る",
+"The 調査書 was issued and a copy was kept.": "調査書を発行し、写しを保存しました。"
 }

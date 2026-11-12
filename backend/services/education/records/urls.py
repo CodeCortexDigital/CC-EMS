@@ -1,5 +1,6 @@
 from django.urls import path
 
+from . import chosasho_views as cs
 from . import termreport_views as tr
 from . import views
 
@@ -15,6 +16,8 @@ urlpatterns = [
     path('term/<uuid:pk>/prefill/', tr.report_prefill),
     path('term/<uuid:pk>/finalise/', tr.report_finalise),
     path('term/<uuid:pk>/reopen/', tr.report_reopen),
+    path('<uuid:pk>/chosasho/', cs.chosasho_view),
+    path('<uuid:pk>/chosasho/<uuid:issue_id>/', cs.chosasho_issue),
     path('<uuid:pk>/', views.record_detail),
     path('<uuid:pk>/export/', views.export_one),
     path('<uuid:pk>/years/<int:grade>/', views.year_save),

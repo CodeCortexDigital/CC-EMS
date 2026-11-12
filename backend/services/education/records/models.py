@@ -148,3 +148,20 @@ class TermReport(TenantScopedModel):
     @property
     def is_locked(self) -> bool:
         return self.finalised_at is not None
+
+
+class ChosashoIssue(TenantScopedModel):
+    """A 調査書 (the junior-high report sent to a high school for admission) as it was when the principal issued it.
+
+    The content is copied in (``snapshot``), so a later correction to the 指導要録 does not change a document already sent; a corrected one is a new issue.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    record = models.ForeignKey(CumulativeRecord, on_delete=models.CASCADE, related_name='chosasho_issues')
+    issued_to = models.CharField('提出先', max_length=200)
+    note = models.CharField(max_length=300, blank=True, default='')
+    snapshot = models.JSONField(default=dict)
+    issued_at = models.DateTimeField(auto_now_add=True)
+    issued_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+
+    class Meta:
+        ordering = ['-issued_at']
