@@ -55,7 +55,7 @@ const JP_LOGINS: DemoLogin[] = [
   { label: 'Parent', email: 'parent@wakaba.example', password: 'Parent@123', role: 'student' },
   { label: 'Student', email: 'student@wakaba.example', password: 'Student@123', role: 'student' },
 ];
-const JAPAN_OFFERED = !!OWN_ADMIN || import.meta.env.VITE_DEMO_JAPAN_SCHOOL === 'true';
+const JAPAN_OFFERED = import.meta.env.VITE_DEMO_JAPAN_SCHOOL !== 'false';
 const US_SCHOOL: DemoSchool = { key: 'us', label: 'USA school', name: 'Maple Grove Academy', language: 'en', logins: US_LOGINS };
 const JP_SCHOOL: DemoSchool = { key: 'jp', label: 'Japanese school', name: 'Wakaba Gakuen 若葉学園', language: 'ja', logins: JP_LOGINS };
 export const DEMO_SCHOOLS: DemoSchool[] = !JAPAN_OFFERED ? [US_SCHOOL]

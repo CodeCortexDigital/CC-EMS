@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 describe('demo schools on the sign-in page', { timeout: 30000 }, () => {
   afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
 
-  it('offers only the US school by default', async () => {
+  it('offers the US and Japanese schools by default', async () => {
     const { DEMO_SCHOOLS } = await import('./LoginPage');
-    expect(DEMO_SCHOOLS.map((d) => d.key)).toEqual(['us']);
+    expect(DEMO_SCHOOLS.map((d) => d.key)).toEqual(['us', 'jp']);
     expect(DEMO_SCHOOLS[0].logins[0].email).toBe('admin@code.com');
   });
 
@@ -23,12 +23,11 @@ describe('demo schools on the sign-in page', { timeout: 30000 }, () => {
     expect(DEMO_SCHOOLS[0].logins.map((a) => a.email)).not.toContain('masato@admin.com');
   });
 
-  it('can offer the Japanese school without an administrator password', async () => {
+  it('can be switched off with VITE_DEMO_JAPAN_SCHOOL=false', async () => {
     vi.resetModules();
-    vi.stubEnv('VITE_DEMO_JAPAN_SCHOOL', 'true');
+    vi.stubEnv('VITE_DEMO_JAPAN_SCHOOL', 'false');
     const { DEMO_SCHOOLS } = await import('./LoginPage');
-    expect(DEMO_SCHOOLS.map((d) => d.key)).toEqual(['us', 'jp']);
-    expect(DEMO_SCHOOLS[1].logins.map((a) => a.label)).toEqual(['Teacher', 'Parent', 'Student']);
+    expect(DEMO_SCHOOLS.map((d) => d.key)).toEqual(['us']);
   });
 
   it('a Japanese-only site shows only the Japanese school', async () => {
