@@ -15,6 +15,10 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 
+# Who signs in to the demo school, by role. A school added next to others (add_demo_school) brings its own logins instead, so the
+# public ones, and every other school they open, are left exactly as they are.
+PUBLIC_LOGINS = {"admin": "admin@code.com", "deputy": "deputy@code.com", "teacher": "teacher@code.com", "parent": "parent@code.com", "student": "student@code.com"}
+
 DEMO_PASSWORDS = {
     "teacher@code.com": "Teacher@123",
     "parent@code.com": "Parent@123",
@@ -53,7 +57,7 @@ class Command(BaseCommand):
                                        "currency": "JPY", "language": "ja", "region": "jp", "region_chosen": True,
                                        "timezone": "Asia/Tokyo"}}}
 
-    def _seed_pack(self, name, reset=False):
+    def _seed_pack(self, name, reset=False, logins=None):
         """Load a sample pack as the demo school and point the four demo logins at real people in it."""
         from pathlib import Path
 
@@ -66,6 +70,8 @@ class Command(BaseCommand):
             raise CommandError(f"Unknown pack '{name}'. Available: {', '.join(self.PACKS)}.")
         info = self.PACKS[name]
         self.info = info
+        self.logins = logins or PUBLIC_LOGINS
+        self.own_logins = logins is not None
         path = Path(settings.BASE_DIR).parent / "sample-data" / name
         if not path.exists():
             raise CommandError(f"The pack folder {path} is missing.")
@@ -92,7 +98,8 @@ class Command(BaseCommand):
                 self._seed_cumulative_records(M, school, info)
             cover_day = date(2026, 10, 2) if name == "us-school" else date(2026, 11, 6)
             self.stdout.write(f"Cover arranged for {refresh_cover(60, today=cover_day)} approved leave(s).")
-        self.stdout.write(self.style.SUCCESS(f"{info['school']} is ready. Log in as admin@code.com / Admin@123."))
+        who = self.logins["admin"] + (" with the password you were given" if self.own_logins else " / Admin@123")
+        self.stdout.write(self.style.SUCCESS(f"{info['school']} is ready. Log in as {who}."))
 
     def _seed_cumulative_records(self, M, school, info):
         """Sample 指導要録 (cumulative records) for one class of the Japanese demo school, so the screens are not empty."""
@@ -173,11 +180,14 @@ class Command(BaseCommand):
         from services.core.accounts.credentials import issue_credential
 
         User = get_user_model()
-        if not User.objects.filter(email="deputy@code.com").exists():
-            User.objects.create_user(email="deputy@code.com", password="Deputy@123", full_name="Dana Deputy")
+        L = self.logins
+        if not self.own_logins and not User.objects.filter(email=L["deputy"]).exists():
+            User.objects.create_user(email=L["deputy"], password="Deputy@123", full_name="Dana Deputy")
         Membership = M("core_tenants", "TenantMembership")
         Teacher, Student = M("education_academics", "Teacher"), M("education_students", "Student")
-        for email, role in (("admin@code.com", "admin"), ("deputy@code.com", "admin"), ("teacher@code.com", "teacher"), ("parent@code.com", "parent"), ("student@code.com", "student")):
+        for email, role in ((L["admin"], "admin"), (L.get("deputy"), "admin"), (L["teacher"], "teacher"), (L["parent"], "parent"), (L["student"], "student")):
+            if not email:
+                continue
             u = User.objects.filter(email=email).first()
             if u:
                 # Make this school the one the login opens (an older demo school stays available but is no longer the default).
@@ -188,12 +198,12 @@ class Command(BaseCommand):
                     m.save(update_fields=["is_primary"])
         # The teacher login becomes the first maths teacher (so timetable, cover and HR pages have something to show).
         teacher = Teacher.objects.filter(role="Teacher", subjects__code="MATH").order_by("employee_id").first()
-        login = User.objects.filter(email="teacher@code.com").first()
+        login = User.objects.filter(email=L["teacher"]).first()
         if teacher and login:
             old = teacher.email
             # The login email is unique across schools: an older demo school's record that holds it is renamed.
-            Teacher._base_manager.filter(email="teacher@code.com").exclude(pk=teacher.pk).update(email="former.demo.teacher@school.example")
-            Teacher.objects.filter(pk=teacher.pk).update(email="teacher@code.com")
+            Teacher._base_manager.filter(email=L["teacher"]).exclude(pk=teacher.pk).update(email=f"former.demo.teacher.{teacher.pk}@school.example")
+            Teacher.objects.filter(pk=teacher.pk).update(email=L["teacher"])
             User.objects.filter(email=old).exclude(pk=login.pk).delete()
             login.full_name = teacher.full_name
             login.save(update_fields=["full_name"])
@@ -203,14 +213,14 @@ class Command(BaseCommand):
             if grade6:
                 tp.assigned_classes.add(grade6)
         grade8 = list(Student.objects.filter(current_class__name=self.info.get("student_class", "Grade 8")).order_by("student_id"))
-        stu_login = User.objects.filter(email="student@code.com").first()
+        stu_login = User.objects.filter(email=L["student"]).first()
         if grade8 and stu_login:
             s = grade8[0]
-            Student._base_manager.filter(email="student@code.com").exclude(pk=s.pk).update(email="former.demo.student@school.example")
-            Student.objects.filter(pk=s.pk).update(email="student@code.com")
+            Student._base_manager.filter(email=L["student"]).exclude(pk=s.pk).update(email=f"former.demo.student.{s.pk}@school.example")
+            Student.objects.filter(pk=s.pk).update(email=L["student"])
             stu_login.full_name = s.full_name
             stu_login.save(update_fields=["full_name"])
-        parent_login = User.objects.filter(email="parent@code.com").first()
+        parent_login = User.objects.filter(email=L["parent"]).first()
         if parent_login:
             # A family with two children (a sibling pair if the pack has one, else the first two students).
             fam = None
@@ -225,7 +235,8 @@ class Command(BaseCommand):
             pp.linked_students.add(*kids)
             parent_login.full_name = f"{kids[0].mother_name or kids[0].father_name or 'Parent'}"
             parent_login.save(update_fields=["full_name"])
-        for email, password in DEMO_PASSWORDS.items():
+        passwords = DEMO_PASSWORDS if not self.own_logins else {L[k]: DEMO_PASSWORDS[PUBLIC_LOGINS[k]] for k in ("teacher", "parent", "student")}
+        for email, password in passwords.items():
             u = User.objects.filter(email=email).first()
             if u:
                 issue_credential(u, password)

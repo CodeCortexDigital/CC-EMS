@@ -1,4 +1,34 @@
-# The Japanese demo site (for Masato Yamano)
+# The Japanese demo school (for Masato Yamano)
+
+## Option A (recommended): a second school in the existing demo database
+The app keeps every school's data apart in one database (each row belongs to a school and every screen only shows the signed-in school's rows),
+so the Japanese school can sit next to the schools already on the demo. Masato signs in with his own administrator and lands in Wakaba Gakuen only; the existing
+logins and schools are not touched. Each school's country style (USA, Pakistan, Japan: currency, date format, language, terms) is that school's own setting under
+**Settings > Language & currency > Region style**.
+
+On the existing demo **backend** (Render > Environment), add:
+
+| Variable | Value |
+|---|---|
+| `DEMO_EXTRA_PACKS` | `jp-school` |
+| `DEMO_EXTRA_ADMIN_EMAIL` | `masato@admin.com` |
+| `DEMO_EXTRA_ADMIN_NAME` | `Masato Yamano` |
+| `DEMO_EXTRA_ADMIN_PASSWORD` | the password for Masato (typed in Render only; never in the repository) |
+
+Deploy the branch `feat/japan-demo` to that backend and restart it (the start command already runs `setup_demo`, which now loads the extra school once,
+in the background: allow 5 to 8 minutes; the existing school is not reloaded and `DEMO_RESET` stays unset). Or run it by hand in a Render shell:
+`python manage.py add_demo_school --pack jp-school --admin-email masato@admin.com --admin-password '...' --admin-name 'Masato Yamano'`.
+Changing `DEMO_EXTRA_ADMIN_PASSWORD` and restarting changes his password.
+
+The school also gets its own teacher, parent and student logins: `teacher@wakaba.example`, `parent@wakaba.example`, `student@wakaba.example`
+(passwords `Teacher@123`, `Parent@123`, `Student@123`).
+
+To list his login on the sign-in page, build the existing **frontend** with `VITE_DEMO_ADMIN_EMAIL=masato@admin.com`,
+`VITE_DEMO_ADMIN_PASSWORD=<same password>` and `VITE_DEMO_ADMIN_LABEL=Admin (Masato, Japan)` (the page then shows it after the four public logins; the
+password is visible on the page, so keep the demo to sample data). The sign-in page language button switches the screens to 日本語.
+
+## Option B: a separate Japanese site (its own backend, database and screens)
+Use this only if you want Masato's site apart from the other client's.
 
 A separate site from the US demo: its own Render backend, database and screens, so the other client's demo is not touched.
 It loads the sample Japanese school **Wakaba Gakuen** (みどり市立 若葉学園: 109 students in grades 1-9, staff, timetable, school-lunch fees in yen,

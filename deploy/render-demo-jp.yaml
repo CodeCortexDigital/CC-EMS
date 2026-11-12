@@ -103,6 +103,8 @@ services:
         value: "true"
       - key: VITE_DEMO_ADMIN_EMAIL
         value: masato@admin.com
+      - key: VITE_DEMO_ADMIN_REPLACE
+        value: "true"
       - key: VITE_DEMO_ADMIN_LABEL
         value: Admin (Masato)
       - key: VITE_DEMO_ADMIN_PASSWORD
