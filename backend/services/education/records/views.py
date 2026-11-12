@@ -23,7 +23,7 @@ from services.core.tenants.context import get_current_tenant
 from services.education.students.access import audit_read, audit_write
 from services.education.students.models import Student
 
-from . import forms, prefill
+from . import forms, prefill, retention
 from .models import CumulativeRecord, CumulativeYear
 
 BASE_FIELDS = ('student_furigana', 'student_address', 'guardian_name', 'guardian_furigana', 'guardian_address', 'previous_history', 'entry_date',
@@ -85,7 +85,7 @@ def record_payload(record: CumulativeRecord) -> dict:
     return {
         'id': str(record.pk), 'student': str(s.pk), 'student_number': s.student_id, 'student_name': s.full_name, 'gender': s.gender or '',
         'date_of_birth': _iso(s.date_of_birth), 'class_name': s.current_class.name if s.current_class_id else '',
-        **base, 'years': [year_payload(y) for y in years], 'definition': forms.level_definition(record.level),
+        **base, 'retention': retention.dates(record), 'years': [year_payload(y) for y in years], 'definition': forms.level_definition(record.level),
         'credit_totals': credit_totals(years) if record.level == 'high' else {},
     }
 

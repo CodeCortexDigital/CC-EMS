@@ -45,6 +45,7 @@ class CumulativeRecord(TenantScopedModel):
     school_name = models.CharField(max_length=200, blank=True, default='')
     school_address = models.CharField(max_length=300, blank=True, default='')
     course_name = models.CharField('課程名・学科名', max_length=120, blank=True, default='', help_text='High school only')
+    guidance_disposed_at = models.DateTimeField(null=True, blank=True, help_text='When the guidance part (様式2) was disposed of at the end of its 5 years')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
@@ -187,3 +188,20 @@ class ExternalId(TenantScopedModel):
             models.UniqueConstraint(fields=['student', 'system'], condition=models.Q(student__isnull=False), name='uniq_student_external_id_per_system'),
             models.UniqueConstraint(fields=['teacher', 'system'], condition=models.Q(teacher__isnull=False), name='uniq_teacher_external_id_per_system'),
         ]
+
+
+class RecordTransfer(TenantScopedModel):
+    """A 指導要録 sent to another school (転学: a copy of everything; 進学: the extract sent to the school the pupil advances to), kept as it was sent."""
+    KINDS = [('transfer', '転学'), ('advance', '進学')]
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    record = models.ForeignKey(CumulativeRecord, on_delete=models.CASCADE, related_name='transfers')
+    kind = models.CharField(max_length=10, choices=KINDS)
+    to_school = models.CharField('送付先', max_length=200)
+    sent_on = models.DateField()
+    note = models.CharField(max_length=300, blank=True, default='')
+    snapshot = models.JSONField(default=dict)
+    issued_at = models.DateTimeField(auto_now_add=True)
+    issued_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+
+    class Meta:
+        ordering = ['-issued_at']

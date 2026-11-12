@@ -39,6 +39,7 @@ export interface CumulativeRecord {
   transfer_in_date: string | null; transfer_in_grade: number | null; transfer_out_date: string | null; transfer_out_note: string;
   abroad_from: string | null; abroad_to: string | null; graduation_date: string | null; next_school: string; next_work: string;
   school_name: string; school_address: string; course_name: string;
+  retention?: { left_on: string | null; counted_from: string | null; guidance_until: string | null; register_until: string | null; guidance_disposed_at: string | null };
   years: RecordYear[]; definition: FormDefinition; credit_totals: CreditTotals | Record<string, never>;
 }
 export interface RosterRow {

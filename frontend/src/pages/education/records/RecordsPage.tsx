@@ -48,6 +48,7 @@ export default function RecordsPage() {
       <PageHead title="Cumulative records (指導要録)" hint="The permanent record of each student, filled in year by year and sealed by the class teacher and the principal.">
         <button className={btnGhost} disabled={!classId} onClick={() => exportCsv(false)}>Export class (CSV)</button>
         {isAdmin && <button className={btnGhost} onClick={() => exportCsv(true)}>Export all (CSV)</button>}
+        {isAdmin && <button className={btnGhost} onClick={() => navigate('/education/records/retention')}>Retention</button>}
       </PageHead>
 
       <div className={`${card} grid gap-3 sm:grid-cols-2`}>

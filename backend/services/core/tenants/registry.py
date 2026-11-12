@@ -32,6 +32,7 @@ DIRECT = [
     'education_records.TermReport',
     'education_records.ChosashoIssue',
     'education_records.ExternalId',
+    'education_records.RecordTransfer',
     'education_briefs.DailyBrief',
     'education_briefs.BriefRollup',
     'education_briefs.BriefSettings',
