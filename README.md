@@ -212,7 +212,37 @@ Built on branch `feat/japan-demo` for a Japanese school partner. The 指導要�
 - **Data handling register (個人情報取扱台帳).** **Settings > Security & privacy > Privacy** (administrators): for each kind of data, the purpose of use, how it is collected, retention, who it is given to and where it is stored, with health, support, family and guidance data marked as sensitive (要配慮個人情報). *Add the standard list* fills 13 lines in the page language (the 指導要録 line says 20 years for the register part and 5 years for the guidance part); lines can be edited, added, removed, downloaded as CSV or printed. The Wakaba demo starts with it filled in. Code: `backend/services/core/privacy/` (`register_defaults.py`, API `/api/v1/privacy/register/`), tests `backend/tests/test_data_register.py`.
 - **AI provider does not train on your data.** **Settings > AI assistant** records the provider's written confirmation (provider, date, who gave it, where it is kept), shows what is always hidden before text is sent, and warns when the server uses a different provider from the one confirmed. It records the confirmation; it does not check it or block AI use. API `/api/v1/ai/settings/training-confirmation/`, tests in `backend/tests/test_ai_settings.py`.
 - **Page translation.** The page asks Chrome not to translate it (`notranslate` meta in `frontend/index.html`); Chrome's own translation broke React with a `removeChild` error on the Japanese screens. Do not set `translate="no"` on the `<html>` element: the app's own text swap treats it as "skip" and would stop translating.
-- **Not done yet:** the term report 通知表 (layouts differ by school; awaited from the client), the junior-high 調査書, Japanese characters in server-made PDFs, a breach-report template and a guardian purpose-of-use notice, statutory retention and the transfer export for the 指導要録, masking student names typed into AI questions, and MEXT school and curriculum codes.
+- **Not done yet:** see the [Japan to-do list](#japan-to-do-list) below.
+
+### Japan to-do list
+
+Priorities: **P0** blocks the Japanese market, **P1** needed soon after, **P2** strengthens what exists. Tick a box when it is built, tested and described above.
+
+**1. Statutory records and Japanese output**
+- [ ] **P0. Japanese font in server-made PDFs.** Embed a Japanese font (for example Noto Sans JP or IPAex Gothic) in the ReportLab pipeline so invoices, fee receipts and finance reports show Japanese. Every other Japanese document depends on this. (Browser-print pages such as the 指導要録 already show Japanese.)
+- [ ] **P0. 通知表 (term report) with school-specific layouts.** A template engine: the administrator sets the subject names, the three evaluation viewpoints (知識・技能, 思考・判断・表現, 主体的に学習に取り組む態度) and the comment fields for each term, and the report reads the gradebook and 指導要録 data. Layouts differ by school and board, so the client's sample layouts are needed first.
+- [ ] **P1. 調査書 (junior-high report for high-school entrance).** Pull grades, attendance, special activities and behaviour from the 指導要録 and print in the format the receiving high school or board asks for. Needs the Japanese PDF font above.
+- [ ] **P1. 指導要録 retention and transfer.** Statutory retention (学籍 20 years, 指導 5 years) applied by the retention tool, and an export when a student transfers or advances (転学・進学) that the receiving school can use.
+
+**2. MEXT education data standards (interoperability)**
+- [ ] **P1. School code, student ID and staff ID.** A MEXT school-code field, and a mapping between local IDs and standard IDs on import and export.
+- [ ] **P1. Curriculum code (学習指導要領コード).** A code on subjects and syllabus data, and mapping when importing from a board of education or another system.
+- [ ] **Later. OneRoster** roster exchange, and **xAPI Japan Profile** for learning logs (keep room for it in the data model).
+
+**3. Personal information protection (APPI) deepening**
+- [ ] **P2. Access log for personal information.** Record teacher views of student records, exports and prints (today the hash-chained trail covers AI actions and changes), and let administrators view and export it for regular review.
+- [ ] **P2. Breach detection and report.** Alerts for unusual access, bulk exports and unauthorised sharing, and a draft initial report (what happened, who is affected, cause, what was done) built from the existing incident screen.
+- [ ] **P2. Purpose-of-use notice to guardians.** Generate the notice at enrolment and when a new feature is switched on, let the guardian confirm it, and keep the delivery record. Sensitive data (health, support, family) needs the extra consent step.
+
+**4. Generative AI guidelines (MEXT)**
+- [ ] **P2. Mask student names typed into AI questions** (a name list from the school's own students, swapped for tokens before sending and restored in the reply), and flag answers that contain a student name for the teacher to check.
+- [ ] **P2. Make the AI use notice mandatory** before a teacher uses an AI feature for the first time (it is recorded today, per school, but individual users are not asked).
+- [ ] **P2. Enforce the no-training confirmation.** It is recorded today; optionally keep AI features off until it is recorded.
+
+**5. Hosting and trust**
+- [ ] A **third-party audit** or a self-assessment against the MEXT and PPC guidelines before a Japanese school signs.
+- [ ] A **trusted off-site timestamp** for the hash chain, because 指導要録 are kept for years.
+- [ ] A dedicated **demo environment** clearly labelled as sample data (the hosted demo is shared with another client).
 
 ## Multiple schools
 
