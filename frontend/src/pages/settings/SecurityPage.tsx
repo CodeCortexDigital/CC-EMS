@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Activity, AlertTriangle, Ban, Database, FileLock2, Mail, ChevronLeft, ChevronRight, Download, KeyRound, Loader2, LockOpen, LogOut, Power,
-  RefreshCw, ScrollText, Search, ShieldCheck, SlidersHorizontal, UserRound, Users,
+  Eye, RefreshCw, ScrollText, Search, ShieldCheck, SlidersHorizontal, UserRound, Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/services/api';
@@ -12,18 +12,20 @@ import RetentionPanel from '@/components/security/RetentionPanel';
 import MySecurityPanel from '@/components/security/MySecurityPanel';
 import DataPanel from '@/components/security/DataPanel';
 import PrivacyAdminPanel from '@/components/privacy/PrivacyAdminPanel';
+import AccessReviewPanel from '@/components/security/AccessReviewPanel';
 
 const card = 'bg-white rounded-xl border border-slate-200 shadow-sm';
 const input = 'rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white';
 const errorText = (e: any, fallback: string) => e?.response?.data?.error || fallback;
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' } as any) : '—');
 
-type Tab = 'overview' | 'people' | 'sign-ins' | 'activity' | 'emails' | 'roles' | 'rules' | 'privacy' | 'data' | 'mine';
+type Tab = 'overview' | 'people' | 'sign-ins' | 'activity' | 'access' | 'emails' | 'roles' | 'rules' | 'privacy' | 'data' | 'mine';
 const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
   { id: 'overview', label: 'Overview', icon: ShieldCheck },
   { id: 'people', label: 'People & access', icon: Users },
   { id: 'sign-ins', label: 'Sign-ins', icon: KeyRound },
   { id: 'activity', label: 'Activity log', icon: ScrollText },
+  { id: 'access', label: 'Access review', icon: Eye },
   { id: 'emails', label: 'Emails sent', icon: Mail },
   { id: 'roles', label: 'Roles & access', icon: Activity },
   { id: 'rules', label: 'Rules & retention', icon: SlidersHorizontal },
@@ -55,6 +57,7 @@ export default function SecurityPage() {
       {tab === 'people' && <PeopleTab initialStatus={params.get('status') || ''} />}
       {tab === 'sign-ins' && <SignInsTab initialOutcome={params.get('outcome') || ''} initialUser={params.get('user') || ''} />}
       {tab === 'activity' && <ActivityTab initialAction={params.get('action') || ''} initialUser={params.get('user') || ''} />}
+      {tab === 'access' && <AccessReviewPanel />}
       {tab === 'emails' && <EmailsTab />}
       {tab === 'roles' && <RolesTab />}
       {tab === 'rules' && <RulesTab />}
@@ -294,7 +297,7 @@ function SignInsTab({ initialOutcome, initialUser }: { initialOutcome: string; i
 
 // ---- Activity log ---------------------------------------------------------------------------------------------
 
-const ACTION_TONE: Record<string, string> = { CREATE: 'bg-blue-100 text-blue-700', UPDATE: 'bg-slate-100 text-slate-700', DELETE: 'bg-rose-100 text-rose-700',
+const ACTION_TONE: Record<string, string> = { VIEW: 'bg-sky-100 text-sky-700', CREATE: 'bg-blue-100 text-blue-700', UPDATE: 'bg-slate-100 text-slate-700', DELETE: 'bg-rose-100 text-rose-700',
   EXPORT: 'bg-violet-100 text-violet-700', PERMISSION_DENIED: 'bg-amber-100 text-amber-800', SECURITY: 'bg-emerald-100 text-emerald-700' };
 
 function ActivityTab({ initialAction, initialUser }: { initialAction: string; initialUser: string }) {
@@ -322,7 +325,7 @@ function ActivityTab({ initialAction, initialUser }: { initialAction: string; in
         <DateRange from={from} to={to} setFrom={setFrom} setTo={setTo} />
         <button type="button" onClick={reload} className={`${input}`} aria-label="Refresh"><RefreshCw size={14} /></button>
       </Filters>
-      <p className="px-4 pt-3 text-xs text-slate-500">Every change made in this school, every export and every refused attempt. Viewing pages is not recorded.</p>
+      <p className="px-4 pt-3 text-xs text-slate-500">Every change made in this school, every export, every refused attempt, and staff opening student records (the same record again within ten minutes counts once). Other page views are not recorded.</p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-xs text-slate-500 border-b border-slate-100">

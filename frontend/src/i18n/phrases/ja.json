@@ -7775,5 +7775,18 @@
 "Our ID": "本校の番号",
 "Their ID": "相手側の番号",
 "Curriculum code (学習指導要領コード)": "学習指導要領コード",
-"Optional, for matching with a board's data": "任意。教育委員会などのデータとの照合用"
+"Optional, for matching with a board's data": "任意。教育委員会などのデータとの照合用",
+"Access review": "アクセスの確認",
+"Access to student records": "生徒記録へのアクセス",
+"Who opened a student's record or the student list, who exported or printed records, and whose requests were refused. Review it regularly and follow up anything you do not expect. The same person opening the same record again within ten minutes counts once. Families looking at their own children are not listed.": "誰が生徒の記録や一覧を開いたか、誰が記録をエクスポート・印刷したか、誰の操作が拒否されたかを示します。定期的に確認し、心当たりのないものは確認してください。同じ人が同じ記録を10分以内に再度開いた場合は1回と数えます。保護者が自分の子どもを見た場合は含みません。",
+"Last 365 days": "過去365日間",
+"Records opened": "開いた記録の数",
+"Different students": "対象の生徒数",
+"Exports": "エクスポート",
+"Prints": "印刷",
+"Last": "最終",
+"Nothing recorded in this period.": "この期間の記録はありません。",
+"Could not load the access review.": "アクセスの確認を読み込めませんでした。",
+"Every change made in this school, every export, every refused attempt, and staff opening student records (the same record again within ten minutes counts once). Other page views are not recorded.": "この学校で行われたすべての変更、エクスポート、拒否された操作、および職員が生徒記録を開いた記録です(同じ記録を10分以内に再度開いた場合は1回と数えます)。その他のページの閲覧は記録しません。",
+"Viewed": "閲覧"
 }

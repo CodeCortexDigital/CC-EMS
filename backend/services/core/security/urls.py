@@ -8,6 +8,8 @@ urlpatterns = [
     path('overview/', api.overview),
     path('activity/', api.activity),
     path('sign-ins/', api.sign_ins),
+    path('access-review/', api.access_review),
+    path('print-log/', api.print_log),
     path('people/', api.people),
     path('people/<uuid:user_id>/', api.person_action),
     path('roles/', api.roles),

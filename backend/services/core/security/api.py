@@ -21,13 +21,13 @@ from services.core.accounts.decorators import filter_students_for_user, get_user
 from services.core.audit.models import AuditLog
 
 from . import policy
-from .access import ROLE_LABELS, ROLE_MATRIX, ROLE_ORDER, AREAS, area_of, school_people
+from .access import ROLE_LABELS, ROLE_MATRIX, ROLE_ORDER, AREAS, UUID_RE, area_of, school_people
 from .models import SignInEvent
 from services.core.accounts.models import AccountDeletionRequest
 
 User = get_user_model()
 PAGE = 50
-ACTION_LABELS = {'CREATE': 'Added or ran', 'UPDATE': 'Changed', 'DELETE': 'Deleted', 'EXPORT': 'Exported',
+ACTION_LABELS = {'CREATE': 'Added or ran', 'UPDATE': 'Changed', 'DELETE': 'Deleted', 'EXPORT': 'Exported', 'VIEW': 'Viewed',
                  'PERMISSION_DENIED': 'Refused', 'SECURITY': 'Security'}
 
 
@@ -124,7 +124,7 @@ def overview(request):
             'sign_ins': signins.filter(outcome='success').count(),
             'failed': signins.filter(outcome='failed').count(),
             'blocked': signins.filter(outcome__in=('locked', 'disabled')).count(),
-            'changes': AuditLog.objects.filter(school=school, timestamp__gte=week).exclude(action='PERMISSION_DENIED').count(),
+            'changes': AuditLog.objects.filter(school=school, timestamp__gte=week).exclude(action__in=('PERMISSION_DENIED', 'VIEW')).count(),
             'refused': AuditLog.objects.filter(school=school, timestamp__gte=week, action='PERMISSION_DENIED').count(),
         },
         'rules': policy.security_settings(school),
@@ -470,3 +470,66 @@ def email_log(request):
     return Response({'results': [{'when': _local(e.created_at), 'kind': e.kind, 'to': e.to, 'subject': e.subject, 'status': e.status,
                                   'error': e.error} for e in items], **paging,
                      'failed_week': qs.filter(status='failed', created_at__gte=timezone.now() - timedelta(days=7)).count()})
+
+
+# ---- Personal-information access: prints, and the review of who looked at what -----------------------------------
+
+PRINTABLE = {'records': '指導要録', 'term-report': '通知表', 'chosasho': '調査書'}
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def print_log(request):
+    """The browser prints on the person's own computer, so the server cannot see it: the print page reports it here.
+    ``{"what": "records" | "term-report" | "chosasho", "id": <record id>}``. Only staff who may open these records can print them."""
+    from services.core.audit.models import AuditLog
+
+    what = str((request.data or {}).get('what') or '')
+    if what not in PRINTABLE:
+        return Response({'error': 'Say what was printed.'}, status=status.HTTP_400_BAD_REQUEST)
+    if get_user_role(request.user) not in ('admin', 'teacher') or getattr(request, 'tenant', None) is None:
+        return Response({'error': 'Only staff print these records.'}, status=status.HTTP_403_FORBIDDEN)
+    found = UUID_RE.search(str((request.data or {}).get('id') or ''))
+    AuditLog.objects.create(user=request.user, school=request.tenant, action='EXPORT', resource_type=f'print/{what}',
+                            resource_id=found.group(0) if found else None, new_data={'method': 'PRINT', 'label': PRINTABLE[what]},
+                            ip_address=policy.client_ip(request), user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:512])
+    return Response({'ok': True})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def access_review(request):
+    """For the regular review of access to personal information: per person over the last ``?days=`` (1 to 365, default 30), how many student
+    records they opened, how many different students that was, how many exports and prints, and how many requests were refused. ``&export=csv``."""
+    school, error = _admin_school(request)
+    if error:
+        return error
+    try:
+        days = max(1, min(365, int(request.GET.get('days') or 30)))
+    except ValueError:
+        days = 30
+    since = timezone.now() - timedelta(days=days)
+    rows = (AuditLog.objects.filter(school=school, timestamp__gte=since, user__isnull=False)
+            .filter(Q(action__in=('VIEW', 'EXPORT', 'PERMISSION_DENIED'))).select_related('user').order_by('-timestamp')[:50000])
+    roles = school_people(school)
+    people: dict = {}
+    for a in rows:
+        p = people.setdefault(a.user_id, {'user_id': str(a.user_id), 'who': _name(a.user), 'email': a.user.email, 'role': ROLE_LABELS.get(roles.get(a.user_id, ''), ''),
+                                          'views': 0, 'students_viewed': set(), 'exports': 0, 'prints': 0, 'refused': 0, 'last': a.timestamp})
+        if a.action == 'VIEW':
+            p['views'] += 1
+            if a.resource_id and (a.resource_type or '').startswith('students/profile'):
+                p['students_viewed'].add(a.resource_id)
+        elif a.action == 'EXPORT':
+            p['prints' if (a.resource_type or '').startswith('print/') else 'exports'] += 1
+        else:
+            p['refused'] += 1
+    out = []
+    for p in people.values():
+        out.append({**{k: v for k, v in p.items() if k not in ('students_viewed', 'last')}, 'students_viewed': len(p['students_viewed']), 'last': _local(p['last'])})
+    out.sort(key=lambda r: (-(r['views'] + r['exports'] + r['prints']), r['who']))
+    if request.GET.get('export') == 'csv':
+        return _csv('access-review.csv', ['Who', 'Email', 'Role', 'Records viewed', 'Different students', 'Exports', 'Prints', 'Refused', 'Last'],
+                    [[r['who'], r['email'], r['role'], r['views'], r['students_viewed'], r['exports'], r['prints'], r['refused'], r['last']] for r in out])
+    return Response({'days': days, 'since': _local(since), 'results': out,
+                     'totals': {k: sum(r[k] for r in out) for k in ('views', 'exports', 'prints', 'refused')}})

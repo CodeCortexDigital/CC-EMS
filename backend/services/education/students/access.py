@@ -77,3 +77,32 @@ def audit_write(request, action, what, record_id=None, data=None):
 
 def deny(message):
     raise PermissionDenied(message)
+
+
+def audit_personal_view(request, what, student_id=None, minutes=10):
+    """Record that a member of staff looked at students' personal information (best effort: never blocks the screen).
+
+    A family looking at their own child, or a student at their own record, is not staff access and is not recorded here. The same person
+    opening the same record again within ``minutes`` is one entry, so the log stays readable."""
+    try:
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from services.core.accounts.decorators import get_user_role
+        from services.core.audit.models import AuditLog
+        from services.core.tenants.context import get_current_tenant
+
+        user = request.user
+        if not getattr(user, 'is_authenticated', False) or get_user_role(user) in ('student', 'parent'):
+            return
+        recent = AuditLog.objects.filter(user=user, action='VIEW', resource_type=what, timestamp__gte=timezone.now() - timedelta(minutes=minutes))
+        if student_id is not None:
+            recent = recent.filter(resource_id=student_id)
+        if recent.exists():
+            return
+        AuditLog.objects.create(
+            user=user, school=get_current_tenant(), action='VIEW', resource_type=what, resource_id=student_id,
+            ip_address=request.META.get('REMOTE_ADDR') or None, user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:512])
+    except Exception:
+        pass

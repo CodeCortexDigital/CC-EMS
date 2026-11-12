@@ -65,6 +65,12 @@ class StudentListCreateView(CachedListResponseMixin, generics.ListCreateAPIView)
 
         return filter_students_for_user(self.request.user, queryset)
 
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        from .access import audit_personal_view
+        audit_personal_view(request, 'students/list')
+        return response
+
     def perform_create(self, serializer):
         extra = {}
         if not serializer.validated_data.get('student_id'):
@@ -118,6 +124,9 @@ class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
             raise Http404("Student not found")
 
         self.check_object_permissions(self.request, obj)
+        if self.request.method == 'GET':
+            from .access import audit_personal_view
+            audit_personal_view(self.request, 'students/profile', obj.pk)    # who looked at a child's record (reviewed under Security > Access review)
         return obj
 
     def destroy(self, request, *args, **kwargs):

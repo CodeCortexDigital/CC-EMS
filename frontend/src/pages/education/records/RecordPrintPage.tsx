@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Printer } from 'lucide-react';
 import records, { CumulativeRecord, errorText } from '@/services/records.service';
+import security from '@/services/security.service';
 import RecordPrint from './RecordPrint';
 
 export default function RecordPrintPage() {
@@ -24,7 +25,7 @@ export default function RecordPrintPage() {
         </Link>
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-500">Choose “Save as PDF” in the print window to keep a file.</span>
-          <button type="button" onClick={() => window.print()} disabled={!record}
+          <button type="button" onClick={() => { security.logPrint('records', id); window.print(); }} disabled={!record}
             className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--app-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
             <Printer className="w-4 h-4" />Print / PDF
           </button>

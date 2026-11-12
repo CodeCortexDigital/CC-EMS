@@ -17,6 +17,11 @@ export interface ActivityRow {
   area: string; path: string; record_id: string | null; method: string; ip: string | null;
 }
 
+export interface AccessReviewRow {
+  user_id: string; who: string; email: string; role: string; views: number; students_viewed: number; exports: number; prints: number; refused: number; last: string;
+}
+export interface AccessReview { days: number; since: string; results: AccessReviewRow[]; totals: { views: number; exports: number; prints: number; refused: number } }
+
 export interface SignInRow {
   id: string; when: string; email: string; user_id: string | null; who: string;
   outcome: 'success' | 'failed' | 'locked' | 'disabled'; outcome_label: string; method: string; ip: string | null; device: string;
@@ -57,6 +62,10 @@ const securityService = {
   saveSettings: (patch: Partial<SecurityRules>) => api.put('/security/settings/', patch).then((r) => r.data as { settings: SecurityRules }),
   activity: (q: Query) => api.get('/security/activity/', { params: clean(q) }).then((r) => r.data as Paged<ActivityRow> & { areas: string[]; actions: Record<string, string> }),
   exportActivity: (q: Query) => download('/security/activity/', { ...q, export: 'csv' }, 'activity-log.csv'),
+  accessReview: (days: number) => api.get('/security/access-review/', { params: { days } }).then((r) => r.data as AccessReview),
+  exportAccessReview: (days: number) => download('/security/access-review/', { days, export: 'csv' }, 'access-review.csv'),
+  /** Tell the server a record was printed (the browser prints on the person's own computer). Never blocks the print. */
+  logPrint: (what: 'records' | 'term-report' | 'chosasho', id: string) => { api.post('/security/print-log/', { what, id }).catch(() => undefined); },
   signIns: (q: Query) => api.get('/security/sign-ins/', { params: clean(q) }).then((r) => r.data as Paged<SignInRow> & { outcomes: Record<string, string> }),
   exportSignIns: (q: Query) => download('/security/sign-ins/', { ...q, export: 'csv' }, 'sign-ins.csv'),
   people: (q: Query) => api.get('/security/people/', { params: clean(q) }).then((r) => r.data as Paged<Person> & { roles: { code: string; label: string; count: number }[] }),
