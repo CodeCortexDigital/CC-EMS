@@ -170,3 +170,60 @@ def notify_schools(incident, message, by=None):
     incident.save()
     add_update(incident, f'Affected schools told ({sent} school{"s" if sent != 1 else ""}): {message[:200]}', by)
     return sent
+
+
+# ---- The notice of purposes of use, drafted from the data handling register -------------------------------------------------------
+
+SENSITIVE_KEY = 'sensitive-info'
+SENSITIVE_CONSENT = {
+    'ja': ('要配慮個人情報の取得・利用', 'お子さまの健康、特別な支援、家庭の状況、生徒指導に関する情報(要配慮個人情報)を、学校が「個人情報の取扱台帳」に記載した目的のために取得し、利用することに同意します。同意しない場合でも、法令に基づく場合を除き、この情報は取得しません。'),
+    'en': ('Sensitive information (health, support, family, guidance)', 'I agree that the school may collect and use my child\'s health, special-support, family and guidance information for the purposes listed in its '
+                                                                    'data handling register. If I do not agree, the school will not collect it except where the law requires.'),
+}
+
+
+def _lang(lang) -> str:
+    return 'ja' if str(lang or '').lower().startswith('ja') else 'en'
+
+
+def notice_from_register(school, lang='ja'):
+    """(title, body) for a notice of the purposes of use, built from the school's data handling register, or None when the register is empty.
+    Sensitive information (要配慮個人情報) is marked, with a line saying the school asks for consent. The school reads and edits it before publishing."""
+    from .models import DataHandlingEntry
+
+    entries = list(DataHandlingEntry.objects.filter(school=school, is_active=True).order_by('position', 'name'))
+    if not entries:
+        return None
+    ja = _lang(lang) == 'ja'
+    contact = (school.settings_json or {}).get('email') or ('学校事務室' if ja else 'the school office')
+    if ja:
+        parts = [f'{school.name}は、児童生徒・保護者・職員の個人情報を、次の目的のために取得し、利用します。', '']
+        for e in entries:
+            parts += [f'■ {e.name}' + ('【要配慮個人情報】' if e.sensitive else ''), f'  利用目的: {e.purpose}', f'  取得する情報: {e.data_items}', f'  取得の方法: {e.how_collected}',
+                      f'  保存期間: {e.retention}', f'  提供先: {e.shared_with}', f'  保存場所: {e.storage_location}', '']
+        if any(e.sensitive for e in entries):
+            parts += ['【要配慮個人情報について】', '健康、特別な支援、家庭の状況、生徒指導に関する情報は要配慮個人情報です。法令に基づく場合を除き、保護者の同意を得て取得します。同意は「プライバシーと同意」からいつでも変更できます。', '']
+        parts += [f'本人(保護者を含む)は、開示・訂正・利用停止などを求めることができます。アプリの「プライバシーと同意」または{contact}にご連絡ください。']
+        return f'{school.name} 個人情報の利用目的のお知らせ', '\n'.join(parts)
+    parts = [f'{school.name} collects and uses personal information about its students, families and staff for the following purposes.', '']
+    for e in entries:
+        parts += [f'* {e.name}' + (' [SENSITIVE INFORMATION]' if e.sensitive else ''), f'  Purpose of use: {e.purpose}', f'  Information collected: {e.data_items}', f'  How it is collected: {e.how_collected}',
+                  f'  How long it is kept: {e.retention}', f'  Given to: {e.shared_with}', f'  Where it is stored: {e.storage_location}', '']
+    if any(e.sensitive for e in entries):
+        parts += ['About sensitive information', 'Health, special-support, family and guidance information is sensitive. Except where the law requires, we collect it only with the guardian\'s consent, which can be changed at any time under Privacy & consent.', '']
+    parts += [f'You can ask to see, correct or stop the use of your data in the app (Privacy & consent) or by contacting {contact}.']
+    return f'{school.name}: purposes of use of personal information', '\n'.join(parts)
+
+
+def sensitive_consent(school):
+    """The school's consent question for sensitive information, or None when it has not been added."""
+    return ConsentType.objects.filter(school=school, key=SENSITIVE_KEY).first()
+
+
+def ensure_sensitive_consent(school, lang='ja'):
+    """Add the consent question for sensitive information if the school does not have it yet. Returns (question, created)."""
+    existing = sensitive_consent(school)
+    if existing:
+        return existing, False
+    label, description = SENSITIVE_CONSENT[_lang(lang)]
+    return ConsentType.objects.create(school=school, key=SENSITIVE_KEY, label=label, description=description, subject='student'), True

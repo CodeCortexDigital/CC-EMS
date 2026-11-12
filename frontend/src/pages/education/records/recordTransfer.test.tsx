@@ -13,7 +13,7 @@ vi.mock('@/services/recordTransfer.service', async (orig) => {
   return { ...actual, default: { get: vi.fn(), send: vi.fn(), issued: vi.fn(), retention: vi.fn(), dispose: vi.fn() } };
 });
 
-import recordTransfer, { RetentionRow, TransferInfo } from '@/services/recordTransfer.service';
+import recordTransfer, { RetentionRow, TransferInfo, TransferRow } from '@/services/recordTransfer.service';
 import security from '@/services/security.service';
 import TransferPage from './TransferPage';
 import RetentionPage from './RetentionPage';
@@ -23,8 +23,8 @@ const info = (over: Partial<TransferInfo> = {}): TransferInfo => ({
   problems: [], ready: true, transfers: [],
   retention: { left_on: null, counted_from: null, guidance_until: null, register_until: null, guidance_disposed_at: null }, ...over,
 });
-const sent = (over = {}) => ({ id: 't1', kind: 'transfer', kind_label: '転学 (写し)', to_school: '北中学校', sent_on: '2026-12-20', note: '', issued_at: '2026-12-20T10:00:00Z', issued_by: '鈴木 一郎',
-                               snapshot: { student_name: '山田 太郎' }, ...over });
+const sent = (over: Partial<TransferRow> | Record<string, unknown> = {}): TransferRow => ({ id: 't1', kind: 'transfer', kind_label: '転学 (写し)', to_school: '北中学校', sent_on: '2026-12-20', note: '', issued_at: '2026-12-20T10:00:00Z', issued_by: '鈴木 一郎',
+                               snapshot: { student_name: '山田 太郎' } as unknown as TransferRow['snapshot'], ...over } as TransferRow);
 const row = (over: Partial<RetentionRow> = {}): RetentionRow => ({
   id: 'r1', student_number: 'W-001', class_name: '3年1組', level: 'junior_high', left_on: '2018-03-15', counted_from: '2018-04-01', guidance_until: '2023-04-01',
   register_until: '2038-04-01', guidance_disposed_at: null, guidance_expired: true, register_expired: false, ...over,

@@ -3,7 +3,8 @@ import { AlertOctagon, Download, FileText, Loader2, Megaphone, Plus, Users } fro
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/Modal';
 import DataRegister from './DataRegister';
-import privacy, { ConsentTypeRow, ErasePreview, errorText, LegalDoc, PrivacyReq } from '@/services/privacy.service';
+import NoticeDelivery from './NoticeDelivery';
+import privacy, { ConsentTypeRow, ErasePreview, errorText, LegalDoc, LegalDocsReply, NoticeDraft, PrivacyReq } from '@/services/privacy.service';
 
 const card = 'bg-white rounded-xl border border-slate-200 shadow-sm';
 const input = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm';
@@ -19,13 +20,15 @@ export default function PrivacyAdminPanel() {
       <Requests />
       <ConsentSection />
       <Documents />
+      <NoticeDelivery />
       <ReportProblem />
     </div>
   );
 }
 
 function Documents() {
-  const [data, setData] = useState<{ documents: LegalDoc[]; template: { title: string; body: string }; history: LegalDoc[] } | null>(null);
+  const [data, setData] = useState<LegalDocsReply | null>(null);
+  const [draft, setDraft] = useState<NoticeDraft | null>(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ title: '', body: '', summary: '' });
   const load = () => privacy.documents().then(setData).catch(() => undefined);
@@ -33,6 +36,15 @@ function Documents() {
   if (!data) return null;
   const school = data.documents.find((d) => d.kind === 'school_privacy');
   const start = () => { setForm({ title: school?.title || data.template.title, body: school?.body || data.template.body, summary: '' }); setEditing(true); };
+  const lang = document.documentElement.lang || 'en';
+  const fromRegister = async () => {
+    try { const d = await privacy.noticeDraft(lang); setDraft(d); setForm({ title: d.title, body: d.body, summary: 'Updated from the data handling register.' }); setEditing(true); }
+    catch (e) { toast.error(errorText(e, 'Could not draft the notice.')); }
+  };
+  const addConsent = async () => {
+    try { await privacy.ensureSensitiveConsent(lang); setDraft((d) => (d ? { ...d, consent: { ...d.consent, exists: true } } : d)); toast.success('The consent question was added. Families will see it under Privacy & consent.'); }
+    catch (e) { toast.error(errorText(e, 'Could not add the question.')); }
+  };
   const publish = async () => {
     try { await privacy.publishNotice(form.title, form.body, form.summary); toast.success('Published. Everyone will be asked to read it when they next sign in.'); setEditing(false); load(); }
     catch (e) { toast.error(errorText(e, 'Could not publish.')); }
@@ -49,15 +61,22 @@ function Documents() {
         ))}
         {!school && <li className="py-2 text-slate-600">The school has not published its own privacy notice yet.</li>}
       </ul>
+      {data.register_newer && !editing && (
+        <p role="alert" className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">The data handling register was changed after this notice was published. Draft the notice again from the register and publish it, so families are told the current purposes.</p>
+      )}
       {editing ? (
         <div className="space-y-2 mt-3">
+          {draft?.consent.needed && !draft.consent.exists && (
+            <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">The register has sensitive information (health, support, family, guidance). Ask for the guardian's consent as well.{' '}
+              <button type="button" className="font-semibold underline" onClick={addConsent}>Add the consent question for sensitive information</button></p>
+          )}
           <input className={input} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} aria-label="Title" />
           <textarea className={`${input} font-mono text-xs`} rows={12} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} aria-label="Notice text" />
           <input className={input} placeholder="What changed (shown to people when they accept)" value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
           <div className="flex justify-end gap-2"><button onClick={() => setEditing(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm">Cancel</button>
             <button onClick={publish} className="auth-primary-btn w-auto px-5">Publish new version</button></div>
         </div>
-      ) : <button onClick={start} className="mt-3 text-sm font-semibold text-blue-600">{school ? 'Update the school privacy notice' : 'Write the school privacy notice (from a template)'}</button>}
+      ) : <div className="mt-3 flex flex-wrap gap-4"><button onClick={fromRegister} className="text-sm font-semibold text-blue-600">Draft the notice from the data handling register</button><button onClick={start} className="text-sm font-semibold text-blue-600">{school ? 'Update the school privacy notice' : 'Write the school privacy notice (from a template)'}</button></div>}
     </section>
   );
 }

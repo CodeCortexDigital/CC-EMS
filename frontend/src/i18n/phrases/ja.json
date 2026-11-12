@@ -7831,5 +7831,17 @@
 "Reaching the end of a period within a year": "1年以内に保存期間が終わる記録",
 "Disposing clears the ratings, comments and attendance of every year. The register part (class, teacher, seals) stays.": "廃棄すると、全学年の評価・所見・出欠が消去されます。学籍に関する記録(学級、担任、印)は残ります。",
 "Disposing deletes the whole record. This cannot be undone.": "廃棄すると、記録全体が削除されます。元に戻せません。",
-"Type the number of records to confirm": "確認のため、記録の件数を入力してください"
+"Type the number of records to confirm": "確認のため、記録の件数を入力してください",
+"Draft the notice from the data handling register": "個人情報取扱台帳からお知らせを作成",
+"The register has sensitive information (health, support, family, guidance). Ask for the guardian's consent as well.": "台帳に要配慮個人情報(健康、支援、家庭、生徒指導)が含まれています。保護者の同意もあわせて求めてください。",
+"Add the consent question for sensitive information": "要配慮個人情報の同意項目を追加",
+"The consent question was added. Families will see it under Privacy & consent.": "同意項目を追加しました。保護者は「プライバシーと同意」で確認できます。",
+"The data handling register was changed after this notice was published. Draft the notice again from the register and publish it, so families are told the current purposes.": "このお知らせの公開後に、個人情報取扱台帳が変更されました。台帳からお知らせを作り直して公開し、最新の利用目的を保護者にお伝えください。",
+"Who has read the notice": "お知らせの確認状況",
+"Only those who have not read it": "未確認の人のみ表示",
+"Everyone in this group has read it.": "このグループの全員が確認済みです。",
+"Nobody in this group.": "このグループに該当者はいません。",
+"Not yet": "未確認",
+"Children": "子ども",
+"Could not load the delivery record.": "確認状況を読み込めませんでした。"
 }
