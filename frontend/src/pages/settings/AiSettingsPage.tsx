@@ -7,6 +7,8 @@ import aiSettings, { AiSettings } from '@/services/aiSettings.service';
 export default function AiSettingsPage() {
   const [data, setData] = useState<AiSettings | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editTraining, setEditTraining] = useState(false);
+  const [form, setForm] = useState({ provider: '', confirmed_by: '', confirmed_on: '', reference: '' });
 
   const load = useCallback(() => { aiSettings.get().then(setData).catch(() => toast.error('Could not load the AI settings.')); }, []);
   useEffect(load, [load]);
@@ -78,6 +80,38 @@ export default function AiSettingsPage() {
         {provider.configured
           ? <p className="text-sm text-slate-700">Connected to <b>{provider.name}</b>. {data.contact_details_shared ? 'Contact details are shared with the provider.' : 'Phone numbers, email and home addresses are masked before text is sent.'}</p>
           : <p className="text-sm text-amber-800">{provider.note}</p>}
+      </section>
+
+      <section className={`${card} ${data.training.confirmed && !data.training.provider_mismatch ? '' : 'border-amber-300'}`} aria-label="AI provider training">
+        <h2 className="font-bold text-sm mb-1 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-emerald-700" />Provider does not train on your data</h2>
+        <p className="text-sm text-slate-700 leading-relaxed">Education guidelines ask schools to use AI services that do not learn from what is typed in. Record the provider's written confirmation here, so you can show it to the education board.</p>
+        <ul className="mt-2 list-disc pl-5 text-xs text-slate-600">
+          {data.always_masked.map((m) => <li key={m}>{m} are always hidden before text is sent.</li>)}
+        </ul>
+        {data.training.confirmed && !editTraining ? (
+          <div className="mt-3 space-y-1 text-sm">
+            <Pill tone="green">Confirmed by {data.training.provider} on {data.training.confirmed_on}</Pill>
+            <p className="text-slate-600">{data.training.confirmed_by ? `Given by ${data.training.confirmed_by}. ` : ''}{data.training.reference}</p>
+            <p className="text-xs text-slate-500">Recorded by {data.training.recorded_by} on {fmtDateTime(data.training.recorded_at)}</p>
+            {data.training.provider_mismatch && <p className="text-amber-800">This server uses a different AI provider than the one confirmed. Get a confirmation for the provider in use.</p>}
+            <div className="flex gap-3 pt-1">
+              <button className="text-xs font-semibold text-blue-600" onClick={() => { setForm({ provider: data.training.provider, confirmed_by: data.training.confirmed_by, confirmed_on: data.training.confirmed_on, reference: data.training.reference }); setEditTraining(true); }}>Update</button>
+              <button className="text-xs font-semibold text-rose-700" disabled={busy} onClick={() => run(aiSettings.clearTraining, 'Removed.')}>Remove</button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {!data.training.confirmed && <p className="sm:col-span-2"><Pill tone="amber">Not confirmed yet</Pill></p>}
+            <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" aria-label="AI provider" placeholder="AI provider, e.g. Anthropic" value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} />
+            <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" type="date" aria-label="Date of confirmation" value={form.confirmed_on} onChange={(e) => setForm({ ...form, confirmed_on: e.target.value })} />
+            <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" aria-label="Given by" placeholder="Given by (name or team)" value={form.confirmed_by} onChange={(e) => setForm({ ...form, confirmed_by: e.target.value })} />
+            <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" aria-label="Where the confirmation is kept" placeholder="Where it is kept (email, contract clause, link)" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
+            <div className="sm:col-span-2 flex gap-2">
+              <button className={btn} disabled={busy} onClick={async () => { await run(() => aiSettings.saveTraining(form), 'Recorded.'); setEditTraining(false); }}>Record the confirmation</button>
+              {editTraining && <button className="rounded-lg border border-slate-300 px-3 py-2 text-sm" onClick={() => setEditTraining(false)}>Cancel</button>}
+            </div>
+          </div>
+        )}
       </section>
 
       <section className={`${card} ${notice.accepted ? '' : 'border-amber-300'}`} aria-label="AI use notice">

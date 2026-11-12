@@ -14,6 +14,7 @@ urlpatterns = [
     path('documents/', api.documents, name='privacy-documents'),
     path('consent-types/', api.manage_consent_types, name='privacy-consent-types'),
     path('consent-report/', api.consent_report, name='privacy-consent-report'),
+    path('register/', api.data_register, name='privacy-register'),
     path('requests/', api.requests_list, name='privacy-requests'),
     path('requests/<uuid:request_id>/', api.request_update, name='privacy-request'),
     path('requests/<uuid:request_id>/export/', api.request_export, name='privacy-request-export'),

@@ -27,6 +27,8 @@ const base = {
   ],
   usage: { since: '2026-10-01', requests: 8, input_tokens: 500, output_tokens: 250, monthly_token_cap: 1000,
            by_feature: [{ feature: 'ai_lesson_plans', label: 'Lesson plans', requests: 5, tokens: 600 }] },
+  training: { confirmed: false, provider: '', confirmed_by: '', confirmed_on: '', reference: '', recorded_by: '', recorded_at: null, provider_mismatch: false },
+  always_masked: ['Birth dates'],
   notice: { version: 1, text: 'AI features send text to a provider. Everything is a draft.', accepted: false, accepted_at: null, accepted_by: null },
 };
 
@@ -113,5 +115,23 @@ describe('Who approves', () => {
     render(<AiSettingsPage />);
     fireEvent.change(await screen.findByLabelText('Approvals needed'), { target: { value: '2' } });
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
+  });
+});
+
+describe('AI provider training confirmation', () => {
+  it('records the provider confirmation', async () => {
+    post.mockResolvedValue({ data: { ...base, training: { ...base.training, confirmed: true, provider: 'Anthropic', confirmed_on: '2026-11-01', confirmed_by: 'Account team', reference: 'Email', recorded_by: 'head@a.test', recorded_at: '2026-11-02T10:00:00Z' } } });
+    render(<AiSettingsPage />);
+    fireEvent.change(await screen.findByLabelText('AI provider'), { target: { value: 'Anthropic' } });
+    fireEvent.change(screen.getByLabelText('Date of confirmation'), { target: { value: '2026-11-01' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Record the confirmation' }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/ai/settings/training-confirmation/', expect.objectContaining({ provider: 'Anthropic', confirmed_on: '2026-11-01' })));
+    expect(await screen.findByText(/Confirmed by Anthropic on 2026-11-01/)).toBeTruthy();
+  });
+
+  it('warns when the server uses a different provider', async () => {
+    get.mockResolvedValue({ data: { ...base, training: { ...base.training, confirmed: true, provider: 'Anthropic', confirmed_on: '2026-11-01', provider_mismatch: true } } });
+    render(<AiSettingsPage />);
+    expect(await screen.findByText(/different AI provider than the one confirmed/)).toBeTruthy();
   });
 });

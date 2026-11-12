@@ -19,7 +19,7 @@ from services.core.security.policy import client_ip
 from services.core.tenants.models import School
 
 from . import service
-from .models import (ConsentRecord, ConsentType, DocumentAcceptance, Incident, LegalDocument, PrivacyRequest,
+from .models import (ConsentRecord, ConsentType, DataHandlingEntry, DocumentAcceptance, Incident, LegalDocument, PrivacyRequest,
                      SubProcessor)
 
 
@@ -543,3 +543,70 @@ def platform_incident(request, incident_id):
             return Response({'error': 'Unknown action.'}, status=status.HTTP_400_BAD_REQUEST)
     inc.refresh_from_db()
     return Response({'incident': _incident(inc, True)})
+
+
+# ---- Data handling register (個人情報取扱台帳) ---------------------------------------------------------------------------
+_REGISTER_TEXT = ('name', 'data_items', 'purpose', 'how_collected', 'retention', 'shared_with', 'storage_location')
+
+
+def _entry(e):
+    return {'id': str(e.id), 'key': e.key, 'name': e.name, 'data_items': e.data_items, 'purpose': e.purpose, 'how_collected': e.how_collected,
+            'retention': e.retention, 'shared_with': e.shared_with, 'storage_location': e.storage_location, 'sensitive': e.sensitive,
+            'needs_consent': e.needs_consent, 'is_active': e.is_active, 'reviewed_at': _local(e.reviewed_at), 'updated_by': _name(e.updated_by)}
+
+
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def data_register(request):
+    """The school's record of how it handles personal information. Admins only. GET lists (or ?export=csv); POST saves one line,
+    or {"action": "load_defaults", "lang": "ja"} adds the starting lines that are missing; DELETE ?id= removes a line."""
+    denied = _admin(request)
+    if denied:
+        return denied
+    school = request.tenant
+    mine = DataHandlingEntry.objects.filter(school=school)
+    if request.method == 'DELETE':
+        get_object_or_404(mine, pk=request.GET.get('id')).delete()
+    elif request.method == 'POST':
+        d = request.data or {}
+        if d.get('action') == 'load_defaults':
+            from .register_defaults import rows
+
+            have = set(mine.values_list('key', flat=True))
+            for r in rows(str(d.get('lang') or '')):
+                if r['key'] not in have:
+                    DataHandlingEntry.objects.create(school=school, updated_by=request.user, **r)
+        else:
+            name = str(d.get('name') or '').strip()
+            purpose = str(d.get('purpose') or '').strip()
+            if not name or not purpose:
+                return Response({'error': 'Give the data a name and say what it is used for.'}, status=status.HTTP_400_BAD_REQUEST)
+            vals = {f: str(d.get(f) or '').strip() for f in _REGISTER_TEXT}
+            vals.update(sensitive=bool(d.get('sensitive')), needs_consent=bool(d.get('needs_consent')), reviewed_at=timezone.now(), updated_by=request.user)
+            if d.get('id'):
+                e = get_object_or_404(mine, pk=d['id'])
+                for k, v in vals.items():
+                    setattr(e, k, v)
+                if 'is_active' in d:
+                    e.is_active = bool(d['is_active'])
+                e.save()
+            else:
+                from django.utils.text import slugify
+
+                base = slugify(vals['name'])[:30] or 'data'
+                key, n = base, 2
+                while mine.filter(key=key).exists():
+                    key, n = f'{base}-{n}', n + 1
+                DataHandlingEntry.objects.create(school=school, key=key, position=mine.count(), **vals)
+    rows_ = list(mine.select_related('updated_by'))
+    if request.method == 'GET' and request.GET.get('export') == 'csv':
+        resp = HttpResponse(content_type='text/csv; charset=utf-8')
+        resp['Content-Disposition'] = 'attachment; filename="data-handling-register.csv"'
+        resp.write('﻿')
+        w = csv.writer(resp)
+        w.writerow(['Name', 'Data', 'Purpose of use', 'How collected', 'Retention', 'Given to', 'Stored', 'Sensitive', 'Needs consent', 'Last reviewed'])
+        for e in rows_:
+            w.writerow([e.name, e.data_items, e.purpose, e.how_collected, e.retention, e.shared_with, e.storage_location,
+                        'yes' if e.sensitive else 'no', 'yes' if e.needs_consent else 'no', timezone.localtime(e.reviewed_at).date().isoformat()])
+        return resp
+    return Response({'entries': [_entry(e) for e in rows_], 'school': school.name})

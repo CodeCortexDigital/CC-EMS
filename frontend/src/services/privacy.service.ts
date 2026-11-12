@@ -24,6 +24,12 @@ export interface IncidentRow {
   checklist?: { key: string; label: string; done_at: string | null }[]; updates?: { note: string; by: string; when: string }[];
 }
 
+export interface DataRegisterEntry {
+  id: string; key: string; name: string; data_items: string; purpose: string; how_collected: string; retention: string; shared_with: string;
+  storage_location: string; sensitive: boolean; needs_consent: boolean; is_active: boolean; reviewed_at: string; updated_by: string;
+}
+type RegisterReply = { entries: DataRegisterEntry[]; school: string };
+
 export const errorText = (e: any, fallback: string) => e?.response?.data?.error || fallback;
 
 const privacyService = {
@@ -44,6 +50,15 @@ const privacyService = {
     const res = await api.get('/privacy/consent-report/', { params: { type, export: 'csv' }, responseType: 'blob' });
     const href = URL.createObjectURL(res.data as Blob);
     const a = document.createElement('a'); a.href = href; a.download = 'consent.csv'; a.click(); URL.revokeObjectURL(href);
+  },
+  register: () => api.get('/privacy/register/').then((r) => r.data as RegisterReply),
+  loadRegisterDefaults: (lang: string) => api.post('/privacy/register/', { action: 'load_defaults', lang }).then((r) => r.data as RegisterReply),
+  saveRegisterEntry: (e: Partial<DataRegisterEntry>) => api.post('/privacy/register/', e).then((r) => r.data as RegisterReply),
+  deleteRegisterEntry: (id: string) => api.delete('/privacy/register/', { params: { id } }).then((r) => r.data as RegisterReply),
+  registerCsv: async () => {
+    const res = await api.get('/privacy/register/', { params: { export: 'csv' }, responseType: 'blob' });
+    const href = URL.createObjectURL(res.data as Blob);
+    const a = document.createElement('a'); a.href = href; a.download = 'data-handling-register.csv'; a.click(); URL.revokeObjectURL(href);
   },
   requests: () => api.get('/privacy/requests/').then((r) => r.data as { results: PrivacyReq[]; statuses: Record<string, string> }),
   updateRequest: (id: string, body: { status?: string; response?: string }) => api.post(`/privacy/requests/${id}/`, body).then((r) => r.data.request as PrivacyReq),
