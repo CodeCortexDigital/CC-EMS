@@ -165,3 +165,25 @@ class ChosashoIssue(TenantScopedModel):
 
     class Meta:
         ordering = ['-issued_at']
+
+
+class ExternalId(TenantScopedModel):
+    """The ID another system uses for one of our students or teachers (for example a board of education's school-affairs system, or MEXT's
+    Education Data Standard IDs), so data can be matched on import and export without relying on names. One ID per person per system."""
+    KINDS = [('student', 'Student'), ('teacher', 'Teacher')]
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    kind = models.CharField(max_length=10, choices=KINDS)
+    student = models.ForeignKey('education_students.Student', null=True, blank=True, on_delete=models.CASCADE, related_name='external_ids')
+    teacher = models.ForeignKey('education_academics.Teacher', null=True, blank=True, on_delete=models.CASCADE, related_name='external_ids')
+    system = models.CharField(max_length=80)
+    external_id = models.CharField(max_length=60)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+
+    class Meta:
+        ordering = ['system', 'external_id']
+        constraints = [
+            models.UniqueConstraint(fields=['tenant', 'system', 'kind', 'external_id'], name='uniq_external_id_per_system'),
+            models.UniqueConstraint(fields=['student', 'system'], condition=models.Q(student__isnull=False), name='uniq_student_external_id_per_system'),
+            models.UniqueConstraint(fields=['teacher', 'system'], condition=models.Q(teacher__isnull=False), name='uniq_teacher_external_id_per_system'),
+        ]

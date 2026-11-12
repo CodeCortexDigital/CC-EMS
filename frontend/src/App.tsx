@@ -132,6 +132,7 @@ import InterventionsPage from '@/pages/education/interventions/InterventionsPage
 import CumulativeRecordsPage from '@/pages/education/records/RecordsPage'
 import RecordEditorPage from '@/pages/education/records/RecordEditorPage'
 import RecordPrintPage from '@/pages/education/records/RecordPrintPage'
+import MextStandardsPage from '@/pages/education/records/MextStandardsPage'
 import ChosashoPage from '@/pages/education/records/ChosashoPage'
 import TermReportsPage from '@/pages/education/records/TermReportsPage'
 import TermReportEditorPage from '@/pages/education/records/TermReportEditorPage'
@@ -665,6 +666,7 @@ function App() {
                 <Route path="education/records" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><CumulativeRecordsPage /></RoleBasedRoute>} />
                 <Route path="education/records/:id" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><RecordEditorPage /></RoleBasedRoute>} />
                 <Route path="education/records/:id/print" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><RecordPrintPage /></RoleBasedRoute>} />
+                <Route path="education/mext-standards" element={<RoleBasedRoute allowedRoles={['admin']}><MextStandardsPage /></RoleBasedRoute>} />
                 <Route path="education/records/:id/chosasho" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><ChosashoPage /></RoleBasedRoute>} />
                 <Route path="education/term-reports" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><TermReportsPage /></RoleBasedRoute>} />
                 <Route path="education/term-reports/:id" element={<RoleBasedRoute allowedRoles={['admin', 'teacher']}><TermReportEditorPage /></RoleBasedRoute>} />

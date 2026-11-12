@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import chosasho_views as cs
+from . import standards_views as st
 from . import termreport_views as tr
 from . import views
 
@@ -9,6 +10,8 @@ urlpatterns = [
     path('open/', views.open_record),
     path('export/', views.export_many),
     path('form/<str:level>/', views.form_definition),
+    path('standards/', st.standards),
+    path('external-ids/', st.external_ids),
     path('term-layouts/', tr.layouts),
     path('term/roster/', tr.roster),
     path('term/open/', tr.open_report),
