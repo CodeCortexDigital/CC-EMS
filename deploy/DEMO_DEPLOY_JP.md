@@ -23,9 +23,11 @@ Changing `DEMO_EXTRA_ADMIN_PASSWORD` and restarting changes his password.
 The school also gets its own teacher, parent and student logins: `teacher@wakaba.example`, `parent@wakaba.example`, `student@wakaba.example`
 (passwords `Teacher@123`, `Parent@123`, `Student@123`).
 
-To list his login on the sign-in page, build the existing **frontend** with `VITE_DEMO_ADMIN_EMAIL=masato@admin.com`,
-`VITE_DEMO_ADMIN_PASSWORD=<same password>` and `VITE_DEMO_ADMIN_LABEL=Admin (Masato, Japan)` (the page then shows it after the four public logins; the
-password is visible on the page, so keep the demo to sample data). The sign-in page language button switches the screens to 日本語.
+The sign-in page of a demo site (`VITE_DEMO_LOGINS=true`) can offer both schools with two buttons, **USA school** and **Japanese school**. Choosing one lists that
+school's accounts to click and switches the page language (English or 日本語). The Japanese button appears when you build the **frontend** with
+`VITE_DEMO_ADMIN_EMAIL=masato@admin.com`, `VITE_DEMO_ADMIN_PASSWORD=<same password>` and `VITE_DEMO_ADMIN_LABEL=Admin (Masato)`
+(his login is then listed first under the Japanese school), or with just `VITE_DEMO_JAPAN_SCHOOL=true` (then only the teacher, parent and student logins are listed).
+The password is visible on the page, so keep the demo to sample data.
 
 ## Option B: a separate Japanese site (its own backend, database and screens)
 Use this only if you want Masato's site apart from the other client's.

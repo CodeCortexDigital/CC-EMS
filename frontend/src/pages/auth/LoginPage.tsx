@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Modal';
 import schoolService from '@/services/school.service';
 import api from '@/services/api';
 import { useTranslation } from 'react-i18next';
+import { useLocaleStore } from '@/store/localeStore';
 import { TwoStepNeeded } from '@/store/authStore';
 import TwoStepCodeForm from '@/components/auth/TwoStepCodeForm';
 
@@ -33,21 +34,33 @@ const REMEMBER_KEY = 'login_remembered_username';
 
 // Demo accounts: shown only on a demo site, where VITE_DEMO_LOGINS=true is set in the build environment (never on a live site).
 const SHOW_DEMO_LOGINS = import.meta.env.VITE_DEMO_LOGINS === 'true';
-// A client's own demo administrator is listed too: VITE_DEMO_ADMIN_EMAIL, VITE_DEMO_ADMIN_PASSWORD and (optionally) VITE_DEMO_ADMIN_LABEL in the
-// build environment. On a site that has only that client's school, VITE_DEMO_ADMIN_REPLACE=true lists it in place of the public administrator.
-// The password is then visible on the page, so use it only for a demo with sample data.
-const OWN_ADMIN = import.meta.env.VITE_DEMO_ADMIN_EMAIL && import.meta.env.VITE_DEMO_ADMIN_PASSWORD
-  ? { label: import.meta.env.VITE_DEMO_ADMIN_LABEL || 'Admin', email: String(import.meta.env.VITE_DEMO_ADMIN_EMAIL), password: String(import.meta.env.VITE_DEMO_ADMIN_PASSWORD), role: 'admin' as LoginRole }
+// Demo schools on the sign-in page (demo sites only). Each school has its own accounts; the visitor picks the school with a button, then clicks an account.
+// The Japanese school is offered when VITE_DEMO_JAPAN_SCHOOL=true or when its administrator is given: VITE_DEMO_ADMIN_EMAIL, VITE_DEMO_ADMIN_PASSWORD and
+// (optionally) VITE_DEMO_ADMIN_LABEL. On a site that has only that school, VITE_DEMO_ADMIN_REPLACE=true shows only it. The password is then visible on the
+// page, so use it only for a demo with sample data.
+type DemoLogin = { label: string; email: string; password: string; role: LoginRole };
+export interface DemoSchool { key: 'us' | 'jp'; label: string; name: string; language: string; logins: DemoLogin[] }
+const OWN_ADMIN: DemoLogin | null = import.meta.env.VITE_DEMO_ADMIN_EMAIL && import.meta.env.VITE_DEMO_ADMIN_PASSWORD
+  ? { label: import.meta.env.VITE_DEMO_ADMIN_LABEL || 'Admin', email: String(import.meta.env.VITE_DEMO_ADMIN_EMAIL), password: String(import.meta.env.VITE_DEMO_ADMIN_PASSWORD), role: 'admin' }
   : null;
-const PUBLIC_LOGINS: { label: string; email: string; password: string; role: LoginRole }[] = [
+const US_LOGINS: DemoLogin[] = [
   { label: 'Admin', email: 'admin@code.com', password: 'Admin@123', role: 'admin' },
   { label: 'Teacher', email: 'teacher@code.com', password: 'Teacher@123', role: 'employee' },
   { label: 'Parent', email: 'parent@code.com', password: 'Parent@123', role: 'student' },
   { label: 'Student', email: 'student@code.com', password: 'Student@123', role: 'student' },
 ];
-export const DEMO_LOGINS = !OWN_ADMIN ? PUBLIC_LOGINS
-  : import.meta.env.VITE_DEMO_ADMIN_REPLACE === 'true' ? [OWN_ADMIN, ...PUBLIC_LOGINS.slice(1)]
-  : [...PUBLIC_LOGINS, OWN_ADMIN];
+const JP_LOGINS: DemoLogin[] = [
+  ...(OWN_ADMIN ? [OWN_ADMIN] : []),
+  { label: 'Teacher', email: 'teacher@wakaba.example', password: 'Teacher@123', role: 'employee' },
+  { label: 'Parent', email: 'parent@wakaba.example', password: 'Parent@123', role: 'student' },
+  { label: 'Student', email: 'student@wakaba.example', password: 'Student@123', role: 'student' },
+];
+const JAPAN_OFFERED = import.meta.env.VITE_DEMO_JAPAN_SCHOOL !== 'false';
+const US_SCHOOL: DemoSchool = { key: 'us', label: 'USA school', name: 'Maple Grove Academy', language: 'en', logins: US_LOGINS };
+const JP_SCHOOL: DemoSchool = { key: 'jp', label: 'Japanese school', name: 'Wakaba Gakuen 若葉学園', language: 'ja', logins: JP_LOGINS };
+export const DEMO_SCHOOLS: DemoSchool[] = !JAPAN_OFFERED ? [US_SCHOOL]
+  : import.meta.env.VITE_DEMO_ADMIN_REPLACE === 'true' ? [JP_SCHOOL]
+  : [US_SCHOOL, JP_SCHOOL];
 
 function MicrosoftMark() {
   return (
@@ -61,6 +74,8 @@ export default function LoginPage() {
   const [params, setParams] = useSearchParams();
   const { t } = useTranslation();
   const [role, setRole] = useState<LoginRole>('admin');
+  const [demoKey, setDemoKey] = useState<DemoSchool['key']>(DEMO_SCHOOLS[0].key);
+  const setUserLanguage = useLocaleStore((st) => st.setUserLanguage);
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -270,21 +285,36 @@ export default function LoginPage() {
         </div>
       </form>
 
-      {SHOW_DEMO_LOGINS && (
-        <div className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900" aria-label="Demo accounts">
-          <p className="mb-2 font-semibold">Demo school (sample data). Click an account to fill it in:</p>
-          <ul className="space-y-1">
-            {DEMO_LOGINS.map((a) => (
-              <li key={a.email}>
-                <button type="button" onClick={() => { setRole(a.role); setUserId(a.email); setPassword(a.password); setError(''); }}
-                  className="w-full rounded-lg bg-white/70 px-2 py-1 text-start hover:bg-white">
-                  <b>{a.label}</b>: <span className="font-mono">{a.email}</span> / <span className="font-mono">{a.password}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {SHOW_DEMO_LOGINS && (() => {
+        const school = DEMO_SCHOOLS.find((d) => d.key === demoKey) ?? DEMO_SCHOOLS[0];
+        return (
+          <div className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900" aria-label="Demo accounts">
+            {DEMO_SCHOOLS.length > 1 && (
+              <div role="group" aria-label="Demo school" className="mb-3 grid grid-cols-2 gap-2">
+                {DEMO_SCHOOLS.map((d) => (
+                  <button key={d.key} type="button" aria-pressed={d.key === school.key}
+                    onClick={() => { setDemoKey(d.key); setUserId(''); setPassword(''); setError(''); setUserLanguage(d.language); }}
+                    className={`rounded-xl border px-2 py-2 text-start font-semibold ${d.key === school.key ? 'border-amber-600 bg-amber-600 text-white' : 'border-amber-300 bg-white/70 hover:bg-white'}`}>
+                    {d.label}
+                    <span className="block text-[11px] font-normal opacity-90">{d.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="mb-2 font-semibold">Demo school: {school.name} (sample data). Click an account to fill it in:</p>
+            <ul className="space-y-1">
+              {school.logins.map((a) => (
+                <li key={a.email}>
+                  <button type="button" onClick={() => { setRole(a.role); setUserId(a.email); setPassword(a.password); setError(''); }}
+                    className="w-full rounded-lg bg-white/70 px-2 py-1 text-start hover:bg-white">
+                    <b>{a.label}</b>: <span className="font-mono">{a.email}</span> / <span className="font-mono">{a.password}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })()}
 
       <div className="my-6 flex items-center gap-3 text-xs text-slate-400">
         <span className="h-px flex-1 bg-slate-200" /> {t('common.or')} <span className="h-px flex-1 bg-slate-200" />
