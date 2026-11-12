@@ -103,3 +103,65 @@ class CumulativeYear(TenantScopedModel):
     def is_locked(self) -> bool:
         """A year the principal has put a seal on is no longer changed until an administrator re-opens it."""
         return self.principal_confirmed_at is not None
+
+
+class TermReportLayout(TenantScopedModel):
+    """A school's layout of the term report (通知表): subjects, rating scale, behaviour items and comment boxes. See ``termreport.py``."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=80)
+    level = models.CharField(max_length=12, choices=CumulativeRecord.LEVELS, default='elementary')
+    config = models.JSONField(default=dict)
+    is_default = models.BooleanField(default=False, help_text='Used for new reports of students at this level')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['level', 'name']
+
+
+class TermReport(TenantScopedModel):
+    """One student's term report. The layout is copied in when the report is made, so changing the layout later does not rewrite old reports."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey('education_students.Student', on_delete=models.CASCADE, related_name='term_reports')
+    layout = models.ForeignKey(TermReportLayout, null=True, blank=True, on_delete=models.SET_NULL, related_name='reports')
+    layout_snapshot = models.JSONField(default=dict)
+    term = models.ForeignKey('education_academics.Term', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    year_label = models.CharField(max_length=40, blank=True, default='')
+    term_label = models.CharField(max_length=50, blank=True, default='')
+    class_name = models.CharField(max_length=60, blank=True, default='')
+    teacher_name = models.CharField(max_length=120, blank=True, default='')
+    principal_name = models.CharField(max_length=120, blank=True, default='')
+    school_days = models.PositiveSmallIntegerField(null=True, blank=True)
+    suspended_days = models.PositiveSmallIntegerField(null=True, blank=True)
+    absent_days = models.PositiveSmallIntegerField(null=True, blank=True)
+    attendance_remarks = models.CharField(max_length=300, blank=True, default='')
+    content = models.JSONField(default=dict, blank=True)
+    finalised_at = models.DateTimeField(null=True, blank=True)
+    finalised_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['student__full_name']
+        constraints = [models.UniqueConstraint(fields=['student', 'year_label', 'term_label'], name='uniq_term_report_per_term')]
+
+    @property
+    def is_locked(self) -> bool:
+        return self.finalised_at is not None
+
+
+class ChosashoIssue(TenantScopedModel):
+    """A 調査書 (the junior-high report sent to a high school for admission) as it was when the principal issued it.
+
+    The content is copied in (``snapshot``), so a later correction to the 指導要録 does not change a document already sent; a corrected one is a new issue.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    record = models.ForeignKey(CumulativeRecord, on_delete=models.CASCADE, related_name='chosasho_issues')
+    issued_to = models.CharField('提出先', max_length=200)
+    note = models.CharField(max_length=300, blank=True, default='')
+    snapshot = models.JSONField(default=dict)
+    issued_at = models.DateTimeField(auto_now_add=True)
+    issued_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+
+    class Meta:
+        ordering = ['-issued_at']

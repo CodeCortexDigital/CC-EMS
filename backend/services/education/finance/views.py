@@ -1,3 +1,4 @@
+from services.pdf import fonts as _pdf_fonts
 from services.core.accounts.decorators import filter_invoices_for_user, filter_payments_for_user
 from services.core.accounts.permissions import IsSchoolAdmin
 from services.core.accounts.decorators import is_admin
@@ -696,7 +697,7 @@ def finance_report_pdf(request):
         # Create PDF
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
-        styles = getSampleStyleSheet()
+        styles = _pdf_fonts.stylesheet()
         elements = []
         
         # Title
@@ -719,7 +720,7 @@ def finance_report_pdf(request):
             ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, 0), _pdf_fonts.bold()),
             ('FONTSIZE', (0, 0), (-1, 0), 14),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
             ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
@@ -754,7 +755,7 @@ def invoice_pdf(request, invoice_id):
         
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
-        styles = getSampleStyleSheet()
+        styles = _pdf_fonts.stylesheet()
         elements = []
         
         # Header
@@ -772,7 +773,7 @@ def invoice_pdf(request, invoice_id):
         
         details_table = Table(details_data, colWidths=[120, 200])
         details_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (0, -1), _pdf_fonts.bold()),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ]))
@@ -791,7 +792,7 @@ def invoice_pdf(request, invoice_id):
         
         student_table = Table(student_data, colWidths=[120, 200])
         student_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (0, -1), _pdf_fonts.bold()),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
         ]))
         elements.append(student_table)
@@ -821,7 +822,7 @@ def invoice_pdf(request, invoice_id):
             ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, 0), _pdf_fonts.bold()),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
             ('BACKGROUND', (-2, -1), (-1, -1), colors.lightgreen),
@@ -849,7 +850,7 @@ def invoice_pdf(request, invoice_id):
                 ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (0, 0), (-1, 0), _pdf_fonts.bold()),
                 ('FONTSIZE', (0, 0), (-1, -1), 9),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
             ]))
@@ -903,7 +904,7 @@ def defaulter_report_pdf(request):
         
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
-        styles = getSampleStyleSheet()
+        styles = _pdf_fonts.stylesheet()
         elements = []
         
         # Title
@@ -927,7 +928,7 @@ def defaulter_report_pdf(request):
             
             summary_table = Table(summary_data, colWidths=[150, 200])
             summary_table.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (0, 0), (-1, -1), _pdf_fonts.bold()),
                 ('FONTSIZE', (0, 0), (-1, -1), 12),
                 ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
             ]))
@@ -953,7 +954,7 @@ def defaulter_report_pdf(request):
                 ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (0, 0), (-1, 0), _pdf_fonts.bold()),
                 ('FONTSIZE', (0, 0), (-1, -1), 8),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
@@ -1020,7 +1021,7 @@ def monthly_finance_report_pdf(request):
         
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
-        styles = getSampleStyleSheet()
+        styles = _pdf_fonts.stylesheet()
         elements = []
         
         # Title
@@ -1046,7 +1047,7 @@ def monthly_finance_report_pdf(request):
             ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, 0), _pdf_fonts.bold()),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
             ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
@@ -1084,7 +1085,7 @@ def monthly_finance_report_pdf(request):
             ('BACKGROUND', (0, 0), (-1, 0), colors.darkgreen),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, 0), _pdf_fonts.bold()),
             ('FONTSIZE', (0, 0), (-1, -1), 8),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ]))

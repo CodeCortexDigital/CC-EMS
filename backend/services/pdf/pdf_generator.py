@@ -1,3 +1,4 @@
+from services.pdf import fonts as _pdf_fonts
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer, Paragraph
@@ -9,7 +10,7 @@ from datetime import datetime
 
 class PDFGenerator:
     def __init__(self):
-        self.styles = getSampleStyleSheet()
+        self.styles = _pdf_fonts.stylesheet()
         self.title_style = ParagraphStyle(
             'CustomTitle',
             parent=self.styles['Heading1'],
@@ -44,7 +45,7 @@ class PDFGenerator:
         
         info_table = Table(receipt_info, colWidths=[100, 380])
         info_table.setStyle(TableStyle([
-            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+            ('FONTNAME', (0,0), (-1,-1), _pdf_fonts.base()),
             ('FONTSIZE', (0,0), (-1,-1), 10),
         ]))
         elements.append(info_table)
@@ -60,7 +61,7 @@ class PDFGenerator:
         student_table = Table(student_data, colWidths=[100, 380])
         student_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#f0f4f8')),
-            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+            ('FONTNAME', (0,0), (-1,-1), _pdf_fonts.base()),
             ('FONTSIZE', (0,0), (-1,-1), 10),
             ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
         ]))
@@ -108,21 +109,21 @@ class PDFGenerator:
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2563eb')),
             ('TEXTCOLOR', (0,0), (-1,0), colors.white),
             ('ALIGN', (1,0), (1,-1), 'RIGHT'),
-            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+            ('FONTNAME', (0,0), (-1,-1), _pdf_fonts.base()),
             ('FONTSIZE', (0,0), (-1,-1), 10),
             ('GRID', (0,0), (-1, total_idx - 1), 0.5, colors.grey),
             
             # Total row styling
-            ('FONTNAME', (0, total_idx), (-1, total_idx), 'Helvetica-Bold'),
+            ('FONTNAME', (0, total_idx), (-1, total_idx), _pdf_fonts.bold()),
             ('BACKGROUND', (0, total_idx), (-1, total_idx), colors.HexColor('#f0f4f8')),
             ('LINEABOVE', (0, total_idx), (-1, total_idx), 1, colors.black),
             
             # Paid row styling
-            ('FONTNAME', (0, paid_idx), (-1, paid_idx), 'Helvetica'),
+            ('FONTNAME', (0, paid_idx), (-1, paid_idx), _pdf_fonts.base()),
             ('TEXTCOLOR', (0, paid_idx), (-1, paid_idx), colors.HexColor('#16a34a')), # green
             
             # Balance row styling
-            ('FONTNAME', (0, balance_idx), (-1, balance_idx), 'Helvetica-Bold'),
+            ('FONTNAME', (0, balance_idx), (-1, balance_idx), _pdf_fonts.bold()),
             ('BACKGROUND', (0, balance_idx), (-1, balance_idx), colors.HexColor('#fef2f2') if balance_due > 0 else colors.HexColor('#f0fdf4')),
             ('LINEABOVE', (0, balance_idx), (-1, balance_idx), 1, colors.black),
         ]
@@ -161,7 +162,7 @@ class PDFGenerator:
         info_table = Table(student_info, colWidths=[100, 380])
         info_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#f0f4f8')),
-            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+            ('FONTNAME', (0,0), (-1,-1), _pdf_fonts.base()),
             ('FONTSIZE', (0,0), (-1,-1), 10),
             ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
         ]))
@@ -180,7 +181,7 @@ class PDFGenerator:
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2563eb')),
             ('TEXTCOLOR', (0,0), (-1,0), colors.white),
             ('ALIGN', (1,0), (3,-1), 'CENTER'),
-            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+            ('FONTNAME', (0,0), (-1,-1), _pdf_fonts.base()),
             ('FONTSIZE', (0,0), (-1,-1), 10),
             ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
             ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#f0f4f8')),
