@@ -17,6 +17,14 @@ export interface ActivityRow {
   area: string; path: string; record_id: string | null; method: string; ip: string | null;
 }
 
+export interface AlertLimits { views: number; night_views: number; exports: number; refused: number }
+export interface AccessAlertRow {
+  id: string; kind: string; kind_label: string; who: string; email: string; window_start: string; window_end: string; count: number; limit: number;
+  status: 'open' | 'reviewed' | 'dismissed'; status_label: string; note: string; reviewed_by: string; reviewed_at: string | null; created_at: string;
+}
+export interface AccessAlertList { results: AccessAlertRow[]; open: number; new: number; limits: AlertLimits; defaults: AlertLimits; kinds: Record<string, string> }
+export interface BreachDraft { title: string; sections: Array<{ heading: string; text: string }>; guidance: string[]; note: string; school: string; prepared_on: string; alert: string }
+
 export interface AccessReviewRow {
   user_id: string; who: string; email: string; role: string; views: number; students_viewed: number; exports: number; prints: number; refused: number; last: string;
 }
@@ -35,7 +43,7 @@ export interface Person {
 }
 
 export interface Overview {
-  people: number; admins: number; locked: number; disabled: number; never_signed_in: number; deletion_requests: number;
+  people: number; admins: number; locked: number; disabled: number; never_signed_in: number; deletion_requests: number; access_alerts_open?: number;
   week: { sign_ins: number; failed: number; blocked: number; changes: number; refused: number };
   rules: SecurityRules;
 }
@@ -62,6 +70,10 @@ const securityService = {
   saveSettings: (patch: Partial<SecurityRules>) => api.put('/security/settings/', patch).then((r) => r.data as { settings: SecurityRules }),
   activity: (q: Query) => api.get('/security/activity/', { params: clean(q) }).then((r) => r.data as Paged<ActivityRow> & { areas: string[]; actions: Record<string, string> }),
   exportActivity: (q: Query) => download('/security/activity/', { ...q, export: 'csv' }, 'activity-log.csv'),
+  accessAlerts: () => api.get('/security/access-alerts/').then((r) => r.data as AccessAlertList),
+  saveAlertLimits: (limits: AlertLimits) => api.put('/security/access-alerts/', { limits }).then((r) => r.data as AccessAlertList),
+  updateAlert: (id: string, status: 'open' | 'reviewed' | 'dismissed', note: string) => api.post(`/security/access-alerts/${id}/`, { status, note }).then((r) => r.data as AccessAlertRow),
+  alertReport: (id: string, lang: 'ja' | 'en') => api.get(`/security/access-alerts/${id}/report/`, { params: { lang } }).then((r) => r.data as BreachDraft),
   accessReview: (days: number) => api.get('/security/access-review/', { params: { days } }).then((r) => r.data as AccessReview),
   exportAccessReview: (days: number) => download('/security/access-review/', { days, export: 'csv' }, 'access-review.csv'),
   /** Tell the server a record was printed (the browser prints on the person's own computer). Never blocks the print. */

@@ -60,3 +60,31 @@ class TwoFactor(models.Model):
 
     def __str__(self):
         return f'{self.user_id} two-step {"on" if self.confirmed_at else "being set up"}'
+
+
+class AccessAlert(models.Model):
+    """A sign that personal information may have been used in an unusual way (many student records opened, many exports, many refusals),
+    found by ``access_alerts.detect`` in the audit log. An administrator reviews it, and can start a draft breach report from it.
+    Written by the system for a school, so the school is set explicitly (not tenant-scoped)."""
+
+    KINDS = [('bulk_views', 'Many student records opened'), ('night_views', 'Student records opened at night'),
+             ('bulk_exports', 'Many exports'), ('refused', 'Many refused requests')]
+    STATUSES = [('open', 'To review'), ('reviewed', 'Reviewed'), ('dismissed', 'Not a problem')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    school = models.ForeignKey('core_tenants.School', on_delete=models.CASCADE, related_name='access_alerts')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='access_alerts')
+    kind = models.CharField(max_length=20, choices=KINDS)
+    window_start = models.DateTimeField()
+    window_end = models.DateTimeField()
+    details = models.JSONField(default=dict)
+    status = models.CharField(max_length=10, choices=STATUSES, default='open')
+    note = models.CharField(max_length=500, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-window_start']
+        constraints = [models.UniqueConstraint(fields=['school', 'user', 'kind', 'window_start'], name='uniq_access_alert')]
+        indexes = [models.Index(fields=['school', 'status'])]

@@ -23,6 +23,7 @@ REVIEWED = {
     'core_tenants.TenantMembership': 'the school and platform consoles filter by school',
     'core_features.FeatureFlag': 'platform feature switches; school admins only read their own school through services.py',
     'core_security.SignInEvent': 'security screens filter by school',
+    'core_security.AccessAlert': 'the security screens filter by school (tests/test_access_alerts.py)',
     'core_security.EmailLog': 'security screens filter by school; retention deletes by school',
     'core_billing.Subscription': 'platform billing; a school sees only its own through services',
     'core_billing.SubscriptionEvent': 'platform billing',

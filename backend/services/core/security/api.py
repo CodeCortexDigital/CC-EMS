@@ -127,6 +127,7 @@ def overview(request):
             'changes': AuditLog.objects.filter(school=school, timestamp__gte=week).exclude(action__in=('PERMISSION_DENIED', 'VIEW')).count(),
             'refused': AuditLog.objects.filter(school=school, timestamp__gte=week, action='PERMISSION_DENIED').count(),
         },
+        'access_alerts_open': school.access_alerts.filter(status='open').count(),
         'rules': policy.security_settings(school),
     })
 
@@ -533,3 +534,84 @@ def access_review(request):
                     [[r['who'], r['email'], r['role'], r['views'], r['students_viewed'], r['exports'], r['prints'], r['refused'], r['last']] for r in out])
     return Response({'days': days, 'since': _local(since), 'results': out,
                      'totals': {k: sum(r[k] for r in out) for k in ('views', 'exports', 'prints', 'refused')}})
+
+
+# ---- Alerts for unusual use of personal information ---------------------------------------------------------------------
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def access_alerts(request):
+    """GET: the alerts (the log is checked first unless ``?check=0``). PUT ``{"limits": {views, night_views, exports, refused}}``: change when alerts are raised."""
+    from . import access_alerts as aa
+    from .models import AccessAlert
+
+    school, error = _admin_school(request)
+    if error:
+        return error
+    if request.method == 'PUT':
+        limits, problem = aa.clean_thresholds((request.data or {}).get('limits'))
+        if problem:
+            return Response({'error': problem}, status=status.HTTP_400_BAD_REQUEST)
+        from services.core.tenants.models import School
+        from services.education.students.access import audit_write
+
+        fresh = School.objects.get(pk=school.pk)
+        fresh.settings_json = {**(fresh.settings_json or {}), 'access_alerts': limits}
+        fresh.save(update_fields=['settings_json'])
+        school.settings_json = fresh.settings_json
+        audit_write(request, 'UPDATE', 'security/access-alert-limits', None, {'limits': limits})
+    new = aa.detect(school) if request.GET.get('check') != '0' else 0
+    qs = AccessAlert.objects.filter(school=school).select_related('user', 'reviewed_by')
+    order = {'open': 0, 'reviewed': 1, 'dismissed': 2}
+    rows = sorted(qs[:200], key=lambda a: (order.get(a.status, 9), -a.window_start.timestamp()))
+    return Response({'results': [aa._payload(a) for a in rows], 'open': sum(1 for a in rows if a.status == 'open'), 'new': new,
+                     'limits': aa.thresholds(school), 'defaults': aa.DEFAULTS, 'kinds': dict(AccessAlert.KINDS)})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def access_alert_update(request, alert_id):
+    """Mark an alert reviewed or not a problem (``{"status": "reviewed" | "dismissed" | "open", "note": "..."}``). Recorded in the audit log."""
+    from . import access_alerts as aa
+    from .models import AccessAlert
+    from services.education.students.access import audit_write
+
+    school, error = _admin_school(request)
+    if error:
+        return error
+    alert = AccessAlert.objects.filter(school=school, pk=alert_id).select_related('user').first()
+    if alert is None:
+        return Response({'error': 'Alert not found.'}, status=status.HTTP_404_NOT_FOUND)
+    d = request.data or {}
+    new = d.get('status')
+    if new not in dict(AccessAlert.STATUSES):
+        return Response({'error': 'Choose to review it, dismiss it, or re-open it.'}, status=status.HTTP_400_BAD_REQUEST)
+    note = str(d.get('note') or '').strip()[:500]
+    if new != 'open' and not note:
+        return Response({'error': 'Write what you found, so the decision can be shown later.'}, status=status.HTTP_400_BAD_REQUEST)
+    was = alert.status
+    alert.status = new
+    if new != 'open':
+        alert.note = note
+    alert.reviewed_by, alert.reviewed_at = (request.user, timezone.now()) if new != 'open' else (None, None)
+    alert.save()
+    audit_write(request, 'UPDATE', 'security/access-alert', alert.pk, {'was': was, 'now': new, 'note': note, 'kind': alert.kind})
+    return Response(aa._payload(alert))
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def access_alert_report(request, alert_id):
+    """A draft initial breach report (速報) for this alert, in Japanese (default) or English (``?lang=en``)."""
+    from . import access_alerts as aa
+    from .models import AccessAlert
+    from services.education.students.access import audit_write
+
+    school, error = _admin_school(request)
+    if error:
+        return error
+    alert = AccessAlert.objects.filter(school=school, pk=alert_id).select_related('user', 'school').first()
+    if alert is None:
+        return Response({'error': 'Alert not found.'}, status=status.HTTP_404_NOT_FOUND)
+    audit_write(request, 'VIEW', 'security/access-alert-report', alert.pk, {'kind': alert.kind})
+    return Response(aa.draft_report(alert, request.GET.get('lang') or 'ja'))

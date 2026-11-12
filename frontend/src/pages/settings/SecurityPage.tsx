@@ -13,6 +13,7 @@ import MySecurityPanel from '@/components/security/MySecurityPanel';
 import DataPanel from '@/components/security/DataPanel';
 import PrivacyAdminPanel from '@/components/privacy/PrivacyAdminPanel';
 import AccessReviewPanel from '@/components/security/AccessReviewPanel';
+import AccessAlerts from '@/components/security/AccessAlerts';
 
 const card = 'bg-white rounded-xl border border-slate-200 shadow-sm';
 const input = 'rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white';
@@ -57,7 +58,7 @@ export default function SecurityPage() {
       {tab === 'people' && <PeopleTab initialStatus={params.get('status') || ''} />}
       {tab === 'sign-ins' && <SignInsTab initialOutcome={params.get('outcome') || ''} initialUser={params.get('user') || ''} />}
       {tab === 'activity' && <ActivityTab initialAction={params.get('action') || ''} initialUser={params.get('user') || ''} />}
-      {tab === 'access' && <AccessReviewPanel />}
+      {tab === 'access' && <div className="space-y-4"><AccessAlerts /><AccessReviewPanel /></div>}
       {tab === 'emails' && <EmailsTab />}
       {tab === 'roles' && <RolesTab />}
       {tab === 'rules' && <RulesTab />}
@@ -122,6 +123,11 @@ function OverviewTab({ go }: { go: (t: Tab, extra?: Record<string, string>) => v
         <Tile label="Switched off" value={ov.disabled} onClick={() => go('people', { status: 'disabled' })} />
         <Tile label="Never signed in" value={ov.never_signed_in} onClick={() => go('people', { status: 'never' })} />
       </div>
+      {(ov.access_alerts_open || 0) > 0 && (
+        <button onClick={() => go('access')} className="w-full flex items-center gap-2 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-left text-sm text-rose-900">
+          <AlertTriangle size={16} /> {ov.access_alerts_open} {ov.access_alerts_open === 1 ? 'alert needs' : 'alerts need'} review: unusual use of student records. Look into {ov.access_alerts_open === 1 ? 'it' : 'them'} and record what you found.
+        </button>
+      )}
       {ov.deletion_requests > 0 && (
         <button onClick={() => go('people', { status: 'deletion' })} className="w-full flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-left text-sm text-amber-900">
           <AlertTriangle size={16} /> {ov.deletion_requests} {ov.deletion_requests === 1 ? 'person has' : 'people have'} asked for their account to be deleted. Review and switch the account off once any records the school must keep are saved.
