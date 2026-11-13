@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import security from '@/services/security.service';
 import chosasho, { Chosasho, ChosashoIssue } from '@/services/chosasho.service';
 import { wareki } from '@/utils/wareki';
 import { btn, btnGhost, card, input, PageHead, Pill, Spinner } from '../hr/ui';
@@ -95,7 +96,7 @@ export default function ChosashoPage() {
     <div className="p-4 sm:p-6 space-y-4">
       <PageHead title="調査書 (Report for high school admission)" hint="Made from the student's cumulative record. It can be issued once all three years have the principal's seal.">
         <Link to={`/education/records/${id}`} className={btnGhost}>Back to the record</Link>
-        <button className={btn} onClick={() => window.print()}>Print / PDF</button>
+        <button className={btn} onClick={() => { security.logPrint('chosasho', id); window.print(); }}>Print / PDF</button>
       </PageHead>
 
       {viewing && <div className={`${card} flex flex-wrap items-center gap-3`}><Pill tone="green">Issued copy</Pill><span className="text-sm">{viewing.issued_to} · {viewing.issued_at.slice(0, 10)} · {viewing.issued_by}</span>

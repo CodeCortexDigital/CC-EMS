@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Printer } from 'lucide-react';
+import security from '@/services/security.service';
 import termReports, { errorText, TermReport } from '@/services/termReports.service';
 
 const CSS = `
@@ -75,7 +76,7 @@ export default function TermReportPrintPage() {
     <div className="p-4 sm:p-6 bg-slate-100 min-h-screen print:bg-white print:p-0">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4 print:hidden">
         <Link to={`/education/term-reports/${id}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900"><ArrowLeft className="w-4 h-4" />Back to the report</Link>
-        <button type="button" onClick={() => window.print()} disabled={!rep} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--app-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Printer className="w-4 h-4" />Print / PDF</button>
+        <button type="button" onClick={() => { security.logPrint('term-report', id); window.print(); }} disabled={!rep} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--app-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Printer className="w-4 h-4" />Print / PDF</button>
       </div>
       {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {!rep && !error && <p className="text-sm text-slate-500">Loading…</p>}

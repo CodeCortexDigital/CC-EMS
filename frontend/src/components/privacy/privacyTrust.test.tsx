@@ -11,6 +11,7 @@ vi.mock('@/services/privacy.service', () => ({
     documents: vi.fn().mockResolvedValue({ documents: [], template: { title: '', body: '' }, history: [] }),
     consentTypes: vi.fn().mockResolvedValue([]), consentReport: vi.fn().mockResolvedValue({}),
     register: vi.fn().mockResolvedValue({ entries: [], school: '' }),
+    noticeDelivery: vi.fn().mockResolvedValue({ document: null, rows: [], summary: { people: 0, read: 0, not_read: 0 } }),
   },
 }));
 

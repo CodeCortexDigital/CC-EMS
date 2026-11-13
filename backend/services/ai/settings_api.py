@@ -20,9 +20,10 @@ from services.core.features.models import FeatureFlag
 from services.core.tenants.context import use_tenant
 
 from .context import AIContext
+from .controls import CONTROL_KEYS, USER_NOTICE_TEXT, USER_NOTICE_VERSION, accept_user_notice, controls, user_accepted
 from .llm import get_llm_client
-from .models import AIUsage
-from .permissions import IsAIAdmin
+from .models import AIUsage, AIUserNotice
+from .permissions import HasAIRole, IsAIAdmin
 from .quota import MASTER_FLAG, OPT_IN_FEATURES, ai_enabled, feature_enabled
 
 # key (the name every AI endpoint checks), label, what it does
@@ -143,6 +144,8 @@ def _payload(request):
         'notice': {'version': NOTICE_VERSION, 'text': NOTICE_TEXT, 'accepted': notice_accepted(school),
                    'accepted_at': saved.get('accepted_at'), 'accepted_by': saved.get('accepted_by')},
         'training': _training_payload(school, client),
+        'controls': {**controls(school), 'accepted_by': AIUserNotice.objects.filter(tenant=school, version__gte=USER_NOTICE_VERSION).count() if school else 0,
+                     'notice_version': USER_NOTICE_VERSION},
         'always_masked': ['Government ID numbers (US SSN style)', 'Birth dates', 'Health details', 'Passwords and tokens'],
     }
 
@@ -303,3 +306,52 @@ def capabilities(request):
         'face_recognition': bool(ai_views.FACE_ML_AVAILABLE and feature_enabled('ai_face_attendance', ctx)),
         'ai_provider': get_llm_client() is not None,
     })
+
+
+@api_view(['PUT'])
+@permission_classes([IsAIAdmin])
+def set_controls(request):
+    """PUT {require_user_notice, require_training, mask_names}: switch the school's AI controls on or off (each is optional).
+    Each change is recorded in the audit chain."""
+    from services.core.tenants.models import School
+
+    ctx = AIContext.from_request(request)
+    if ctx.tenant is None:
+        return Response({'error': 'No school selected.'}, status=status.HTTP_400_BAD_REQUEST)
+    d = request.data if isinstance(request.data, dict) else {}
+    changes = {k: bool(d[k]) for k in CONTROL_KEYS if k in d}
+    if not changes:
+        return Response({'error': 'Say which control to change.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        with transaction.atomic(), use_tenant(None):
+            fresh = School.objects.select_for_update().get(pk=ctx.tenant.pk)
+            was = controls(fresh)
+            now = {**was, **changes}
+            fresh.settings_json = {**(fresh.settings_json or {}), 'ai_controls': now}
+            fresh.save(update_fields=['settings_json'])
+            audit_chain.append(user=request.user, school=ctx.tenant, action='UPDATE', resource_type='ai.settings.controls',
+                               new_data={'was': was, 'now': now})
+    except audit_chain.AuditWriteError:
+        return Response({'error': 'The change could not be recorded, so it was not saved. Try again.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    ctx.tenant.settings_json = fresh.settings_json
+    return Response(_payload(request))
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([HasAIRole])
+def user_notice(request):
+    """GET: the AI use notice and whether the signed-in person has accepted it (and whether the school requires it).
+    POST: they accept it."""
+    ctx = AIContext.from_request(request)
+    if ctx.tenant is None:
+        return Response({'error': 'No school selected.'}, status=status.HTTP_400_BAD_REQUEST)
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                row = accept_user_notice(request.user, ctx.tenant)
+                audit_chain.append(user=request.user, school=ctx.tenant, action='UPDATE', resource_type='ai.user_notice',
+                                   resource_id=row.id, new_data={'notice_version': USER_NOTICE_VERSION})
+        except audit_chain.AuditWriteError:
+            return Response({'error': 'The acceptance could not be recorded, so it was not saved. Try again.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    return Response({'version': USER_NOTICE_VERSION, 'text': USER_NOTICE_TEXT, 'accepted': user_accepted(request.user, ctx.tenant),
+                     'required': controls(ctx.tenant)['require_user_notice']})

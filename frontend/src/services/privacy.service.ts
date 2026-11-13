@@ -1,6 +1,7 @@
 // Privacy documents, consent, privacy requests and incidents (P14).
 import api from './api';
 
+export interface LegalDocsReply { documents: LegalDoc[]; template: { title: string; body: string }; history: LegalDoc[]; register_newer?: boolean }
 export interface LegalDoc { id?: string; kind: string; kind_label?: string; version: number; title: string; body?: string; summary_of_changes?: string; published_at: string | null; school?: string | null; accepted?: number; people?: number }
 export interface ConsentAnswer { granted: boolean; when: string; by: string; outdated: boolean }
 export interface ConsentItem { type_id: string; key: string; label: string; description: string; current: ConsentAnswer | null; history: ConsentAnswer[] }
@@ -30,6 +31,10 @@ export interface DataRegisterEntry {
 }
 type RegisterReply = { entries: DataRegisterEntry[]; school: string };
 
+export interface NoticeDraft { title: string; body: string; entries: number; sensitive: number; consent: { needed: boolean; exists: boolean; label: string } }
+export interface NoticeDeliveryRow { user_id: string; name: string; email: string; role: string; children: string; read: boolean; read_at: string | null }
+export interface NoticeDeliveryData { document: { title: string; version: number; published_at: string } | null; rows: NoticeDeliveryRow[]; summary: { people: number; read: number; not_read: number } }
+
 export const errorText = (e: any, fallback: string) => e?.response?.data?.error || fallback;
 
 const privacyService = {
@@ -41,7 +46,7 @@ const privacyService = {
   consent: (type: string, granted: boolean, student?: string) => api.post('/privacy/consent/', { type, granted, student }).then((r) => r.data),
   request: (kind: string, details: string, student?: string) => api.post('/privacy/requests/new/', { kind, details, student }).then((r) => r.data as { message: string }),
   photoConsent: (ids: string[]) => api.get('/privacy/photo-consent/', { params: { ids: ids.join(',') } }).then((r) => r.data.photo_consent as Record<string, boolean | null>),
-  documents: () => api.get('/privacy/documents/').then((r) => r.data as { documents: LegalDoc[]; template: { title: string; body: string }; history: LegalDoc[] }),
+  documents: () => api.get('/privacy/documents/').then((r) => r.data as LegalDocsReply),
   publishNotice: (title: string, body: string, summary: string) => api.post('/privacy/documents/', { title, body, summary }).then((r) => r.data),
   consentTypes: () => api.get('/privacy/consent-types/').then((r) => r.data.types as ConsentTypeRow[]),
   saveConsentType: (t: Partial<ConsentTypeRow>) => api.post('/privacy/consent-types/', t).then((r) => r.data.types as ConsentTypeRow[]),
@@ -50,6 +55,14 @@ const privacyService = {
     const res = await api.get('/privacy/consent-report/', { params: { type, export: 'csv' }, responseType: 'blob' });
     const href = URL.createObjectURL(res.data as Blob);
     const a = document.createElement('a'); a.href = href; a.download = 'consent.csv'; a.click(); URL.revokeObjectURL(href);
+  },
+  noticeDraft: (lang: string) => api.get('/privacy/notice-draft/', { params: { lang } }).then((r) => r.data as NoticeDraft),
+  ensureSensitiveConsent: (lang: string) => api.post('/privacy/notice-draft/', { ensure_consent: true, lang }).then((r) => r.data as { created: boolean; consent: { id: string; label: string } }),
+  noticeDelivery: (who: 'parents' | 'staff' | 'all') => api.get('/privacy/notice-delivery/', { params: { who } }).then((r) => r.data as NoticeDeliveryData),
+  noticeDeliveryCsv: async (who: 'parents' | 'staff' | 'all') => {
+    const res = await api.get('/privacy/notice-delivery/', { params: { who, export: 'csv' }, responseType: 'blob' });
+    const href = URL.createObjectURL(res.data as Blob);
+    const a = document.createElement('a'); a.href = href; a.download = 'notice-delivery.csv'; a.click(); URL.revokeObjectURL(href);
   },
   register: () => api.get('/privacy/register/').then((r) => r.data as RegisterReply),
   loadRegisterDefaults: (lang: string) => api.post('/privacy/register/', { action: 'load_defaults', lang }).then((r) => r.data as RegisterReply),

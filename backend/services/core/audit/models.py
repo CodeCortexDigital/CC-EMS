@@ -95,3 +95,19 @@ class AuditChainHead(models.Model):
     chain = models.CharField(max_length=40, primary_key=True)
     last_seq = models.PositiveBigIntegerField(default=0)
     last_hash = models.CharField(max_length=64, blank=True)
+
+
+class ChainAnchor(models.Model):
+    """The newest hash of a school's chain, sent to an outside time-stamping authority (RFC 3161) and kept with the signed reply.
+    Later, the record at that position must still have that hash; a rewritten history cannot match a hash an outsider signed."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    school = models.ForeignKey('core_tenants.School', null=True, blank=True, on_delete=models.CASCADE, related_name='chain_anchors')
+    chain = models.CharField(max_length=40, db_index=True)
+    seq = models.PositiveBigIntegerField()
+    head_hash = models.CharField(max_length=64)
+    authority = models.CharField(max_length=300)
+    token = models.BinaryField()                           # the authority's signed reply, as received (a .tsr file)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']

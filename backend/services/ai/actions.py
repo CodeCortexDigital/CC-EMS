@@ -74,6 +74,7 @@ def build_record(ctx: AIContext) -> dict:
     model was given, what the person asked, what data was sent to the model (after masking), the sources used and the controls on."""
     from django.conf import settings
 
+    from .controls import controls, user_accepted
     from .quota import feature_enabled
     from .settings_api import NOTICE_VERSION, notice_accepted
 
@@ -88,6 +89,8 @@ def build_record(ctx: AIContext) -> dict:
             'ai_chat_enabled': bool(feature_enabled('ai_chat', ctx)),
             'contact_details_shared': bool(getattr(settings, 'AI_SHARE_CONTACT_INFO', False)),
             'use_notice_version': NOTICE_VERSION, 'use_notice_accepted': bool(notice_accepted(ctx.tenant)),
+            'school_controls': controls(ctx.tenant), 'user_notice_accepted': bool(user_accepted(ctx.user, ctx.tenant)),
+            'name_masking': extra.get('masking') or {'on': False},
             'rate_limit_per_window': getattr(settings, 'AI_RATE_LIMIT', 0), 'rate_window_seconds': getattr(settings, 'AI_RATE_WINDOW', 0),
             'monthly_token_cap': getattr(settings, 'AI_TENANT_MONTHLY_TOKENS', 0),
             'approvals_required': approval_policy(ctx.tenant)['required'],

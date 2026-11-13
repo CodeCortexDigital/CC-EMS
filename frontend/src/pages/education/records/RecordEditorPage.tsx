@@ -154,6 +154,7 @@ export default function RecordEditorPage() {
       <PageHead title={rec.student_name} hint={`${rec.student_number} · ${rec.class_name || 'No class'} · ${LEVEL_LABEL[rec.level]}`}>
         <Link className={btnGhost} to={`/education/records/${rec.id}/print`}>Print / PDF</Link>
         {rec.level === 'junior_high' && <Link className={btnGhost} to={`/education/records/${rec.id}/chosasho`}>調査書</Link>}
+        <Link className={btnGhost} to={`/education/records/${rec.id}/transfer`}>転学・進学</Link>
         <button className={btnGhost} onClick={() => records.downloadCsv(rec.id).catch((e) => toast.error(errorText(e, 'Could not export.')))}>Export CSV</button>
         <button className={btnGhost} onClick={() => navigate('/education/records')}>Back</button>
       </PageHead>

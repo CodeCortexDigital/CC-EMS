@@ -16,6 +16,7 @@ interface Subject {
   code: string;
   credits: number;
   description: string;
+  curriculum_code?: string;
   created_at: string;
   updated_at: string;
 }
@@ -31,7 +32,8 @@ export default function SubjectsPage() {
     name: '',
     code: '',
     credits: 3,
-    description: ''
+    description: '',
+    curriculum_code: ''
   });
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function SubjectsPage() {
       }
       setShowAddModal(false);
       setEditingSubject(null);
-      setFormData({ name: '', code: '', credits: 3, description: '' });
+      setFormData({ name: '', code: '', credits: 3, description: '', curriculum_code: '' });
     } catch (error: any) {
       console.error('Error saving subject:', error);
       if (error.response?.data) {
@@ -143,7 +145,7 @@ export default function SubjectsPage() {
             <RefreshCw className="w-3.5 h-3.5" /> Reload
           </button>
           <button
-            onClick={() => { setEditingSubject(null); setFormData({ name: '', code: '', credits: 3, description: '' }); setShowAddModal(true); }}
+            onClick={() => { setEditingSubject(null); setFormData({ name: '', code: '', credits: 3, description: '', curriculum_code: '' }); setShowAddModal(true); }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> Add Subject
@@ -231,7 +233,8 @@ export default function SubjectsPage() {
                               name: subject.name,
                               code: subject.code || '',
                               credits: subject.credits || 3,
-                              description: subject.description || ''
+                              description: subject.description || '',
+                              curriculum_code: subject.curriculum_code || ''
                             });
                             setShowAddModal(true);
                           }}
@@ -289,6 +292,16 @@ export default function SubjectsPage() {
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                   placeholder="e.g., MATH101"
+                  className="text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Curriculum code (学習指導要領コード)</label>
+                <Input
+                  value={formData.curriculum_code}
+                  onChange={(e) => setFormData({ ...formData, curriculum_code: e.target.value.trim() })}
+                  placeholder="Optional, for matching with a board's data"
+                  maxLength={20}
                   className="text-sm"
                 />
               </div>

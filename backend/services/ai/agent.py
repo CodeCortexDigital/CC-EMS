@@ -19,6 +19,7 @@ from typing import Iterator
 from services.core.audit.models import AuditLog
 
 from .context import AIContext
+from .controls import NameMask, controls
 from .llm.base import LLMClient, Usage
 from .tools import ToolNotAllowed, call_tool, get_tools_for_role, redact_for_llm
 
@@ -86,6 +87,11 @@ TOOL_LABELS = {
     "staff_payroll_overview": "Checking payroll",
 }
 
+MASK_RULE = (
+    "\n\nStudent names are replaced by tokens such as [Student 1]. Use a token exactly as written whenever you mean that student, "
+    "and never write or guess a real name."
+)
+
 REFUSAL_REPLY = "Sorry, I can't help with that request."
 TRUNCATED_REPLY = "Sorry, that answer was too long to finish. Please ask a narrower question."
 
@@ -118,6 +124,14 @@ def run_agent(ctx: AIContext, history: list[dict], llm: LLMClient, *, stream: bo
     tools = get_tools_for_role(ctx.role)
     messages = list(history)
     result = AgentResult(reply="")
+    # With the school's name masking on, student names never leave the server: the question and the tool output carry tokens
+    # ([Student 1]); the names are put back into the answer shown to the person (controls.NameMask).
+    mask = NameMask.for_school(ctx) if controls(ctx.tenant)['mask_names'] else None
+    if mask is not None:
+        system += MASK_RULE
+        messages = [{**m, "content": mask.mask(m["content"])} if isinstance(m.get("content"), str) else m for m in messages]
+        history = messages
+    streamer = mask.streamer() if mask is not None else None
     # What a decision record needs to say about this answer (see actions.build_record).
     ctx.extra.update({
         'llm_provider': getattr(llm, 'provider', '') or '', 'llm_model': (llm.model_for('fast') if hasattr(llm, 'model_for') else ''),
@@ -136,9 +150,15 @@ def run_agent(ctx: AIContext, history: list[dict], llm: LLMClient, *, stream: bo
         if stream:
             for ev in llm.stream(system=system, messages=messages, tools=tools, tier="fast"):
                 if ev.type == "text":
-                    yield {"type": "token", "text": ev.text}
+                    text = streamer.feed(ev.text) if streamer else ev.text
+                    if text:
+                        yield {"type": "token", "text": text}
                 else:
                     turn = ev.turn
+            if streamer:
+                rest = streamer.flush()
+                if rest:
+                    yield {"type": "token", "text": rest}
         else:
             turn = llm.respond(system=system, messages=messages, tools=tools, tier="fast")
 
@@ -158,7 +178,7 @@ def run_agent(ctx: AIContext, history: list[dict], llm: LLMClient, *, stream: bo
         outputs = []
         for call in turn.tool_calls:
             yield {"type": "tool_start", "name": call.name, "label": TOOL_LABELS.get(call.name, "Looking up your data")}
-            content, ok = _execute(ctx, call.name, call.arguments)
+            content, ok = _execute(ctx, call.name, call.arguments, mask)
             if len(ctx.extra['tool_outputs']) < 8:
                 ctx.extra['tool_outputs'].append({'tool': call.name, 'arguments': call.arguments, 'sent_to_model': content[:3000]})
             result.tool_log.append({"name": call.name, "arguments": call.arguments, "ok": ok})
@@ -166,19 +186,27 @@ def run_agent(ctx: AIContext, history: list[dict], llm: LLMClient, *, stream: bo
             yield {"type": "tool_end", "name": call.name, "ok": ok}
         messages.extend(llm.tool_results(outputs))
 
+    if mask is not None:
+        # A real name in the model's own reply means it came from somewhere other than what we sent (a part of a name, its own
+        # knowledge). It is shown, but flagged in the decision record so the school can see it happened.
+        ctx.extra["masking"] = {"on": True, "names_replaced": mask.count, "name_in_answer": mask.leaked(result.reply)}
+        result.reply = mask.restore(result.reply)
+    else:
+        ctx.extra["masking"] = {"on": False}
     result.sources = [{"id": k, "title": v} for k, v in ctx.extra.get("sources", {}).items()]
     yield {"type": "done", "result": result}
 
 
-def _execute(ctx: AIContext, name: str, arguments: dict) -> tuple[str, bool]:
+def _execute(ctx: AIContext, name: str, arguments: dict, mask: NameMask | None = None) -> tuple[str, bool]:
     try:
-        data = call_tool(name, arguments, ctx)
+        data = call_tool(name, mask.restore_data(arguments) if mask else arguments, ctx)
         ok = not (isinstance(data, dict) and "error" in data)
         _audit(ctx, "VIEW", name, arguments, data)
     except ToolNotAllowed:
         data, ok = {"error": "This data is not available for your role."}, False
         _audit(ctx, "PERMISSION_DENIED", name, arguments, None)
-    text = json.dumps(redact_for_llm(data), default=str, ensure_ascii=False)
+    safe = redact_for_llm(data)
+    text = json.dumps(mask.mask_data(safe) if mask else safe, default=str, ensure_ascii=False)
     if len(text) > MAX_TOOL_RESULT_CHARS:
         text = text[:MAX_TOOL_RESULT_CHARS] + ' ... [result truncated - ask a narrower question for the rest]'
     return text, ok

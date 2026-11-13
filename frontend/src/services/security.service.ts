@@ -17,6 +17,19 @@ export interface ActivityRow {
   area: string; path: string; record_id: string | null; method: string; ip: string | null;
 }
 
+export interface AlertLimits { views: number; night_views: number; exports: number; refused: number }
+export interface AccessAlertRow {
+  id: string; kind: string; kind_label: string; who: string; email: string; window_start: string; window_end: string; count: number; limit: number;
+  status: 'open' | 'reviewed' | 'dismissed'; status_label: string; note: string; reviewed_by: string; reviewed_at: string | null; created_at: string;
+}
+export interface AccessAlertList { results: AccessAlertRow[]; open: number; new: number; limits: AlertLimits; defaults: AlertLimits; kinds: Record<string, string> }
+export interface BreachDraft { title: string; sections: Array<{ heading: string; text: string }>; guidance: string[]; note: string; school: string; prepared_on: string; alert: string }
+
+export interface AccessReviewRow {
+  user_id: string; who: string; email: string; role: string; views: number; students_viewed: number; exports: number; prints: number; refused: number; last: string;
+}
+export interface AccessReview { days: number; since: string; results: AccessReviewRow[]; totals: { views: number; exports: number; prints: number; refused: number } }
+
 export interface SignInRow {
   id: string; when: string; email: string; user_id: string | null; who: string;
   outcome: 'success' | 'failed' | 'locked' | 'disabled'; outcome_label: string; method: string; ip: string | null; device: string;
@@ -30,10 +43,22 @@ export interface Person {
 }
 
 export interface Overview {
-  people: number; admins: number; locked: number; disabled: number; never_signed_in: number; deletion_requests: number;
+  people: number; admins: number; locked: number; disabled: number; never_signed_in: number; deletion_requests: number; access_alerts_open?: number;
   week: { sign_ins: number; failed: number; blocked: number; changes: number; refused: number };
   rules: SecurityRules;
 }
+
+export interface TimestampState {
+  enabled: boolean; authority: string; records: number; newest_hash: string; up_to_date: boolean; how_to_check: string;
+  chain: { ok: boolean; problems: string[] };
+  stamps: Array<{ id: string; seq: number; hash: string; authority: string; at: string }>;
+}
+
+export interface AssessmentItem {
+  key: string; area: string; text: string; status: 'met' | 'partly' | 'open'; evidence: string; source: 'system' | 'school';
+  answer?: string; answered_by?: string; answered_at?: string | null;
+}
+export interface SelfAssessment { items: AssessmentItem[]; summary: { met: number; partly: number; open: number; total: number }; disclaimer: string; generated_at: string }
 
 export type PersonAction = 'unlock' | 'sign_out' | 'disable' | 'enable' | 'reset_two_factor';
 type Query = Record<string, string | number | undefined>;
@@ -57,6 +82,20 @@ const securityService = {
   saveSettings: (patch: Partial<SecurityRules>) => api.put('/security/settings/', patch).then((r) => r.data as { settings: SecurityRules }),
   activity: (q: Query) => api.get('/security/activity/', { params: clean(q) }).then((r) => r.data as Paged<ActivityRow> & { areas: string[]; actions: Record<string, string> }),
   exportActivity: (q: Query) => download('/security/activity/', { ...q, export: 'csv' }, 'activity-log.csv'),
+  accessAlerts: () => api.get('/security/access-alerts/').then((r) => r.data as AccessAlertList),
+  saveAlertLimits: (limits: AlertLimits) => api.put('/security/access-alerts/', { limits }).then((r) => r.data as AccessAlertList),
+  updateAlert: (id: string, status: 'open' | 'reviewed' | 'dismissed', note: string) => api.post(`/security/access-alerts/${id}/`, { status, note }).then((r) => r.data as AccessAlertRow),
+  alertReport: (id: string, lang: 'ja' | 'en') => api.get(`/security/access-alerts/${id}/report/`, { params: { lang } }).then((r) => r.data as BreachDraft),
+  accessReview: (days: number) => api.get('/security/access-review/', { params: { days } }).then((r) => r.data as AccessReview),
+  exportAccessReview: (days: number) => download('/security/access-review/', { days, export: 'csv' }, 'access-review.csv'),
+  /** Tell the server a record was printed (the browser prints on the person's own computer). Never blocks the print. */
+  logPrint: (what: 'records' | 'term-report' | 'chosasho', id: string) => { api.post('/security/print-log/', { what, id }).catch(() => undefined); },
+  selfAssessment: () => api.get('/security/self-assessment/').then((r) => r.data as SelfAssessment),
+  answerAssessment: (key: string, answer: 'yes' | 'partly' | 'no' | '', note: string) => api.put('/security/self-assessment/', { key, answer, note }).then((r) => r.data as SelfAssessment),
+  downloadAssessment: () => download('/security/self-assessment/', { export: 'csv' }, 'self-assessment.csv'),
+  timestamps: () => api.get('/security/timestamps/').then((r) => r.data as TimestampState),
+  stampNow: () => api.post('/security/timestamps/').then((r) => r.data as TimestampState),
+  downloadStamp: (id: string, seq: number) => download(`/security/timestamps/${id}/`, {}, `chain-${seq}.tsr`),
   signIns: (q: Query) => api.get('/security/sign-ins/', { params: clean(q) }).then((r) => r.data as Paged<SignInRow> & { outcomes: Record<string, string> }),
   exportSignIns: (q: Query) => download('/security/sign-ins/', { ...q, export: 'csv' }, 'sign-ins.csv'),
   people: (q: Query) => api.get('/security/people/', { params: clean(q) }).then((r) => r.data as Paged<Person> & { roles: { code: string; label: string; count: number }[] }),

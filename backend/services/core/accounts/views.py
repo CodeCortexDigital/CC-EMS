@@ -335,6 +335,12 @@ class StudentListCreateView(generics.ListCreateAPIView):
     def get_serializer_class(self):
         return StudentSerializer
 
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        from services.education.students.access import audit_personal_view
+        audit_personal_view(request, 'students/list')
+        return response
+
 
 class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
@@ -370,6 +376,9 @@ class StudentDetailView(generics.RetrieveUpdateDestroyAPIView):
             raise Http404("Student not found")
 
         self.check_object_permissions(self.request, obj)
+        if self.request.method == 'GET':
+            from services.education.students.access import audit_personal_view
+            audit_personal_view(self.request, 'students/profile', obj.pk)
         return obj
     
     def get_serializer_class(self):

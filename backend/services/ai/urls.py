@@ -11,6 +11,8 @@ urlpatterns = [
     path("settings/", settings_api.ai_settings, name="ai-settings"),
     path("settings/accept-notice/", settings_api.accept_notice, name="ai-accept-notice"),
     path("settings/training-confirmation/", settings_api.set_training_confirmation, name="ai-training-confirmation"),
+    path("settings/controls/", settings_api.set_controls, name="ai-controls"),
+    path("user-notice/", settings_api.user_notice, name="ai-user-notice"),
     path("capabilities/", settings_api.capabilities, name="ai-capabilities"),
     # Governed AI: approvals for what the assistant asks to do, and the school documents it may quote
     path("governance/actions/", governance_api.action_list, name="ai-gov-actions"),

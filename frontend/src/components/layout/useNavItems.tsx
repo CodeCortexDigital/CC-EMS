@@ -155,6 +155,7 @@ export function useNavItems(): MenuItem[] {
     { id: 'security', label: 'Security & privacy', icon: <Lock className="w-4 h-4" />, href: '/settings/security', group: 'admin' },
     { id: 'help', label: 'Help & support', icon: <LifeBuoy className="w-4 h-4" />, href: '/help', always: true, group: 'settings' },
     { id: 'import-data', label: 'Import data', icon: <FileSpreadsheet className="w-4 h-4" />, href: '/education/import', group: 'admin' },
+    { id: 'mext-standards', label: 'MEXT standards', icon: <FileSpreadsheet className="w-4 h-4" />, href: '/education/mext-standards', group: 'admin' },
     { id: 'ai-settings', label: 'AI Assistant', icon: <Sparkles className="w-4 h-4" />, href: '/settings/ai', group: 'admin' },
     { id: 'integrations', label: 'Integrations', icon: <Plug className="w-4 h-4" />, href: '/settings/integrations', group: 'admin' },
     { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" />, href: '/settings', group: 'settings' },

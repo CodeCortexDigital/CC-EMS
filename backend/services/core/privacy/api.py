@@ -223,7 +223,10 @@ def documents(request):
         accepted = DocumentAcceptance.objects.filter(document=doc, user_id__in=people).count()
         rows.append({**_doc(doc, doc.school_id is not None), 'accepted': accepted, 'people': len(people)})
     title, body = service.school_template(school)
+    notice = service.current('school_privacy', school)
+    newest = DataHandlingEntry.objects.filter(school=school).order_by('-reviewed_at').values_list('reviewed_at', flat=True).first()
     return Response({'documents': rows, 'template': {'title': title, 'body': body},
+                     'register_newer': bool(notice and newest and newest > notice.published_at),
                      'history': [_doc(d, False) for d in LegalDocument.objects.filter(school=school)]})
 
 
@@ -610,3 +613,76 @@ def data_register(request):
                         'yes' if e.sensitive else 'no', 'yes' if e.needs_consent else 'no', timezone.localtime(e.reviewed_at).date().isoformat()])
         return resp
     return Response({'entries': [_entry(e) for e in rows_], 'school': school.name})
+
+
+# ---- Notice of the purposes of use: draft from the register, delivery record, consent for sensitive information -------------------
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def notice_draft(request):
+    """GET ``?lang=ja|en``: a notice of the purposes of use drafted from the data handling register (nothing is saved or published; the administrator
+    edits it and publishes it as the school's privacy notice, which every family and staff member is then asked to read). POST ``{"ensure_consent": true}``:
+    add the consent question for sensitive information (要配慮個人情報) if the school has none."""
+    denied = _admin(request)
+    if denied:
+        return denied
+    school, lang = request.tenant, request.GET.get('lang') or (request.data or {}).get('lang') or 'ja'
+    if request.method == 'POST':
+        if not (request.data or {}).get('ensure_consent'):
+            return Response({'error': 'Nothing to do.'}, status=status.HTTP_400_BAD_REQUEST)
+        q, created = service.ensure_sensitive_consent(school, lang)
+        return Response({'created': created, 'consent': {'id': str(q.id), 'label': q.label}})
+    draft = service.notice_from_register(school, lang)
+    if draft is None:
+        return Response({'error': 'The data handling register is empty. Add the standard list there first.'}, status=status.HTTP_400_BAD_REQUEST)
+    entries = DataHandlingEntry.objects.filter(school=school, is_active=True)
+    sensitive = entries.filter(sensitive=True).count()
+    q = service.sensitive_consent(school)
+    return Response({'title': draft[0], 'body': draft[1], 'entries': entries.count(), 'sensitive': sensitive,
+                     'consent': {'needed': sensitive > 0, 'exists': q is not None, 'label': q.label if q else ''}})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def notice_delivery(request):
+    """Who has read the school's current privacy notice and when, for the follow-up with families who have not (``?who=parents|staff|all``, ``&export=csv``)."""
+    denied = _admin(request)
+    if denied:
+        return denied
+    from django.contrib.auth import get_user_model
+
+    from services.core.security.access import ROLE_LABELS, school_people
+
+    school = request.tenant
+    doc = service.current('school_privacy', school)
+    if doc is None:
+        return Response({'document': None, 'rows': [], 'summary': {'people': 0, 'read': 0, 'not_read': 0}})
+    who = request.GET.get('who') or 'parents'
+    people = {uid: role for uid, role in school_people(school).items()
+              if who == 'all' or (who == 'parents' and role == 'parent') or (who == 'staff' and role not in ('parent', 'student'))}
+    accepted = {a.user_id: a for a in DocumentAcceptance.objects.filter(document=doc, user_id__in=list(people))}
+    users = {u.pk: u for u in get_user_model().objects.filter(pk__in=list(people))}
+    kids = {}
+    if who in ('parents', 'all'):
+        ParentProfile = apps.get_model('core_accounts', 'ParentProfile')
+        for pp in ParentProfile.objects.filter(user_id__in=list(people)).prefetch_related('linked_students'):
+            kids[pp.user_id] = ', '.join(s.full_name for s in pp.linked_students.all() if s.tenant_id == school.id)
+    rows = []
+    for uid, role in people.items():
+        u, a = users.get(uid), accepted.get(uid)
+        if u is None:
+            continue
+        rows.append({'user_id': str(uid), 'name': _name(u), 'email': u.email, 'role': ROLE_LABELS.get(role, role), 'children': kids.get(uid, ''),
+                     'read': a is not None, 'read_at': _local(a.accepted_at) if a else None})
+    rows.sort(key=lambda r: (r['read'], r['name']))
+    summary = {'people': len(rows), 'read': sum(1 for r in rows if r['read']), 'not_read': sum(1 for r in rows if not r['read'])}
+    if request.GET.get('export') == 'csv':
+        resp = HttpResponse(content_type='text/csv; charset=utf-8')
+        resp['Content-Disposition'] = 'attachment; filename="notice-delivery.csv"'
+        resp.write('\ufeff')
+        w = csv.writer(resp)
+        w.writerow(['Name', 'Email', 'Role', 'Children', 'Read', 'Read at'])
+        for r in rows:
+            w.writerow([r['name'], r['email'], r['role'], r['children'], 'yes' if r['read'] else 'no', r['read_at'] or ''])
+        return resp
+    return Response({'document': {'title': doc.title, 'version': doc.version, 'published_at': _local(doc.published_at)}, 'rows': rows, 'summary': summary})

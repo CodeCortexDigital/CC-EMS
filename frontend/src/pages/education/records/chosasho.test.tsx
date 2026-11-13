@@ -7,8 +7,10 @@ const role = vi.hoisted(() => ({ current: 'admin' }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ role: role.current }) }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('@/services/chosasho.service', () => ({ default: { get: vi.fn(), issue: vi.fn(), issued: vi.fn() } }));
+vi.mock('@/services/security.service', () => ({ default: { logPrint: vi.fn() } }));
 
 import chosasho, { Chosasho } from '@/services/chosasho.service';
+import security from '@/services/security.service';
 import ChosashoPage, { ChosashoPrint } from './ChosashoPage';
 
 const m = chosasho as unknown as Record<string, ReturnType<typeof vi.fn>>;
@@ -74,5 +76,13 @@ describe('調査書 page', () => {
     const text = (render(<ChosashoPrint data={data()} />).container.textContent) || '';
     expect(text).toContain('調査書');
     expect(text).not.toContain('御中');
+  });
+
+  it('reports a print so the access log has it', async () => {
+    const print = vi.spyOn(window, 'print').mockImplementation(() => undefined);
+    open(data());
+    fireEvent.click(await screen.findByText('Print / PDF'));
+    expect((security as any).logPrint).toHaveBeenCalledWith('chosasho', 'r1');
+    expect(print).toHaveBeenCalled();
   });
 });

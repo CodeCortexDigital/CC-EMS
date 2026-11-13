@@ -87,6 +87,18 @@ class AIUsage(models.Model):
         indexes = [models.Index(fields=['tenant', 'date']), models.Index(fields=['user', 'date'])]
 
 
+class AIUserNotice(models.Model):
+    """A person's acceptance of the AI use notice, per school and notice version (see controls.py)."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey('core_tenants.School', on_delete=models.CASCADE, related_name='ai_user_notices')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='ai_notices')
+    version = models.PositiveIntegerField(default=1)
+    accepted_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['tenant', 'user'], name='ai_user_notice_one_per_school')]
+
+
 class KnowledgeDocument(TenantScopedModel):
     """A school document the assistant may quote from: handbook, policies, fee rules, calendar notes.
 

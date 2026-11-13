@@ -114,6 +114,24 @@ export default function AiSettingsPage() {
         )}
       </section>
 
+      <section className={card} aria-label="AI controls">
+        <h2 className="font-bold text-sm mb-1">Rules for using AI at your school</h2>
+        <p className="text-xs text-slate-600 mb-2">These are off until you switch them on, so nothing stops without warning. Each change is recorded with your name and time. They apply while an AI provider is connected.</p>
+        <ul className="divide-y divide-slate-100">
+          {([
+            ['require_user_notice', 'Everyone accepts the AI use notice first', `Each person reads a short notice and accepts it before their first use. ${data.controls.accepted_by} ${data.controls.accepted_by === 1 ? 'person has' : 'people have'} accepted it so far.`],
+            ['require_training', 'Pause AI until the provider’s no-training confirmation is recorded', 'No AI request is sent while the record above is missing, or is for a different provider than the one in use.'],
+            ['mask_names', 'Replace student names before anything is sent', 'Student names in questions and in the school information the AI reads are replaced by codes and put back in the answer. Only names as written in the student record are replaced, and an answer that shows a real name is marked in its record.'],
+          ] as const).map(([key, label, text]) => (
+            <li key={key} className="py-2.5 flex items-start gap-3">
+              <div className="mr-auto"><p className="font-semibold text-sm">{label}</p><p className="text-xs text-slate-500">{text}</p></div>
+              <input type="checkbox" role="switch" aria-label={label} checked={data.controls[key]} disabled={busy}
+                onChange={(e) => run(() => aiSettings.setControl({ [key]: e.target.checked }), e.target.checked ? 'Switched on.' : 'Switched off.')} />
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <section className={`${card} ${notice.accepted ? '' : 'border-amber-300'}`} aria-label="AI use notice">
         <h2 className="font-bold text-sm mb-1 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-emerald-700" />How AI is used at your school</h2>
         <p className="text-sm text-slate-700 leading-relaxed">{notice.text}</p>

@@ -122,6 +122,8 @@ class Subject(models.Model):
     code = models.CharField(max_length=20)
     credits = models.IntegerField(default=3)
     description = models.TextField(blank=True)
+    # The code of this subject in the national curriculum guidelines (学習指導要領コード), for matching with a board of education's or MEXT's data.
+    curriculum_code = models.CharField(max_length=20, blank=True, default='')
     # Course catalog (used for transcripts and GPA in secondary schools).
     department = models.CharField(max_length=60, blank=True, default='')
     level = models.CharField(max_length=12, blank=True, default='standard', choices=[

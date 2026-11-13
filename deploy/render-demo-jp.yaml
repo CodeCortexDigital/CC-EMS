@@ -101,6 +101,8 @@ services:
       # The password is typed here in the Render dashboard (same one as DEMO_ADMIN_PASSWORD on the backend); it is shown on the page, so keep this site to sample data.
       - key: VITE_DEMO_LOGINS
         value: "true"
+      - key: VITE_DEMO_LABEL
+        value: "Demonstration site. 体験用サイト: 氏名・数値はすべて架空のサンプルです。"
       - key: VITE_DEMO_ADMIN_EMAIL
         value: masato@admin.com
       - key: VITE_DEMO_ADMIN_REPLACE

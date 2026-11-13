@@ -456,6 +456,8 @@ def student_profile(request, id):
     from .serializers import StudentSerializer
 
     student = _student_or_404(request, id)
+    from .access import audit_personal_view
+    audit_personal_view(request, 'students/profile', student.pk)
     if not student.household_id and is_admin(request.user):
         ensure_household(student)
 
