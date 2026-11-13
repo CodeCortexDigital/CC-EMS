@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import chosasho_views as cs
+from . import oneroster
 from . import standards_views as st
 from . import transfer_views as tf
 from . import termreport_views as tr
@@ -13,6 +14,7 @@ urlpatterns = [
     path('form/<str:level>/', views.form_definition),
     path('retention/', tf.retention_view),
     path('standards/', st.standards),
+    path('oneroster/', oneroster.export),
     path('external-ids/', st.external_ids),
     path('term-layouts/', tr.layouts),
     path('term/roster/', tr.roster),

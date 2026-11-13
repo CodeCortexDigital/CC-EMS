@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import api, retention, setup_checks, twofactor_api
+from . import api, retention, setup_checks, trust, twofactor_api
 
 urlpatterns = [
     path('rules/', api.rules_for_me),
@@ -13,6 +13,9 @@ urlpatterns = [
     path('access-alerts/<uuid:alert_id>/', api.access_alert_update),
     path('access-alerts/<uuid:alert_id>/report/', api.access_alert_report),
     path('print-log/', api.print_log),
+    path('self-assessment/', trust.self_assessment),
+    path('timestamps/', trust.timestamps),
+    path('timestamps/<uuid:anchor_id>/', trust.timestamp_token),
     path('people/', api.people),
     path('people/<uuid:user_id>/', api.person_action),
     path('roles/', api.roles),

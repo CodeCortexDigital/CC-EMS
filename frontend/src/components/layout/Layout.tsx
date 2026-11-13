@@ -15,6 +15,7 @@ import TwoStepGate from '@/components/security/TwoStepGate';
 import { usePlanStore } from '@/store/planStore';
 import GuidedTour from '@/components/tour/GuidedTour';
 import { useLocation } from 'react-router-dom';
+import DemoBanner from '@/components/common/DemoBanner';
 
 /** Thin accent bar that sweeps across the top on every route change. */
 function RouteProgress() {
@@ -103,9 +104,7 @@ export function Layout({ children }: LayoutProps) {
           {topMenu && <TopNav />}
         </div>
         <SubscriptionBanner />
-        {import.meta.env.VITE_DEMO_LOGINS === 'true' && (
-          <p role="note" className="bg-amber-50 px-3 py-1 text-center text-xs font-medium text-amber-900">Sample data: every student, staff member and figure here is made up for demonstration.</p>
-        )}
+        <DemoBanner />
         <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-3 outline-none">
           {children || <Outlet />}
         </main>

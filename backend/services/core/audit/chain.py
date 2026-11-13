@@ -95,4 +95,7 @@ def verify(chain: str | None = None) -> dict:
         if head and (head.last_seq != last_seq or head.last_hash != prev):
             problems.append(f'{name}: the newest record does not match what was last written (records at the end were removed or changed)')
         heads[name] = prev
+    from . import anchors
+
+    problems += anchors.check(chain)                         # against the hashes an outside authority has time-stamped
     return {'ok': not problems, 'chains': len(names), 'records': records, 'problems': problems, 'heads': heads}

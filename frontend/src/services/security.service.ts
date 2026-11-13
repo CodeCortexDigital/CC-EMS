@@ -48,6 +48,18 @@ export interface Overview {
   rules: SecurityRules;
 }
 
+export interface TimestampState {
+  enabled: boolean; authority: string; records: number; newest_hash: string; up_to_date: boolean; how_to_check: string;
+  chain: { ok: boolean; problems: string[] };
+  stamps: Array<{ id: string; seq: number; hash: string; authority: string; at: string }>;
+}
+
+export interface AssessmentItem {
+  key: string; area: string; text: string; status: 'met' | 'partly' | 'open'; evidence: string; source: 'system' | 'school';
+  answer?: string; answered_by?: string; answered_at?: string | null;
+}
+export interface SelfAssessment { items: AssessmentItem[]; summary: { met: number; partly: number; open: number; total: number }; disclaimer: string; generated_at: string }
+
 export type PersonAction = 'unlock' | 'sign_out' | 'disable' | 'enable' | 'reset_two_factor';
 type Query = Record<string, string | number | undefined>;
 
@@ -78,6 +90,12 @@ const securityService = {
   exportAccessReview: (days: number) => download('/security/access-review/', { days, export: 'csv' }, 'access-review.csv'),
   /** Tell the server a record was printed (the browser prints on the person's own computer). Never blocks the print. */
   logPrint: (what: 'records' | 'term-report' | 'chosasho', id: string) => { api.post('/security/print-log/', { what, id }).catch(() => undefined); },
+  selfAssessment: () => api.get('/security/self-assessment/').then((r) => r.data as SelfAssessment),
+  answerAssessment: (key: string, answer: 'yes' | 'partly' | 'no' | '', note: string) => api.put('/security/self-assessment/', { key, answer, note }).then((r) => r.data as SelfAssessment),
+  downloadAssessment: () => download('/security/self-assessment/', { export: 'csv' }, 'self-assessment.csv'),
+  timestamps: () => api.get('/security/timestamps/').then((r) => r.data as TimestampState),
+  stampNow: () => api.post('/security/timestamps/').then((r) => r.data as TimestampState),
+  downloadStamp: (id: string, seq: number) => download(`/security/timestamps/${id}/`, {}, `chain-${seq}.tsr`),
   signIns: (q: Query) => api.get('/security/sign-ins/', { params: clean(q) }).then((r) => r.data as Paged<SignInRow> & { outcomes: Record<string, string> }),
   exportSignIns: (q: Query) => download('/security/sign-ins/', { ...q, export: 'csv' }, 'sign-ins.csv'),
   people: (q: Query) => api.get('/security/people/', { params: clean(q) }).then((r) => r.data as Paged<Person> & { roles: { code: string; label: string; count: number }[] }),

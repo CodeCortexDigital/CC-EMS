@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import standards, { errorText, ExternalIdList, ExternalIdRow } from '@/services/standards.service';
+import RosterExport from './RosterExport';
 import { btn, btnGhost, card, Empty, input, PageHead, Pill, Spinner } from '../hr/ui';
 
 /** MEXT education data standards (administrators): the school's MEXT school code, and the IDs other systems use for our students and teachers. */
@@ -36,6 +37,7 @@ export default function MextStandardsPage() {
     <div className="p-4 sm:p-6 space-y-4">
       <PageHead title="MEXT standards" hint="The school code and the IDs other systems use, so data can be matched by ID instead of by name. The curriculum code of each subject is set on the Subjects page." />
 
+      <RosterExport />
       <section className={card} aria-label="MEXT school code">
         <h2 className="font-bold text-sm mb-1">MEXT school code (学校コード)</h2>
         <p className="text-xs text-slate-600 mb-2">A letter and twelve digits, for example B113110000012. Only the shape is checked here, not whether it is on MEXT's list.</p>

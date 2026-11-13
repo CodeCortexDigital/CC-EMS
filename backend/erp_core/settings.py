@@ -613,6 +613,8 @@ AI_RATE_LIMIT = int(os.environ.get("AI_RATE_LIMIT", "30"))
 AI_RATE_WINDOW = int(os.environ.get("AI_RATE_WINDOW", "600"))
 AI_TENANT_MONTHLY_TOKENS = int(os.environ.get("AI_TENANT_MONTHLY_TOKENS", "0"))
 # When False, phone/email/CNIC/address are masked in data sent to external LLMs.
+# An RFC 3161 time-stamping authority for the audit chain (only a hash is sent). Empty = off. See services/core/audit/anchors.py.
+TIMESTAMP_AUTHORITY_URL = os.environ.get("TIMESTAMP_AUTHORITY_URL", "").strip()
 AI_SHARE_CONTACT_INFO = os.environ.get("AI_SHARE_CONTACT_INFO", "False").lower() in ("1", "true", "yes")
 
 

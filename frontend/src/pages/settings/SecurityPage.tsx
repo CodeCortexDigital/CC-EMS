@@ -14,13 +14,14 @@ import DataPanel from '@/components/security/DataPanel';
 import PrivacyAdminPanel from '@/components/privacy/PrivacyAdminPanel';
 import AccessReviewPanel from '@/components/security/AccessReviewPanel';
 import AccessAlerts from '@/components/security/AccessAlerts';
+import TrustPanel from '@/components/security/TrustPanel';
 
 const card = 'bg-white rounded-xl border border-slate-200 shadow-sm';
 const input = 'rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white';
 const errorText = (e: any, fallback: string) => e?.response?.data?.error || fallback;
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' } as any) : '—');
 
-type Tab = 'overview' | 'people' | 'sign-ins' | 'activity' | 'access' | 'emails' | 'roles' | 'rules' | 'privacy' | 'data' | 'mine';
+type Tab = 'overview' | 'people' | 'sign-ins' | 'activity' | 'access' | 'emails' | 'roles' | 'rules' | 'privacy' | 'trust' | 'data' | 'mine';
 const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
   { id: 'overview', label: 'Overview', icon: ShieldCheck },
   { id: 'people', label: 'People & access', icon: Users },
@@ -31,6 +32,7 @@ const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
   { id: 'roles', label: 'Roles & access', icon: Activity },
   { id: 'rules', label: 'Rules & retention', icon: SlidersHorizontal },
   { id: 'privacy', label: 'Privacy & consent', icon: FileLock2 },
+  { id: 'trust', label: 'Trust & evidence', icon: FileLock2 },
   { id: 'data', label: 'Data export & deletion', icon: Database },
   { id: 'mine', label: 'My sign-ins & data', icon: UserRound },
 ];
@@ -63,6 +65,7 @@ export default function SecurityPage() {
       {tab === 'roles' && <RolesTab />}
       {tab === 'rules' && <RulesTab />}
       {tab === 'privacy' && <PrivacyAdminPanel />}
+      {tab === 'trust' && <TrustPanel />}
       {tab === 'data' && <DataPanel />}
       {tab === 'mine' && <MySecurityPanel />}
     </div>

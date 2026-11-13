@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('@/services/standards.service', async (orig) => {
   const actual = await orig<typeof import('@/services/standards.service')>();
-  return { ...actual, default: { get: vi.fn(), saveSchoolCode: vi.fn(), ids: vi.fn(), importCsv: vi.fn(), remove: vi.fn(), exportCsv: vi.fn() } };
+  return { ...actual, default: { get: vi.fn(), saveSchoolCode: vi.fn(), ids: vi.fn(), importCsv: vi.fn(), remove: vi.fn(), exportCsv: vi.fn(), rosterPreview: vi.fn(), downloadRoster: vi.fn() } };
 });
 
 import standards from '@/services/standards.service';
@@ -14,10 +14,14 @@ import MextStandardsPage from './MextStandardsPage';
 const m = standards as unknown as Record<string, ReturnType<typeof vi.fn>>;
 const row = (over = {}) => ({ id: 'e1', kind: 'student', local_id: 'WKG-0001', name: '山田 太郎', system: '教育委員会', external_id: 'S-1', ...over });
 
+const preview = (over = {}) => ({ files: { users: 12, classes: 5, courses: 3, enrollments: 30, orgs: 1, academicSessions: 2 }, skipped: { students_without_class: 0, teachers_inactive: 0 },
+  left_out: ['Parents and guardians', 'Phone numbers, addresses and passwords', 'Email addresses'], contacts_included: false, school_code: '', ...over });
+
 beforeEach(() => {
   vi.clearAllMocks(); cleanup();
   m.get.mockResolvedValue({ school_code: '', systems: [] });
   m.ids.mockResolvedValue({ results: [], systems: [] });
+  m.rosterPreview.mockResolvedValue(preview());
 });
 
 describe('MEXT standards page', () => {
@@ -72,3 +76,27 @@ describe('MEXT standards page', () => {
     expect(await screen.findByText(/No IDs saved/)).toBeTruthy();
   });
 });
+
+describe('Roster export (OneRoster)', () => {
+  it('shows what is in it and what is left out, and downloads it', async () => {
+    m.downloadRoster.mockResolvedValue(undefined);
+    render(<MextStandardsPage />);
+    expect(await screen.findByText(/12 people, 5 classes, 3 subjects, 30 enrolments/)).toBeTruthy();
+    expect(screen.getByText(/Left out: Parents and guardians/)).toBeTruthy();
+    fireEvent.click(screen.getByText('Download the roster (zip)'));
+    await waitFor(() => expect(m.downloadRoster).toHaveBeenCalledWith(false));
+  });
+
+  it('contacts are only included when ticked', async () => {
+    render(<MextStandardsPage />);
+    fireEvent.click(await screen.findByLabelText(/Include email addresses and phone numbers/));
+    await waitFor(() => expect(m.rosterPreview).toHaveBeenLastCalledWith(true));
+  });
+
+  it('says how many students are listed but not enrolled', async () => {
+    m.rosterPreview.mockResolvedValue(preview({ skipped: { students_without_class: 2, teachers_inactive: 0 } }));
+    render(<MextStandardsPage />);
+    expect(await screen.findByText(/2 students have no class yet/)).toBeTruthy();
+  });
+});
+
