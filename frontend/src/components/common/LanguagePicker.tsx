@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Globe, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES, languageByCode } from '@/i18n/languages';
@@ -50,11 +51,22 @@ export function LanguageMenuButton({
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left?: number; right?: number }>({ top: 56 });
   const current = languageByCode(value || schoolDefault || 'en');
 
   useEffect(() => {
     if (!open) return;
-    const close = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    const r = ref.current?.getBoundingClientRect();
+    if (r) {
+      setPos(align === 'right'
+        ? { top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) }
+        : { top: r.bottom + 8, left: Math.max(8, r.left) });
+    }
+    const close = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (ref.current && !ref.current.contains(t) && !popRef.current?.contains(t)) setOpen(false);
+    };
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
     document.addEventListener('mousedown', close);
     document.addEventListener('keydown', esc);
@@ -62,7 +74,7 @@ export function LanguageMenuButton({
       document.removeEventListener('mousedown', close);
       document.removeEventListener('keydown', esc);
     };
-  }, [open]);
+  }, [open, align]);
 
   return (
     <div className="relative" ref={ref}>
@@ -78,11 +90,13 @@ export function LanguageMenuButton({
         <Globe className="w-[18px] h-[18px]" />
         <span className="text-xs font-bold">{(current?.code || 'en').toUpperCase()}</span>
       </button>
-      {open && (
+      {open && createPortal(
         <div
+          ref={popRef}
           role="dialog"
           aria-label={t('header.language')}
-          className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} mt-2 w-[min(92vw,420px)] max-h-[70vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl z-50`}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, right: pos.right, maxHeight: `calc(100vh - ${pos.top + 12}px)` }}
+          className="w-[min(92vw,420px)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl z-[100]"
         >
           <LanguageGrid
             value={value}
@@ -92,7 +106,8 @@ export function LanguageMenuButton({
               setOpen(false);
             }}
           />
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
