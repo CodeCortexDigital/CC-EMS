@@ -30,7 +30,8 @@ const HEADER_STYLES: Record<string, string> = {
   White: 'bg-white text-slate-800 border-b border-slate-200',
 };
 
-let cachedSchoolName = '';
+// The school name is kept for the signed-in person only: signing in as someone from another school in the same tab must not show the first school's name.
+let cachedSchool: { who: string; name: string } | null = null;
 
 export default function Header({ onMobileMenuToggle }: HeaderProps) {
   const { user, role, logout } = useAuth();
@@ -43,7 +44,8 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
   useSearchShortcut(openSearch);
   const [headerStyle, setHeaderStyle] = useState(() => readThemeSettings().headerBg);
   const [dark, setDark] = useState(() => isDarkMode(readThemeSettings().themeMode));
-  const [schoolName, setSchoolName] = useState(cachedSchoolName);
+  const who = user?.email || '';
+  const [schoolName, setSchoolName] = useState(cachedSchool && cachedSchool.who === who ? cachedSchool.name : '');
   const menuRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
   const userLanguage = useLocaleStore((s) => s.userLanguage);
@@ -62,15 +64,19 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
   }, []);
 
   useEffect(() => {
-    if (cachedSchoolName) return;
+    if (!who) return;
+    if (cachedSchool && cachedSchool.who === who) { setSchoolName(cachedSchool.name); return; }
+    setSchoolName('');
+    let live = true;
     tenantService.current().then((tenant) => {
       const name = tenant?.settings_json?.institute_name || tenant?.name || '';
-      if (name) {
-        cachedSchoolName = name;
+      if (name && live) {
+        cachedSchool = { who, name };
         setSchoolName(name);
       }
     });
-  }, []);
+    return () => { live = false; };
+  }, [who]);
 
   useEffect(() => {
     const onFs = () => setIsFullscreen(Boolean(document.fullscreenElement));
