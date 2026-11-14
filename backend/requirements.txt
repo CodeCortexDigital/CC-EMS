@@ -29,7 +29,7 @@ psycopg2-binary>=2.9
 
 # AI Assistant
 openai>=1.30
-anthropic>=1.8
+anthropic>=2.8.0
 
 # Firebase / Google OAuth
 firebase-admin>=6.5
