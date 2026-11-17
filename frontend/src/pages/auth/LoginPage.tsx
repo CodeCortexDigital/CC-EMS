@@ -34,33 +34,17 @@ const REMEMBER_KEY = 'login_remembered_username';
 
 // Demo accounts: shown only on a demo site, where VITE_DEMO_LOGINS=true is set in the build environment (never on a live site).
 const SHOW_DEMO_LOGINS = import.meta.env.VITE_DEMO_LOGINS === 'true';
-// Demo schools on the sign-in page (demo sites only). Each school has its own accounts; the visitor picks the school with a button, then clicks an account.
-// The Japanese school is offered when VITE_DEMO_JAPAN_SCHOOL=true or when its administrator is given: VITE_DEMO_ADMIN_EMAIL, VITE_DEMO_ADMIN_PASSWORD and
-// (optionally) VITE_DEMO_ADMIN_LABEL. On a site that has only that school, VITE_DEMO_ADMIN_REPLACE=true shows only it. The password is then visible on the
-// page, so use it only for a demo with sample data.
+// Demo school on the sign-in page (demo sites only): click an account to fill the form.
 type DemoLogin = { label: string; email: string; password: string; role: LoginRole };
-export interface DemoSchool { key: 'us' | 'jp'; label: string; name: string; language: string; logins: DemoLogin[] }
-const OWN_ADMIN: DemoLogin | null = import.meta.env.VITE_DEMO_ADMIN_EMAIL && import.meta.env.VITE_DEMO_ADMIN_PASSWORD
-  ? { label: import.meta.env.VITE_DEMO_ADMIN_LABEL || 'Admin', email: String(import.meta.env.VITE_DEMO_ADMIN_EMAIL), password: String(import.meta.env.VITE_DEMO_ADMIN_PASSWORD), role: 'admin' }
-  : null;
+export interface DemoSchool { key: 'us'; label: string; name: string; language: string; logins: DemoLogin[] }
 const US_LOGINS: DemoLogin[] = [
   { label: 'Admin', email: 'admin@code.com', password: 'Admin@123', role: 'admin' },
   { label: 'Teacher', email: 'teacher@code.com', password: 'Teacher@123', role: 'employee' },
   { label: 'Parent', email: 'parent@code.com', password: 'Parent@123', role: 'student' },
   { label: 'Student', email: 'student@code.com', password: 'Student@123', role: 'student' },
 ];
-const JP_LOGINS: DemoLogin[] = [
-  ...(OWN_ADMIN ? [OWN_ADMIN] : []),
-  { label: 'Teacher', email: 'teacher@wakaba.example', password: 'Teacher@123', role: 'employee' },
-  { label: 'Parent', email: 'parent@wakaba.example', password: 'Parent@123', role: 'student' },
-  { label: 'Student', email: 'student@wakaba.example', password: 'Student@123', role: 'student' },
-];
-const JAPAN_OFFERED = import.meta.env.VITE_DEMO_JAPAN_SCHOOL !== 'false';
 const US_SCHOOL: DemoSchool = { key: 'us', label: 'USA school', name: 'Maple Grove Academy', language: 'en', logins: US_LOGINS };
-const JP_SCHOOL: DemoSchool = { key: 'jp', label: 'Japanese school', name: 'Wakaba Gakuen 若葉学園', language: 'ja', logins: JP_LOGINS };
-export const DEMO_SCHOOLS: DemoSchool[] = !JAPAN_OFFERED ? [US_SCHOOL]
-  : import.meta.env.VITE_DEMO_ADMIN_REPLACE === 'true' ? [JP_SCHOOL]
-  : [US_SCHOOL, JP_SCHOOL];
+export const DEMO_SCHOOLS: DemoSchool[] = [US_SCHOOL];
 
 function MicrosoftMark() {
   return (
